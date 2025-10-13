@@ -1,0 +1,39 @@
+{
+  "automation": {
+    "enabled": true,
+    "triggers": {
+      "git-commit": {
+        "enabled": true,
+        "branch": "main",
+        "command": "powershell -ExecutionPolicy Bypass -File \".\\.cursor\\deploy.ps1\""
+      },
+      "file-change": {
+        "enabled": true,
+        "patterns": ["*.php", "*.js", "*.css", "*.html", "*.json"],
+        "delay": 5000,
+        "command": "powershell -ExecutionPolicy Bypass -File \".\\.cursor\\auto-deploy.ps1\""
+      }
+    },
+    "notifications": {
+      "enabled": true,
+      "onStart": "Iniciando deploy automático...",
+      "onSuccess": "Deploy concluído com sucesso!",
+      "onError": "Erro no deploy automático"
+    },
+    "logging": {
+      "enabled": true,
+      "level": "INFO",
+      "file": "logs/automation.log"
+    }
+  },
+  "deploy": {
+    "autoCommit": true,
+    "autoPush": true,
+    "checkInterval": 10,
+    "maxWaitTime": 300,
+    "notifications": {
+      "windows": true,
+      "toast": true
+    }
+  }
+}

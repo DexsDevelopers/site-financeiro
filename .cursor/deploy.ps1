@@ -1,9 +1,25 @@
 # Deploy automatico com monitoramento e barra de progresso
 # Compatibilidade total com PowerShell Windows
+# Sistema de automação integrado com Cursor AI
 
 $BRANCH = "main"
 $REPO = "https://github.com/DexsDevelopers/site-financeiro.git"
 $CHECK_URL = "https://gold-quail-250128.hostingersite.com/seu_projeto/"  # ajuste se necessario
+$LOG_FILE = "logs/deploy.log"
+
+# Criar diretório de logs se não existir
+if (!(Test-Path "logs")) {
+    New-Item -ItemType Directory -Path "logs" -Force | Out-Null
+}
+
+# Função de log
+function Write-Log {
+    param([string]$Message, [string]$Level = "INFO")
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $logEntry = "[$timestamp] [$Level] $Message"
+    Write-Host $logEntry
+    Add-Content -Path $LOG_FILE -Value $logEntry
+}
 
 Write-Host ""
 Write-Host "=============================================" -ForegroundColor DarkGray
@@ -11,13 +27,27 @@ Write-Host " Iniciando deploy automatico - Cursor -> Hostinger" -ForegroundColor
 Write-Host "=============================================" -ForegroundColor DarkGray
 Write-Host ""
 
+Write-Log "=== INICIANDO DEPLOY AUTOMÁTICO ===" "INFO"
+
 # 1. Commit e push automaticos
-git add .
-git commit -m "Atualizacao automatica do Cursor" | Out-Null
+Write-Log "Verificando mudanças..." "INFO"
+$gitStatus = git status --porcelain
+if ($gitStatus) {
+    Write-Log "Mudanças detectadas, fazendo commit..." "INFO"
+    git add .
+    $commitMessage = "Deploy automático - $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+    git commit -m $commitMessage | Out-Null
+    Write-Log "Commit realizado: $commitMessage" "SUCCESS"
+} else {
+    Write-Log "Nenhuma mudança detectada" "INFO"
+}
+
 git push origin $BRANCH
 
 Write-Host "Codigo enviado para o GitHub ($REPO)" -ForegroundColor Green
+Write-Log "Código enviado para o GitHub" "SUCCESS"
 Write-Host "Aguardando Hostinger iniciar o deploy..." -ForegroundColor Yellow
+Write-Log "Aguardando Hostinger processar o deploy..." "INFO"
 
 # 2. Parametros de monitoramento
 $maxWait = 300     # tempo maximo de espera (segundos)
