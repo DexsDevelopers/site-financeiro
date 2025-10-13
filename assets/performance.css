@@ -1,0 +1,96 @@
+/* =========================================== */
+/* OTIMIZAÇÕES DE PERFORMANCE GLOBAIS */
+/* =========================================== */
+
+/* Otimizações de renderização */
+* {
+    box-sizing: border-box;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Otimizações de scroll */
+html {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+}
+
+body {
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+}
+
+/* Otimizações de imagens */
+img {
+    max-width: 100%;
+    height: auto;
+    loading: lazy;
+}
+
+/* Otimizações de animações */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Otimizações para dispositivos de baixa performance */
+@media (max-width: 768px) {
+    * {
+        animation-duration: 0.2s !important;
+        transition-duration: 0.2s !important;
+    }
+}
+
+/* Otimizações de fontes */
+@font-face {
+    font-family: 'Poppins';
+    font-display: swap;
+}
+
+/* Otimizações de containers */
+.container, .container-fluid {
+    contain: layout style;
+}
+
+/* Otimizações de cards */
+.card, .course-card, .productivity-card {
+    contain: layout style paint;
+    will-change: transform;
+}
+
+/* Otimizações de botões */
+.btn {
+    contain: layout style;
+    will-change: transform;
+}
+
+/* Otimizações de modais */
+.modal {
+    contain: layout style paint;
+}
+
+/* Otimizações de tabelas */
+.table-responsive {
+    contain: layout style;
+}
+
+/* Otimizações de scroll suave */
+.smooth-scroll {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Otimizações de performance para mobile */
+@media (max-width: 768px) {
+    .card, .course-card, .productivity-card {
+        will-change: auto;
+    }
+    
+    .btn {
+        will-change: auto;
+    }
+}

@@ -1,0 +1,121 @@
+/* =========================================== */
+/* CORREÇÃO DE SCROLL NO MOBILE */
+/* =========================================== */
+
+@media screen and (max-width: 768px) {
+    /* Resetar configurações problemáticas */
+    * {
+        -webkit-overflow-scrolling: touch !important;
+        touch-action: auto !important;
+    }
+    
+    /* HTML e Body com scroll livre */
+    html {
+        height: 100% !important;
+        overflow-x: hidden !important;
+        -webkit-overflow-scrolling: touch !important;
+        touch-action: pan-y !important;
+    }
+    
+    body {
+        height: 100% !important;
+        overflow-x: hidden !important;
+        -webkit-overflow-scrolling: touch !important;
+        touch-action: pan-y !important;
+        position: relative !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    /* Main content com scroll livre */
+    .main-content {
+        height: auto !important;
+        min-height: 100vh !important;
+        overflow-x: hidden !important;
+        -webkit-overflow-scrolling: touch !important;
+        touch-action: pan-y !important;
+    }
+    
+    /* Containers com scroll livre */
+    .container, .container-fluid {
+        -webkit-overflow-scrolling: touch !important;
+        touch-action: pan-y !important;
+        overflow-x: hidden !important;
+    }
+    
+    /* Cards com scroll livre */
+    .card {
+        -webkit-overflow-scrolling: touch !important;
+        touch-action: pan-y !important;
+        overflow-x: hidden !important;
+    }
+    
+    /* Modais com scroll livre */
+    .modal-content {
+        -webkit-overflow-scrolling: touch !important;
+        touch-action: pan-y !important;
+        overflow-x: hidden !important;
+    }
+    
+    .modal-body {
+        -webkit-overflow-scrolling: touch !important;
+        touch-action: pan-y !important;
+        overflow-x: hidden !important;
+        max-height: 70vh !important;
+        overflow-y: auto !important;
+    }
+    
+    /* Hero sections com scroll livre */
+    .productivity-hero, .timer-hero, .tasks-hero {
+        -webkit-overflow-scrolling: touch !important;
+        touch-action: pan-y !important;
+        overflow-x: hidden !important;
+    }
+    
+    /* Feature cards com scroll livre */
+    .feature-card {
+        -webkit-overflow-scrolling: touch !important;
+        touch-action: pan-y !important;
+        overflow-x: hidden !important;
+    }
+    
+    /* Task cards com scroll livre */
+    .task-card {
+        -webkit-overflow-scrolling: touch !important;
+        touch-action: pan-y !important;
+        overflow-x: hidden !important;
+    }
+    
+    /* Sidebar com scroll livre */
+    .sidebar {
+        -webkit-overflow-scrolling: touch !important;
+        touch-action: pan-y !important;
+        overflow-x: hidden !important;
+    }
+    
+    /* Tabelas com scroll horizontal quando necessário */
+    .table-responsive {
+        -webkit-overflow-scrolling: touch !important;
+        touch-action: pan-x pan-y !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+    }
+    
+    /* Formulários com scroll livre */
+    .form-control, .form-select, textarea {
+        -webkit-overflow-scrolling: touch !important;
+        touch-action: pan-y !important;
+    }
+    
+    /* Remover touch-action: manipulation que pode causar problemas */
+    button, .btn, a, input, select, textarea {
+        touch-action: pan-y !important;
+    }
+    
+    /* Garantir que elementos não bloqueiem scroll */
+    .fixed-top, .fixed-bottom, .sticky-top {
+        -webkit-overflow-scrolling: touch !important;
+        touch-action: pan-y !important;
+    }
+}
+

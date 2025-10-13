@@ -1,0 +1,732 @@
+/* =========================================== */
+/* DESIGN SYSTEM MODERNO - PALETA ORIGINAL */
+/* =========================================== */
+
+:root {
+	/* Cores Principais */
+	--accent: #e50914;
+	--accent-600: #c20811;
+	--accent-300: #ff4d55;
+	--accent-100: #ff6b73;
+	--accent-50: #ff8a90;
+	
+	/* Backgrounds */
+	--bg-900: #0d0d0f;
+	--bg-800: #141417;
+	--bg-700: #1c1c20;
+	--bg-600: #242428;
+	--bg-500: #2c2c30;
+	
+	/* Textos */
+	--text-100: #f5f5f1;
+	--text-200: #e8e8e4;
+	--text-300: #dbdbd7;
+	--text-400: #c7c7cb;
+	--text-500: #b3b3b7;
+	--text-600: #a3a3a8;
+	--text-700: #8a8a8f;
+	--text-800: #717176;
+	
+	/* Bordas e Separadores */
+	--border: rgba(255,255,255,0.08);
+	--border-light: rgba(255,255,255,0.12);
+	--border-dark: rgba(255,255,255,0.04);
+	
+	/* Sombras */
+	--shadow-sm: 0 2px 8px rgba(0,0,0,0.15);
+	--shadow-md: 0 4px 16px rgba(0,0,0,0.2);
+	--shadow-lg: 0 8px 32px rgba(0,0,0,0.25);
+	--shadow-xl: 0 16px 64px rgba(0,0,0,0.3);
+	--shadow-accent: 0 4px 20px rgba(229,9,20,0.3);
+	
+	/* Bordas */
+	--radius: 12px;
+	--radius-sm: 8px;
+	--radius-lg: 16px;
+	--radius-xl: 20px;
+	--radius-full: 50px;
+	
+	/* Transições */
+	--transition-fast: 0.15s ease;
+	--transition-normal: 0.2s ease;
+	--transition-slow: 0.3s ease;
+	
+	/* Espaçamentos */
+	--space-xs: 0.25rem;
+	--space-sm: 0.5rem;
+	--space-md: 1rem;
+	--space-lg: 1.5rem;
+	--space-xl: 2rem;
+	--space-2xl: 3rem;
+	
+	/* Tipografia */
+	--font-primary: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+	--font-mono: 'Roboto Mono', 'Fira Code', 'Cascadia Code', monospace;
+	
+	/* Z-index */
+	--z-dropdown: 1000;
+	--z-sticky: 1020;
+	--z-fixed: 1030;
+	--z-modal-backdrop: 1040;
+	--z-modal: 1050;
+	--z-popover: 1060;
+	--z-tooltip: 1070;
+}
+
+/* =========================================== */
+/* TIPOGRAFIA MODERNA */
+/* =========================================== */
+
+* {
+	box-sizing: border-box;
+}
+
+html {
+	font-size: 16px;
+	line-height: 1.6;
+	scroll-behavior: smooth;
+	-webkit-text-size-adjust: 100%;
+	-ms-text-size-adjust: 100%;
+	text-size-adjust: 100%;
+}
+
+body {
+	font-family: var(--font-primary);
+	font-weight: 400;
+	color: var(--text-100);
+	background: var(--bg-900);
+	line-height: 1.6;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	-webkit-text-size-adjust: 100%;
+	-ms-text-size-adjust: 100%;
+	text-size-adjust: 100%;
+	overflow-x: hidden;
+}
+
+/* Prevenção de Zoom */
+input, select, textarea, button {
+	font-size: 16px !important;
+	-webkit-text-size-adjust: 100%;
+	-ms-text-size-adjust: 100%;
+	text-size-adjust: 100%;
+}
+
+/* Prevenção total de zoom no mobile */
+* {
+	-webkit-text-size-adjust: 100% !important;
+	-ms-text-size-adjust: 100% !important;
+	text-size-adjust: 100% !important;
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+}
+
+/* Permitir seleção de texto em inputs e textareas */
+input, textarea, [contenteditable] {
+	-webkit-user-select: text !important;
+	-khtml-user-select: text !important;
+	-moz-user-select: text !important;
+	-ms-user-select: text !important;
+	user-select: text !important;
+}
+
+/* Prevenção de zoom em elementos específicos */
+.form-control, .form-select, .btn, input[type="text"], input[type="email"], input[type="password"], input[type="number"], input[type="date"], textarea, select {
+	font-size: 16px !important;
+	-webkit-text-size-adjust: 100% !important;
+	-ms-text-size-adjust: 100% !important;
+	text-size-adjust: 100% !important;
+	-webkit-appearance: none;
+	-moz-appearance: none;
+	appearance: none;
+}
+
+/* Prevenção de zoom em botões */
+button, .btn {
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+}
+
+/* Prevenção de zoom em links */
+a {
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+}
+
+/* Prevenção de zoom em imagens */
+img {
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+	pointer-events: none;
+}
+
+/* Prevenção de zoom em divs e containers */
+div, section, article, header, footer, nav, main, aside {
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+}
+
+/* Hierarquia Tipográfica */
+h1, h2, h3, h4, h5, h6 {
+	font-family: var(--font-primary);
+	font-weight: 700;
+	line-height: 1.2;
+	letter-spacing: -0.02em;
+	color: var(--text-100);
+	margin: 0 0 var(--space-md) 0;
+}
+
+h1 { font-size: 2.5rem; font-weight: 800; }
+h2 { font-size: 2rem; font-weight: 700; }
+h3 { font-size: 1.75rem; font-weight: 600; }
+h4 { font-size: 1.5rem; font-weight: 600; }
+h5 { font-size: 1.25rem; font-weight: 600; }
+h6 { font-size: 1.125rem; font-weight: 600; }
+
+.lead { 
+	color: var(--text-400); 
+	font-size: 1.125rem;
+	line-height: 1.7;
+	font-weight: 400;
+}
+
+.text-muted { color: var(--text-600) !important; }
+.text-accent { color: var(--accent) !important; }
+
+/* Layout helpers */
+.container-narrow { max-width: 980px; margin-inline: auto; }
+.section { margin-block: var(--space-2xl); }
+
+/* =========================================== */
+/* COMPONENTES MODERNOS */
+/* =========================================== */
+
+/* Cards com Glassmorphism */
+.card {
+	background: linear-gradient(135deg, 
+		rgba(28,28,32,0.8) 0%, 
+		rgba(20,20,23,0.6) 100%) !important;
+	backdrop-filter: blur(20px);
+	-webkit-backdrop-filter: blur(20px);
+	border: 1px solid var(--border) !important;
+	border-radius: var(--radius-lg) !important;
+	box-shadow: var(--shadow-lg);
+	transition: all var(--transition-normal);
+	position: relative;
+	overflow: hidden;
+}
+
+.card::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: linear-gradient(135deg, 
+		rgba(255,255,255,0.1) 0%, 
+		transparent 50%, 
+		rgba(229,9,20,0.05) 100%);
+	opacity: 0;
+	transition: opacity var(--transition-normal);
+	pointer-events: none;
+}
+
+.card:hover {
+	transform: translateY(-4px);
+	box-shadow: var(--shadow-xl);
+	border-color: var(--border-light);
+}
+
+.card:hover::before {
+	opacity: 1;
+}
+
+.card-hover:hover { 
+	transform: translateY(-4px);
+	box-shadow: var(--shadow-xl);
+}
+
+/* =========================================== */
+/* BOTÕES MODERNOS */
+/* =========================================== */
+
+.btn {
+	font-family: var(--font-primary);
+	font-weight: 600;
+	border-radius: var(--radius-sm);
+	padding: var(--space-sm) var(--space-lg);
+	transition: all var(--transition-fast);
+	position: relative;
+	overflow: hidden;
+	border: none;
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--space-sm);
+	text-decoration: none;
+}
+
+.btn::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: -100%;
+	width: 100%;
+	height: 100%;
+	background: linear-gradient(90deg, 
+		transparent, 
+		rgba(255,255,255,0.2), 
+		transparent);
+	transition: left var(--transition-slow);
+}
+
+.btn:hover::before {
+	left: 100%;
+}
+
+/* Botão Primário */
+.btn-primary {
+	background: linear-gradient(135deg, var(--accent) 0%, var(--accent-600) 100%);
+	color: white;
+	box-shadow: var(--shadow-sm);
+}
+
+.btn-primary:hover {
+	background: linear-gradient(135deg, var(--accent-600) 0%, var(--accent) 100%);
+	transform: translateY(-2px);
+	box-shadow: var(--shadow-accent);
+}
+
+/* Botão Danger */
+.btn-danger {
+	background: linear-gradient(135deg, var(--accent) 0%, var(--accent-600) 100%);
+	color: white;
+	box-shadow: var(--shadow-sm);
+}
+
+.btn-danger:hover {
+	background: linear-gradient(135deg, var(--accent-600) 0%, var(--accent) 100%);
+	transform: translateY(-2px);
+	box-shadow: var(--shadow-accent);
+}
+
+/* Botão Outline */
+.btn-outline-danger {
+	background: transparent;
+	color: var(--accent);
+	border: 2px solid var(--accent);
+}
+
+.btn-outline-danger:hover {
+	background: var(--accent);
+	color: white;
+	transform: translateY(-2px);
+	box-shadow: var(--shadow-accent);
+}
+
+/* Botão Secundário */
+.btn-secondary {
+	background: var(--bg-700);
+	color: var(--text-200);
+	border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+	background: var(--bg-600);
+	color: var(--text-100);
+	transform: translateY(-1px);
+}
+
+/* Tamanhos de Botões */
+.btn-sm {
+	padding: var(--space-xs) var(--space-md);
+	font-size: 0.875rem;
+}
+
+.btn-lg {
+	padding: var(--space-md) var(--space-xl);
+	font-size: 1.125rem;
+}
+
+/* =========================================== */
+/* FORMULÁRIOS MODERNOS */
+/* =========================================== */
+
+.form-control, .form-select {
+	font-family: var(--font-primary);
+	background: linear-gradient(135deg, 
+		rgba(20,20,23,0.8) 0%, 
+		rgba(28,28,32,0.6) 100%);
+	border: 2px solid var(--border);
+	color: var(--text-100);
+	border-radius: var(--radius-sm);
+	padding: var(--space-sm) var(--space-md);
+	transition: all var(--transition-fast);
+	backdrop-filter: blur(10px);
+	-webkit-backdrop-filter: blur(10px);
+}
+
+.form-control:focus, .form-select:focus {
+	background: linear-gradient(135deg, 
+		rgba(20,20,23,0.9) 0%, 
+		rgba(28,28,32,0.8) 100%);
+	border-color: var(--accent);
+	box-shadow: 0 0 0 0.2rem rgba(229, 9, 20, 0.15);
+	outline: none;
+	transform: translateY(-1px);
+}
+
+.form-control::placeholder {
+	color: var(--text-600);
+	opacity: 1;
+}
+
+.form-label {
+	font-weight: 600;
+	color: var(--text-200);
+	margin-bottom: var(--space-xs);
+	font-size: 0.875rem;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+.input-group {
+	position: relative;
+}
+
+.input-group-text {
+	background: var(--bg-700);
+	border: 2px solid var(--border);
+	color: var(--text-400);
+	border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+	transition: all var(--transition-fast);
+}
+
+.input-group .form-control {
+	border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.input-group:focus-within .input-group-text {
+	border-color: var(--accent);
+	background: var(--bg-600);
+	color: var(--accent);
+}
+
+/* =========================================== */
+/* TABELAS MODERNAS */
+/* =========================================== */
+
+.table {
+	color: var(--text-100);
+	background: transparent;
+	border-radius: var(--radius);
+	overflow: hidden;
+}
+
+.table thead th {
+	color: var(--text-400);
+	border-bottom: 2px solid var(--border);
+	background: var(--bg-800);
+	font-weight: 600;
+	text-transform: uppercase;
+	font-size: 0.875rem;
+	letter-spacing: 0.5px;
+	padding: var(--space-md);
+}
+
+.table > :not(caption) > * > * {
+	background-color: transparent;
+	border-bottom: 1px solid var(--border-dark);
+	padding: var(--space-md);
+}
+
+.table-hover tbody tr:hover {
+	background: linear-gradient(135deg, 
+		rgba(255,255,255,0.05) 0%, 
+		rgba(229,9,20,0.02) 100%);
+	transform: scale(1.01);
+	transition: all var(--transition-fast);
+}
+
+/* =========================================== */
+/* BADGES E PROGRESS */
+/* =========================================== */
+
+.badge {
+	font-family: var(--font-primary);
+	font-weight: 600;
+	padding: var(--space-xs) var(--space-sm);
+	border-radius: var(--radius-full);
+	font-size: 0.75rem;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+.badge.bg-danger {
+	background: linear-gradient(135deg, var(--accent) 0%, var(--accent-600) 100%) !important;
+	color: white;
+	box-shadow: var(--shadow-sm);
+}
+
+.badge.bg-success {
+	background: linear-gradient(135deg, #00b894 0%, #00a085 100%) !important;
+	color: white;
+}
+
+.badge.bg-warning {
+	background: linear-gradient(135deg, #ffc107 0%, #ffb300 100%) !important;
+	color: #000;
+}
+
+.progress {
+	background: var(--bg-700);
+	border-radius: var(--radius-full);
+	height: 8px;
+	overflow: hidden;
+	box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.progress-bar {
+	border-radius: var(--radius-full);
+	transition: width var(--transition-slow);
+}
+
+.progress-bar.bg-danger {
+	background: linear-gradient(90deg, var(--accent) 0%, var(--accent-300) 100%) !important;
+	box-shadow: 0 2px 8px rgba(229,9,20,0.3);
+}
+
+/* =========================================== */
+/* UTILITÁRIOS MODERNOS */
+/* =========================================== */
+
+.glass {
+	background: linear-gradient(135deg, 
+		rgba(20,20,22,0.8) 0%, 
+		rgba(28,28,32,0.6) 100%);
+	backdrop-filter: blur(20px);
+	-webkit-backdrop-filter: blur(20px);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-lg);
+	box-shadow: var(--shadow-lg);
+}
+
+.shadow-soft { 
+	box-shadow: var(--shadow-lg); 
+}
+
+.text-accent { 
+	color: var(--accent) !important; 
+}
+
+.text-gradient {
+	background: linear-gradient(135deg, var(--text-100) 0%, var(--accent-300) 100%);
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
+}
+
+/* =========================================== */
+/* COMPONENTES ESPECÍFICOS */
+/* =========================================== */
+
+/* Sidebar Navigation */
+.sidebar-nav .nav-link {
+	border-radius: var(--radius-sm);
+	margin: var(--space-xs) var(--space-sm);
+	padding: var(--space-sm) var(--space-md);
+	transition: all var(--transition-fast);
+	position: relative;
+}
+
+.sidebar-nav .nav-link.active {
+	color: var(--accent) !important;
+	border-left: 3px solid var(--accent);
+	background: linear-gradient(135deg, 
+		rgba(229,9,20,0.1) 0%, 
+		rgba(255,255,255,0.05) 100%);
+}
+
+.sidebar-nav .nav-link:hover {
+	background: linear-gradient(135deg, 
+		rgba(255,255,255,0.05) 0%, 
+		rgba(229,9,20,0.05) 100%);
+	transform: translateX(4px);
+}
+
+/* Admin Components */
+.admin-card { 
+	border-radius: var(--radius-lg);
+	background: var(--glass);
+}
+
+.admin-sidebar .nav-link.active { 
+	box-shadow: inset 0 0 0 1px var(--border-light);
+	background: var(--bg-700);
+}
+
+/* =========================================== */
+/* SCROLLBAR PERSONALIZADA */
+/* =========================================== */
+
+::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+
+::-webkit-scrollbar-track {
+	background: var(--bg-800);
+	border-radius: var(--radius-sm);
+}
+
+::-webkit-scrollbar-thumb {
+	background: linear-gradient(135deg, var(--bg-600) 0%, var(--bg-500) 100%);
+	border-radius: var(--radius-sm);
+	transition: background var(--transition-fast);
+}
+
+::-webkit-scrollbar-thumb:hover {
+	background: linear-gradient(135deg, var(--accent) 0%, var(--accent-600) 100%);
+}
+
+* {
+	scrollbar-width: thin;
+	scrollbar-color: var(--bg-600) var(--bg-800);
+}
+
+/* =========================================== */
+/* RESPONSIVIDADE E ACESSIBILIDADE */
+/* =========================================== */
+
+/* Motion preferences: keep site light */
+@media (prefers-reduced-motion: reduce) {
+	*, *::before, *::after {
+		animation-duration: 0.001ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.001ms !important;
+		scroll-behavior: auto !important;
+	}
+}
+
+/* Focus states para acessibilidade */
+.btn:focus-visible,
+.form-control:focus-visible,
+.form-select:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+	:root {
+		--border: rgba(255,255,255,0.3);
+		--text-600: var(--text-400);
+	}
+}
+
+/* Print styles */
+@media print {
+	.card {
+		box-shadow: none !important;
+		background: white !important;
+		color: black !important;
+	}
+}
+
+/* =========================================== */
+/* PREVENÇÃO TOTAL DE ZOOM NO MOBILE */
+/* =========================================== */
+
+@media screen and (max-width: 768px) {
+	/* Desabilitar zoom completamente */
+	html {
+		-webkit-text-size-adjust: 100% !important;
+		-ms-text-size-adjust: 100% !important;
+		text-size-adjust: 100% !important;
+		-webkit-touch-callout: none !important;
+		-webkit-user-select: none !important;
+		-khtml-user-select: none !important;
+		-moz-user-select: none !important;
+		-ms-user-select: none !important;
+		user-select: none !important;
+	}
+	
+	body {
+		-webkit-text-size-adjust: 100% !important;
+		-ms-text-size-adjust: 100% !important;
+		text-size-adjust: 100% !important;
+		-webkit-touch-callout: none !important;
+		-webkit-user-select: none !important;
+		-khtml-user-select: none !important;
+		-moz-user-select: none !important;
+		-ms-user-select: none !important;
+		user-select: none !important;
+		overflow-x: hidden !important;
+		touch-action: pan-x pan-y !important;
+	}
+	
+	/* Permitir seleção apenas em inputs */
+	input, textarea, [contenteditable] {
+		-webkit-user-select: text !important;
+		-khtml-user-select: text !important;
+		-moz-user-select: text !important;
+		-ms-user-select: text !important;
+		user-select: text !important;
+		-webkit-touch-callout: default !important;
+	}
+	
+	/* Desabilitar zoom em todos os elementos */
+	*, *::before, *::after {
+		-webkit-text-size-adjust: 100% !important;
+		-ms-text-size-adjust: 100% !important;
+		text-size-adjust: 100% !important;
+		-webkit-touch-callout: none !important;
+		-webkit-user-select: none !important;
+		-khtml-user-select: none !important;
+		-moz-user-select: none !important;
+		-ms-user-select: none !important;
+		user-select: none !important;
+	}
+	
+	/* Forçar tamanho de fonte para evitar zoom automático */
+	input, select, textarea, button {
+		font-size: 16px !important;
+		-webkit-text-size-adjust: 100% !important;
+		-ms-text-size-adjust: 100% !important;
+		text-size-adjust: 100% !important;
+	}
+	
+	/* Desabilitar gestos de zoom */
+	* {
+		touch-action: manipulation !important;
+	}
+	
+	/* Desabilitar double-tap zoom */
+	* {
+		-webkit-tap-highlight-color: transparent !important;
+	}
+}
+
+
