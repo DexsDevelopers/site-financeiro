@@ -20,7 +20,7 @@ Write-Host "Codigo enviado para o GitHub ($REPO)" -ForegroundColor Green
 Write-Host "Aguardando Hostinger iniciar o deploy..." -ForegroundColor Yellow
 
 # 2. Parametros de monitoramento
-$maxWait = 180     # tempo maximo de espera (segundos)
+$maxWait = 300     # tempo maximo de espera (segundos)
 $interval = 5      # intervalo entre verificacoes
 $elapsed = 0
 
