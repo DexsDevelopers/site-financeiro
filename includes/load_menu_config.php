@@ -40,7 +40,7 @@ if (!$menu_config) {
         'paginas_visiveis' => [
             'academy' => ['cursos.php', 'treinos.php', 'rotina_academia.php', 'alimentacao.php', 'notas_cursos.php'],
             'financeiro' => ['compras_futuras.php', 'relatorios.php', 'extrato_completo.php', 'recorrentes.php', 'orcamento.php', 'categorias.php', 'regras_categorizacao.php', 'alertas_inteligentes.php'],
-            'produtividade' => ['tarefas.php', 'calendario.php', 'temporizador.php', 'pomodoro.php'],
+            'produtividade' => ['tarefas.php', 'calendario.php', 'pomodoro.php'],
             'personalizacao' => ['temas_customizaveis.php', 'layouts_flexiveis.php', 'preferencias_avancadas.php', 'personalizar_menu.php'],
             'sistema' => ['perfil.php']
         ],
@@ -48,7 +48,7 @@ if (!$menu_config) {
         'ordem_paginas' => [
             'academy' => ['cursos.php', 'treinos.php', 'rotina_academia.php', 'alimentacao.php', 'notas_cursos.php'],
             'financeiro' => ['compras_futuras.php', 'relatorios.php', 'extrato_completo.php', 'recorrentes.php', 'orcamento.php', 'categorias.php', 'regras_categorizacao.php', 'alertas_inteligentes.php'],
-            'produtividade' => ['tarefas.php', 'calendario.php', 'temporizador.php', 'pomodoro.php'],
+            'produtividade' => ['tarefas.php', 'calendario.php', 'pomodoro.php'],
             'personalizacao' => ['temas_customizaveis.php', 'layouts_flexiveis.php', 'preferencias_avancadas.php', 'personalizar_menu.php'],
             'sistema' => ['perfil.php']
         ]
@@ -122,7 +122,6 @@ $paginasInfo = [
     'alertas_inteligentes.php' => ['nome' => 'Alertas Inteligentes', 'icone' => 'bi-bell-fill'],
     'tarefas.php' => ['nome' => 'Rotina de Tarefas', 'icone' => 'bi-check2-square'],
     'calendario.php' => ['nome' => 'Calendário', 'icone' => 'bi-calendar3'],
-    'temporizador.php' => ['nome' => 'Temporizador', 'icone' => 'bi-stopwatch'],
     'pomodoro.php' => ['nome' => 'Pomodoro Timer', 'icone' => 'bi-stopwatch'],
     'temas_customizaveis.php' => ['nome' => 'Temas Customizáveis', 'icone' => 'bi-palette'],
     'layouts_flexiveis.php' => ['nome' => 'Layouts Flexíveis', 'icone' => 'bi-layout-window'],
