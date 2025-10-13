@@ -458,7 +458,7 @@ $progressoDia = $statsDia['total_tarefas'] > 0 ?
 <script>
 // Concluir tarefa
 function concluirTarefa(tarefaId) {
-    fetch('concluir_tarefa.php', {
+    fetch('concluir_tarefa_ajax.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: tarefaId })
