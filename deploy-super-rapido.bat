@@ -19,7 +19,7 @@ git push origin main
 echo.
 echo ✅ Deploy super rápido concluído!
 echo 💡 O site será atualizado automaticamente pela Hostinger
-echo 🔗 Verifique: https://gold-quail-250128.hostingersite.com/
+echo 🔗 Verifique: https://gold-quail-250128.hostingersite.com/seu_projeto/
 echo.
 
 pause

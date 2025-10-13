@@ -48,7 +48,7 @@ $elapsed = 0
 
 while ($elapsed -lt $maxWait) {
     try {
-        $response = Invoke-WebRequest -Uri "https://gold-quail-250128.hostingersite.com/" -UseBasicParsing -TimeoutSec 3
+        $response = Invoke-WebRequest -Uri "https://gold-quail-250128.hostingersite.com/seu_projeto/" -UseBasicParsing -TimeoutSec 3
         if ($response.StatusCode -eq 200) {
             Write-Host ""
             Write-Host "✅ Deploy concluído em ${elapsed}s!" -ForegroundColor Green
@@ -74,7 +74,7 @@ while ($elapsed -lt $maxWait) {
 Write-Host ""
 Write-Host "⚡ Deploy enviado! (Verificação rápida)" -ForegroundColor Green
 Write-Host "💡 O site pode levar alguns segundos para atualizar" -ForegroundColor Yellow
-Write-Host "🔗 Verifique: https://gold-quail-250128.hostingersite.com/" -ForegroundColor Cyan
+Write-Host "🔗 Verifique: https://gold-quail-250128.hostingersite.com/seu_projeto/" -ForegroundColor Cyan
 
 Write-Log "Deploy enviado - verificação rápida concluída" "SUCCESS"
 
