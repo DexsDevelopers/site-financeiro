@@ -1,12 +1,30 @@
 <?php
 // automatizacao_horario.php - Sistema de automatização baseada no horário
 
-require_once 'templates/header.php';
+// Iniciar sessão se não estiver iniciada
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // Verificar se o usuário está logado
 if (!isset($_SESSION['user_id'])) {
-    header("Location: index.php");
+    // Redirecionar para login com mensagem
+    header("Location: index.php?msg=login_required");
     exit();
+}
+
+// Incluir header após verificar login
+try {
+    require_once 'templates/header.php';
+} catch (Exception $e) {
+    error_log("Erro ao incluir header: " . $e->getMessage());
+    die("Erro interno do servidor. Tente novamente em alguns minutos.");
+}
+
+// Verificar se as variáveis necessárias estão definidas
+if (!isset($pdo) || !$pdo instanceof PDO) {
+    error_log("Erro: Conexão com banco de dados não disponível");
+    die("Erro de conexão com o banco de dados.");
 }
 
 $userId = $_SESSION['user_id'];
@@ -36,22 +54,27 @@ if ($horaAtual >= 5 && $horaAtual < 12) {
 }
 
 // Buscar tarefas por período
-$stmt = $pdo->prepare("
-    SELECT 
-        t.*,
-        CASE 
-            WHEN t.hora_inicio IS NULL THEN 'sem_horario'
-            WHEN TIME(t.hora_inicio) BETWEEN '05:00:00' AND '11:59:59' THEN 'manha'
-            WHEN TIME(t.hora_inicio) BETWEEN '12:00:00' AND '17:59:59' THEN 'tarde'
-            WHEN TIME(t.hora_inicio) BETWEEN '18:00:00' AND '23:59:59' THEN 'noite'
-            ELSE 'sem_horario'
-        END as periodo_tarefa
-    FROM tarefas t
-    WHERE t.id_usuario = ? AND t.status = 'pendente'
-    ORDER BY t.prioridade DESC, t.data_criacao ASC
-");
-$stmt->execute([$userId]);
-$todasTarefas = $stmt->fetchAll();
+try {
+    $stmt = $pdo->prepare("
+        SELECT 
+            t.*,
+            CASE 
+                WHEN t.hora_inicio IS NULL THEN 'sem_horario'
+                WHEN TIME(t.hora_inicio) BETWEEN '05:00:00' AND '11:59:59' THEN 'manha'
+                WHEN TIME(t.hora_inicio) BETWEEN '12:00:00' AND '17:59:59' THEN 'tarde'
+                WHEN TIME(t.hora_inicio) BETWEEN '18:00:00' AND '23:59:59' THEN 'noite'
+                ELSE 'sem_horario'
+            END as periodo_tarefa
+        FROM tarefas t
+        WHERE t.id_usuario = ? AND t.status = 'pendente'
+        ORDER BY t.prioridade DESC, t.data_criacao ASC
+    ");
+    $stmt->execute([$userId]);
+    $todasTarefas = $stmt->fetchAll();
+} catch (PDOException $e) {
+    error_log("Erro ao buscar tarefas: " . $e->getMessage());
+    $todasTarefas = [];
+}
 
 // Filtrar tarefas por período
 $tarefasManha = array_filter($todasTarefas, function($t) { return $t['periodo_tarefa'] === 'manha'; });
@@ -60,25 +83,41 @@ $tarefasNoite = array_filter($todasTarefas, function($t) { return $t['periodo_ta
 $tarefasSemHorario = array_filter($todasTarefas, function($t) { return $t['periodo_tarefa'] === 'sem_horario'; });
 
 // Contar tarefas concluídas hoje
-$stmt = $pdo->prepare("
-    SELECT COUNT(*) as total_concluidas
-    FROM tarefas 
-    WHERE id_usuario = ? AND status = 'concluida' AND DATE(data_atualizacao) = CURDATE()
-");
-$stmt->execute([$userId]);
-$tarefasConcluidasHoje = $stmt->fetch()['total_concluidas'];
+try {
+    $stmt = $pdo->prepare("
+        SELECT COUNT(*) as total_concluidas
+        FROM tarefas 
+        WHERE id_usuario = ? AND status = 'concluida' AND DATE(data_atualizacao) = CURDATE()
+    ");
+    $stmt->execute([$userId]);
+    $result = $stmt->fetch();
+    $tarefasConcluidasHoje = $result ? $result['total_concluidas'] : 0;
+} catch (PDOException $e) {
+    error_log("Erro ao contar tarefas concluídas: " . $e->getMessage());
+    $tarefasConcluidasHoje = 0;
+}
 
 // Buscar estatísticas do dia
-$stmt = $pdo->prepare("
-    SELECT 
-        COUNT(*) as total_tarefas,
-        COUNT(CASE WHEN status = 'concluida' THEN 1 END) as concluidas,
-        COUNT(CASE WHEN status = 'pendente' THEN 1 END) as pendentes
-    FROM tarefas 
-    WHERE id_usuario = ? AND DATE(data_criacao) = CURDATE()
-");
-$stmt->execute([$userId]);
-$statsDia = $stmt->fetch();
+try {
+    $stmt = $pdo->prepare("
+        SELECT 
+            COUNT(*) as total_tarefas,
+            COUNT(CASE WHEN status = 'concluida' THEN 1 END) as concluidas,
+            COUNT(CASE WHEN status = 'pendente' THEN 1 END) as pendentes
+        FROM tarefas 
+        WHERE id_usuario = ? AND DATE(data_criacao) = CURDATE()
+    ");
+    $stmt->execute([$userId]);
+    $statsDia = $stmt->fetch();
+    
+    // Garantir que as estatísticas existam
+    if (!$statsDia) {
+        $statsDia = ['total_tarefas' => 0, 'concluidas' => 0, 'pendentes' => 0];
+    }
+} catch (PDOException $e) {
+    error_log("Erro ao buscar estatísticas: " . $e->getMessage());
+    $statsDia = ['total_tarefas' => 0, 'concluidas' => 0, 'pendentes' => 0];
+}
 
 $progressoDia = $statsDia['total_tarefas'] > 0 ? 
     ($statsDia['concluidas'] / $statsDia['total_tarefas']) * 100 : 0;
