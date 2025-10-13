@@ -14,6 +14,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'admin') {
     exit();
 }
 
+
 // Inclui suas chaves de API
 require_once '../includes/db_connect.php';
 
