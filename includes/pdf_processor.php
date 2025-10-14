@@ -57,7 +57,69 @@ class PDFProcessor {
             }
         }
         
-        // Método 3: Fallback - retornar dados de exemplo para demonstração
+        // Método 3: Tentar com Python (se disponível)
+        if (function_exists('shell_exec') && $this->comandoDisponivel('python3')) {
+            $script = "
+import sys
+import PyPDF2
+import io
+
+try:
+    with open('$caminhoArquivo', 'rb') as file:
+        reader = PyPDF2.PdfReader(file)
+        text = ''
+        for page in reader.pages:
+            text += page.extract_text()
+        print(text)
+except Exception as e:
+    print('ERRO:', str(e))
+";
+            $tempScript = tempnam(sys_get_temp_dir(), 'pdf_extract_');
+            file_put_contents($tempScript, $script);
+            $texto = shell_exec("python3 '$tempScript' 2>/dev/null");
+            unlink($tempScript);
+            
+            if (!empty($texto) && !strpos($texto, 'ERRO:')) {
+                return $texto;
+            }
+        }
+        
+        // Método 4: Tentar com pdfplumber (Python)
+        if (function_exists('shell_exec') && $this->comandoDisponivel('python3')) {
+            $script = "
+import sys
+import pdfplumber
+
+try:
+    with pdfplumber.open('$caminhoArquivo') as pdf:
+        text = ''
+        for page in pdf.pages:
+            text += page.extract_text() or ''
+        print(text)
+except Exception as e:
+    print('ERRO:', str(e))
+";
+            $tempScript = tempnam(sys_get_temp_dir(), 'pdf_extract_plumber_');
+            file_put_contents($tempScript, $script);
+            $texto = shell_exec("python3 '$tempScript' 2>/dev/null");
+            unlink($tempScript);
+            
+            if (!empty($texto) && !strpos($texto, 'ERRO:')) {
+                return $texto;
+            }
+        }
+        
+        // Método 5: Fallback - tentar ler como texto simples
+        try {
+            $texto = file_get_contents($caminhoArquivo);
+            if (!empty($texto)) {
+                return $texto;
+            }
+        } catch (Exception $e) {
+            error_log("Erro ao ler arquivo: " . $e->getMessage());
+        }
+        
+        // Último recurso - retornar dados de exemplo apenas se não conseguir extrair nada
         return $this->gerarTextoExemplo();
     }
     
@@ -75,42 +137,116 @@ class PDFProcessor {
     private function processarTextoExtrato($texto) {
         $transacoes = [];
         
-        // Padrões para identificar transações
-        $padroes = [
-            // Padrão 1: Data + Descrição + Valor
-            '/(\d{2}\/\d{2}\/\d{4})\s+(.+?)\s+([+-]?\d{1,3}(?:\.\d{3})*(?:,\d{2})?)/',
-            
-            // Padrão 2: Data + Valor + Descrição
-            '/(\d{2}\/\d{2}\/\d{4})\s+([+-]?\d{1,3}(?:\.\d{3})*(?:,\d{2})?)\s+(.+)/',
-            
-            // Padrão 3: Data + Descrição + Valor (formato brasileiro)
-            '/(\d{2}\/\d{2}\/\d{4})\s+(.+?)\s+([+-]?\d{1,3}(?:\.\d{3})*(?:,\d{2})?)/',
-        ];
+        // Log do texto extraído para debug
+        error_log("Texto extraído do PDF: " . substr($texto, 0, 1000) . "...");
         
+        // Limpar e normalizar texto
+        $texto = $this->limparTexto($texto);
+        
+        // Dividir em linhas
         $linhas = explode("\n", $texto);
         
         foreach ($linhas as $linha) {
             $linha = trim($linha);
-            if (empty($linha)) continue;
+            if (empty($linha) || strlen($linha) < 10) continue;
             
-            // Tentar cada padrão
-            foreach ($padroes as $padrao) {
-                if (preg_match($padrao, $linha, $matches)) {
-                    $transacao = $this->processarMatch($matches);
-                    if ($transacao) {
-                        $transacoes[] = $transacao;
-                    }
-                    break;
-                }
+            // Procurar por padrões de transação
+            $transacao = $this->extrairTransacaoDaLinha($linha);
+            if ($transacao) {
+                $transacoes[] = $transacao;
             }
         }
         
-        // Se não encontrou transações com regex, tentar método alternativo
+        // Se não encontrou transações, tentar método alternativo
         if (empty($transacoes)) {
             $transacoes = $this->processarTextoAlternativo($texto);
         }
         
+        // Log das transações encontradas
+        error_log("Transações encontradas: " . count($transacoes));
+        
         return $transacoes;
+    }
+    
+    /**
+     * Limpar e normalizar texto do PDF
+     */
+    private function limparTexto($texto) {
+        // Remover caracteres especiais desnecessários
+        $texto = preg_replace('/[^\x20-\x7E\s]/', ' ', $texto);
+        
+        // Normalizar espaços
+        $texto = preg_replace('/\s+/', ' ', $texto);
+        
+        // Remover linhas muito curtas (provavelmente não são transações)
+        $linhas = explode("\n", $texto);
+        $linhasLimpa = array_filter($linhas, function($linha) {
+            return strlen(trim($linha)) > 10;
+        });
+        
+        return implode("\n", $linhasLimpa);
+    }
+    
+    /**
+     * Extrair transação de uma linha específica
+     */
+    private function extrairTransacaoDaLinha($linha) {
+        // Padrões mais específicos para extratos bancários brasileiros
+        
+        // Padrão 1: Data + Descrição + Valor (mais comum)
+        if (preg_match('/(\d{2}\/\d{2}\/\d{4})\s+(.+?)\s+([+-]?\d{1,3}(?:\.\d{3})*(?:,\d{2})?)$/', $linha, $matches)) {
+            return $this->criarTransacao($matches[1], $matches[2], $matches[3]);
+        }
+        
+        // Padrão 2: Data + Valor + Descrição
+        if (preg_match('/(\d{2}\/\d{2}\/\d{4})\s+([+-]?\d{1,3}(?:\.\d{3})*(?:,\d{2})?)\s+(.+)$/', $linha, $matches)) {
+            return $this->criarTransacao($matches[1], $matches[3], $matches[2]);
+        }
+        
+        // Padrão 3: Data + Descrição + Valor (com espaços extras)
+        if (preg_match('/(\d{2}\/\d{2}\/\d{4})\s+(.+?)\s+([+-]?\d{1,3}(?:\.\d{3})*(?:,\d{2})?)\s*$/', $linha, $matches)) {
+            return $this->criarTransacao($matches[1], $matches[2], $matches[3]);
+        }
+        
+        // Padrão 4: Procurar por data e valor na linha
+        if (preg_match('/(\d{2}\/\d{2}\/\d{4})/', $linha, $dataMatch)) {
+            $data = $dataMatch[1];
+            
+            // Procurar por valor na linha
+            if (preg_match('/([+-]?\d{1,3}(?:\.\d{3})*(?:,\d{2})?)/', $linha, $valorMatch)) {
+                $valor = $valorMatch[1];
+                
+                // Extrair descrição (tudo que não é data nem valor)
+                $descricao = preg_replace('/(\d{2}\/\d{2}\/\d{4})/', '', $linha);
+                $descricao = preg_replace('/([+-]?\d{1,3}(?:\.\d{3})*(?:,\d{2})?)/', '', $descricao);
+                $descricao = trim($descricao);
+                
+                if (!empty($descricao)) {
+                    return $this->criarTransacao($data, $descricao, $valor);
+                }
+            }
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Criar transação a partir dos dados extraídos
+     */
+    private function criarTransacao($data, $descricao, $valor) {
+        $dataNormalizada = $this->normalizarData($data);
+        $valorNormalizado = $this->normalizarValor($valor);
+        
+        if (!$dataNormalizada || $valorNormalizado === null) {
+            return null;
+        }
+        
+        return [
+            'data' => $dataNormalizada,
+            'descricao' => trim($descricao),
+            'valor' => $valorNormalizado,
+            'tipo' => $valorNormalizado > 0 ? 'receita' : 'despesa'
+        ];
     }
     
     /**
