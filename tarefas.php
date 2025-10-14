@@ -2735,8 +2735,8 @@ function atualizarSecaoRotinasFixas() {
                 // Atualizar a seção de rotinas fixas
                 const container = document.querySelector('.habits-grid');
                 if (container) {
-                    // Usar DocumentFragment para melhor performance
-                    const fragment = document.createDocumentFragment();
+                    // Limpar completamente o container
+                    container.innerHTML = '';
                     
                     if (data.rotinas.length === 0) {
                         // Mostrar estado vazio
@@ -2751,16 +2751,12 @@ function atualizarSecaoRotinasFixas() {
                             emptyState.style.display = 'none';
                         }
                         
-                        // Renderizar rotinas usando template
-                        data.rotinas.forEach(rotina => {
+                        // Renderizar rotinas uma por uma
+                        data.rotinas.forEach((rotina, index) => {
                             const habitItem = criarElementoRotina(rotina);
-                            fragment.appendChild(habitItem);
+                            container.appendChild(habitItem);
                         });
                     }
-                    
-                    // Atualizar DOM de uma vez só
-                    container.innerHTML = '';
-                    container.appendChild(fragment);
                     
                     // Atualizar contadores e progresso
                     atualizarContadoresRotinas(data.rotinas);
@@ -2769,6 +2765,10 @@ function atualizarSecaoRotinasFixas() {
         })
         .catch(error => {
             console.error('Erro ao atualizar rotinas fixas:', error);
+            // Em caso de erro, recarregar a página
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
         });
 }
 
@@ -3204,19 +3204,18 @@ function salvarRotinaFixa() {
     })
     .then(response => response.json())
         .then(data => {
-            if (data.success) {
-                showToast('Sucesso!', data.message);
-                // Fechar modal
-                const modal = bootstrap.Modal.getInstance(document.getElementById('modalAdicionarRotinaFixa'));
-                modal.hide();
-                // Atualizar interface sem reload
-                setTimeout(() => {
-                    // Recriar a seção de rotinas fixas
-                    atualizarSecaoRotinasFixas();
-                }, 1000);
-            } else {
-                showToast('Erro!', data.message, true);
-            }
+        if (data.success) {
+            showToast('Sucesso!', data.message);
+            // Fechar modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('modalAdicionarRotinaFixa'));
+            modal.hide();
+            // Recarregar página para garantir sincronização
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            showToast('Erro!', data.message, true);
+        }
         })
     .catch(error => {
         console.error('Erro:', error);
@@ -3302,9 +3301,9 @@ function confirmarExclusaoHabit() {
             // Fechar modal
             const modal = bootstrap.Modal.getInstance(document.getElementById('modalExcluirHabit'));
             modal.hide();
-            // Atualizar interface sem reload
+            // Recarregar página para evitar problemas de sincronização
             setTimeout(() => {
-                atualizarSecaoRotinasFixas();
+                window.location.reload();
             }, 1000);
         } else {
             showToast('Erro!', data.message, true);
