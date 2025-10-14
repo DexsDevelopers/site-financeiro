@@ -128,23 +128,6 @@ try {
     error_log("Erro ao buscar rotinas fixas: " . $e->getMessage());
 }
 
-// Debug: Mostrar informações das rotinas fixas
-if (isset($_GET['debug']) && $_GET['debug'] == 'rotinas') {
-    echo "<div style='background: #f8f9fa; padding: 1rem; border-radius: 8px; margin: 1rem 0; border-left: 4px solid #007bff;'>";
-    echo "<h4>🔍 Debug - Rotinas Fixas</h4>";
-    echo "<p><strong>Total de rotinas:</strong> " . count($rotinasFixas) . "</p>";
-    echo "<p><strong>Progresso:</strong> " . round($progressoRotina) . "%</p>";
-    if (!empty($rotinasFixas)) {
-        echo "<p><strong>Rotinas encontradas:</strong></p><ul>";
-        foreach ($rotinasFixas as $rotina) {
-            echo "<li>{$rotina['nome']} - Status: " . ($rotina['status_hoje'] ?? 'pendente') . "</li>";
-        }
-        echo "</ul>";
-    } else {
-        echo "<p><strong>Nenhuma rotina fixa encontrada</strong></p>";
-    }
-    echo "</div>";
-}
 
 // ===== ROTINAS DE HOJE (ESPECÍFICAS DO DIA) =====
 $rotinasHoje = [];
@@ -1232,44 +1215,6 @@ function formatarTempo($minutos) {
                 </div>
                 <?php endif; ?>
                 
-                <!-- Debug sempre visível -->
-                <div style="background: #e7f3ff; padding: 1rem; border-radius: 8px; margin: 1rem 0; border-left: 4px solid #007bff;">
-                    <h4>🔍 Debug - Rotinas Fixas</h4>
-                    <p><strong>Total de rotinas:</strong> <?php echo count($rotinasFixas); ?></p>
-                    <p><strong>Progresso:</strong> <?php echo round($progressoRotina); ?>%</p>
-                    <p><strong>Usuário ID:</strong> <?php echo $userId; ?></p>
-                    <p><strong>Data hoje:</strong> <?php echo $dataHoje; ?></p>
-                    <?php if (!empty($rotinasFixas)): ?>
-                        <p><strong>Rotinas encontradas:</strong></p>
-                        <ul>
-                            <?php foreach ($rotinasFixas as $rotina): ?>
-                                <li><?php echo htmlspecialchars($rotina['nome']); ?> - Status: <?php echo $rotina['status_hoje'] ?? 'pendente'; ?></li>
-                            <?php endforeach; ?>
-                        </ul>
-                    <?php else: ?>
-                        <p><strong>Nenhuma rotina fixa encontrada</strong></p>
-                        <p><em>Verificando se as tabelas existem...</em></p>
-                        <?php
-                        try {
-                            $stmt = $pdo->query("SHOW TABLES LIKE 'rotinas_fixas'");
-                            if ($stmt->rowCount() > 0) {
-                                echo "<p>✅ Tabela rotinas_fixas existe</p>";
-                            } else {
-                                echo "<p>❌ Tabela rotinas_fixas NÃO existe</p>";
-                            }
-                            
-                            $stmt = $pdo->query("SHOW TABLES LIKE 'rotina_controle_diario'");
-                            if ($stmt->rowCount() > 0) {
-                                echo "<p>✅ Tabela rotina_controle_diario existe</p>";
-                            } else {
-                                echo "<p>❌ Tabela rotina_controle_diario NÃO existe</p>";
-                            }
-                        } catch (PDOException $e) {
-                            echo "<p>❌ Erro ao verificar tabelas: " . $e->getMessage() . "</p>";
-                        }
-                        ?>
-                    <?php endif; ?>
-                </div>
             </div>
         </div>
     </div>
