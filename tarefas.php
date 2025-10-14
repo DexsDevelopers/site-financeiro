@@ -1163,10 +1163,10 @@ function formatarTempo($minutos) {
                 <?php if (!empty($rotinasFixas)): ?>
                 <div class="habits-grid">
                     <?php foreach ($rotinasFixas as $rotina): ?>
-                    <div class="habit-item <?php echo $rotina['status'] === 'concluido' ? 'completed' : ''; ?>">
-                        <div class="habit-main" onclick="toggleRotina(<?php echo $rotina['id']; ?>, '<?php echo $rotina['status']; ?>')">
+                    <div class="habit-item <?php echo $rotina['status_hoje'] === 'concluido' ? 'completed' : ''; ?>">
+                        <div class="habit-main" onclick="toggleRotina(<?php echo $rotina['id']; ?>, '<?php echo $rotina['status_hoje'] ?? 'pendente'; ?>')">
                             <div class="habit-icon">
-                                <i class="bi bi-<?php echo $rotina['status'] === 'concluido' ? 'check-circle-fill' : 'circle'; ?>"></i>
+                                <i class="bi bi-<?php echo $rotina['status_hoje'] === 'concluido' ? 'check-circle-fill' : 'circle'; ?>"></i>
                             </div>
                             <div class="habit-content">
                                 <h6 class="habit-name"><?php echo htmlspecialchars($rotina['nome']); ?></h6>
@@ -2670,24 +2670,40 @@ function exportarEstatisticas() {
 
 // ===== FUNÇÕES ROTINA DIÁRIA =====
 function toggleRotina(id, statusAtual) {
+    console.log('Toggle rotina:', { id, statusAtual });
+    
     const novoStatus = statusAtual === 'concluido' ? 'pendente' : 'concluido';
+    const acao = novoStatus === 'concluido' ? 'concluir' : 'pendente';
+    
+    console.log('Enviando:', { acao, rotina_id: id });
+    
+    // Mostrar loading
+    showToast('Processando...', 'Atualizando rotina...', false);
     
     fetch('processar_rotina_fixa.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `acao=${novoStatus === 'concluido' ? 'concluir' : 'pendente'}&rotina_id=${id}`
+        body: `acao=${acao}&rotina_id=${id}`
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log('Response status:', response.status);
+        return response.json();
+    })
     .then(data => {
+        console.log('Response data:', data);
         if (data.success) {
-            location.reload();
+            showToast('Sucesso!', data.message);
+            // Atualizar interface sem reload
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
         } else {
             showToast('Erro!', data.message, true);
         }
     })
     .catch(error => {
         console.error('Erro:', error);
-        showToast('Erro!', 'Erro de conexão', true);
+        showToast('Erro!', 'Erro de conexão: ' + error.message, true);
     });
 }
 
