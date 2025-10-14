@@ -1,11 +1,11 @@
 <?php
-// processar_rotina_fixa.php - Processar ações das rotinas fixas
+// processar_rotina_fixa.php - Processar ações das rotinas fixas (OTIMIZADO)
 
 session_start();
 require_once 'includes/db_connect.php';
-require_once 'includes/rotina_fixa_functions.php';
 
 header('Content-Type: application/json');
+header('Cache-Control: no-cache, must-revalidate');
 
 $response = ['success' => false, 'message' => 'Ação inválida'];
 
@@ -24,45 +24,48 @@ if (!$userId) {
 
 $acao = $_POST['acao'] ?? '';
 $rotinaId = (int)($_POST['rotina_id'] ?? 0);
-$observacoes = $_POST['observacoes'] ?? '';
+$dataHoje = date('Y-m-d');
 
 try {
     switch ($acao) {
         case 'concluir':
-            if (atualizarStatusRotinaFixa($pdo, $userId, $rotinaId, 'concluido', $observacoes)) {
-                $response['success'] = true;
-                $response['message'] = 'Rotina marcada como concluída';
-                $response['status'] = 'concluido';
-                $response['horario'] = date('H:i:s');
-            } else {
-                $response['message'] = 'Erro ao marcar como concluída';
-            }
-            break;
-            
-        case 'pular':
-            if (atualizarStatusRotinaFixa($pdo, $userId, $rotinaId, 'pulado', $observacoes)) {
-                $response['success'] = true;
-                $response['message'] = 'Rotina pulada';
-                $response['status'] = 'pulado';
-            } else {
-                $response['message'] = 'Erro ao pular rotina';
-            }
-            break;
-            
         case 'pendente':
-            if (atualizarStatusRotinaFixa($pdo, $userId, $rotinaId, 'pendente', $observacoes)) {
-                $response['success'] = true;
-                $response['message'] = 'Rotina marcada como pendente';
-                $response['status'] = 'pendente';
+            $novoStatus = $acao === 'concluir' ? 'concluido' : 'pendente';
+            
+            // Verificar se já existe controle para hoje
+            $stmt = $pdo->prepare("
+                SELECT id FROM rotina_controle_diario 
+                WHERE id_usuario = ? AND id_rotina_fixa = ? AND data_execucao = ?
+            ");
+            $stmt->execute([$userId, $rotinaId, $dataHoje]);
+            $controleExiste = $stmt->fetch();
+            
+            if ($controleExiste) {
+                // Atualizar existente
+                $stmt = $pdo->prepare("
+                    UPDATE rotina_controle_diario 
+                    SET status = ?, horario_execucao = NOW() 
+                    WHERE id = ?
+                ");
+                $stmt->execute([$novoStatus, $controleExiste['id']]);
             } else {
-                $response['message'] = 'Erro ao marcar como pendente';
+                // Criar novo controle
+                $stmt = $pdo->prepare("
+                    INSERT INTO rotina_controle_diario (id_usuario, id_rotina_fixa, data_execucao, status, horario_execucao) 
+                    VALUES (?, ?, ?, ?, NOW())
+                ");
+                $stmt->execute([$userId, $rotinaId, $dataHoje, $novoStatus]);
             }
+            
+            $response['success'] = true;
+            $response['message'] = $novoStatus === 'concluido' ? 'Rotina marcada como concluída' : 'Rotina marcada como pendente';
+            $response['status'] = $novoStatus;
             break;
             
         case 'adicionar':
-            $nome = $_POST['nome'] ?? '';
+            $nome = trim($_POST['nome'] ?? '');
             $horario = $_POST['horario'] ?? null;
-            $descricao = $_POST['descricao'] ?? null;
+            $descricao = trim($_POST['descricao'] ?? '') ?: null;
             $ordem = (int)($_POST['ordem'] ?? 0);
             
             if (empty($nome)) {
@@ -70,8 +73,22 @@ try {
                 break;
             }
             
-            $idRotina = adicionarRotinaFixa($pdo, $userId, $nome, $horario, $descricao, $ordem);
-            if ($idRotina) {
+            // Inserir rotina fixa
+            $stmt = $pdo->prepare("
+                INSERT INTO rotinas_fixas (id_usuario, nome, horario_sugerido, descricao, ordem, ativo) 
+                VALUES (?, ?, ?, ?, ?, TRUE)
+            ");
+            
+            if ($stmt->execute([$userId, $nome, $horario, $descricao, $ordem])) {
+                $idRotina = $pdo->lastInsertId();
+                
+                // Criar controle para hoje
+                $stmt = $pdo->prepare("
+                    INSERT INTO rotina_controle_diario (id_usuario, id_rotina_fixa, data_execucao, status) 
+                    VALUES (?, ?, ?, 'pendente')
+                ");
+                $stmt->execute([$userId, $idRotina, $dataHoje]);
+                
                 $response['success'] = true;
                 $response['message'] = 'Rotina adicionada com sucesso';
                 $response['rotina_id'] = $idRotina;
@@ -80,32 +97,12 @@ try {
             }
             break;
             
-        case 'remover':
-            if (removerRotinaFixa($pdo, $userId, $rotinaId)) {
-                $response['success'] = true;
-                $response['message'] = 'Rotina removida com sucesso';
-            } else {
-                $response['message'] = 'Erro ao remover rotina';
-            }
-            break;
-            
-        case 'toggle':
-            $ativo = $_POST['ativo'] === 'true';
-            if (toggleRotinaFixa($pdo, $userId, $rotinaId, $ativo)) {
-                $response['success'] = true;
-                $response['message'] = $ativo ? 'Rotina ativada' : 'Rotina desativada';
-                $response['ativo'] = $ativo;
-            } else {
-                $response['message'] = 'Erro ao alterar status da rotina';
-            }
-            break;
-            
         default:
             $response['message'] = 'Ação não reconhecida';
     }
     
 } catch (PDOException $e) {
-    $response['message'] = 'Erro no banco de dados: ' . $e->getMessage();
+    $response['message'] = 'Erro no banco de dados';
     error_log("Erro ao processar rotina fixa: " . $e->getMessage());
 }
 

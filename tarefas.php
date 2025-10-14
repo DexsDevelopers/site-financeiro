@@ -402,6 +402,14 @@ function formatarTempo($minutos) {
 .habit-item.completed {
     background: rgba(40, 167, 69, 0.1);
     border-color: rgba(40, 167, 69, 0.3);
+    transform: scale(0.98);
+    transition: all 0.2s ease;
+}
+
+.habit-item.completed .habit-icon {
+    color: var(--success);
+    transform: scale(1.1);
+    transition: all 0.2s ease;
 }
 
 .habit-icon {
@@ -2697,7 +2705,7 @@ function exportarEstatisticas() {
     showToast('Em Desenvolvimento', 'Funcionalidade de exportação será implementada em breve.', false);
 }
 
-// ===== FUNÇÕES DE ATUALIZAÇÃO SEM RELOAD =====
+// ===== FUNÇÕES DE ATUALIZAÇÃO OTIMIZADAS =====
 function atualizarSecaoRotinasFixas() {
     // Buscar dados atualizados das rotinas fixas
     fetch('api_rotinas_fixas.php')
@@ -2707,7 +2715,8 @@ function atualizarSecaoRotinasFixas() {
                 // Atualizar a seção de rotinas fixas
                 const container = document.querySelector('.habits-grid');
                 if (container) {
-                    container.innerHTML = '';
+                    // Usar DocumentFragment para melhor performance
+                    const fragment = document.createDocumentFragment();
                     
                     if (data.rotinas.length === 0) {
                         // Mostrar estado vazio
@@ -2722,67 +2731,91 @@ function atualizarSecaoRotinasFixas() {
                             emptyState.style.display = 'none';
                         }
                         
-                        // Renderizar rotinas
+                        // Renderizar rotinas usando template
                         data.rotinas.forEach(rotina => {
-                            const habitItem = document.createElement('div');
-                            habitItem.className = `habit-item ${rotina.status_hoje === 'concluido' ? 'completed' : ''}`;
-                            habitItem.innerHTML = `
-                                <div class="habit-main" onclick="toggleRotina(${rotina.id}, '${rotina.status_hoje || 'pendente'}')">
-                                    <div class="habit-icon">
-                                        <i class="bi bi-${rotina.status_hoje === 'concluido' ? 'check-circle-fill' : 'circle'}"></i>
-                                    </div>
-                                    <div class="habit-content">
-                                        <h6 class="habit-name">${rotina.nome}</h6>
-                                        ${rotina.horario_sugerido ? `
-                                        <small class="habit-time">
-                                            <i class="bi bi-clock me-1"></i>
-                                            ${new Date('1970-01-01T' + rotina.horario_sugerido).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'})}
-                                        </small>
-                                        ` : ''}
-                                        ${rotina.descricao ? `
-                                        <small class="habit-description">
-                                            <i class="bi bi-card-text me-1"></i>
-                                            ${rotina.descricao}
-                                        </small>
-                                        ` : ''}
-                                    </div>
-                                </div>
-                                <div class="habit-actions">
-                                    <button class="btn btn-sm btn-outline-warning" onclick="editarRotina(${rotina.id}, '${rotina.nome}', '${rotina.horario_sugerido || ''}')" title="Editar hábito">
-                                        <i class="bi bi-pencil"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-danger" onclick="excluirRotina(${rotina.id}, '${rotina.nome}')" title="Excluir hábito">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </div>
-                            `;
-                            container.appendChild(habitItem);
+                            const habitItem = criarElementoRotina(rotina);
+                            fragment.appendChild(habitItem);
                         });
                     }
                     
-                    // Atualizar contadores
-                    const badge = document.querySelector('.section-badge');
-                    if (badge) {
-                        const concluidas = data.rotinas.filter(r => r.status_hoje === 'concluido').length;
-                        badge.textContent = `${concluidas}/${data.rotinas.length} concluídas`;
-                    }
+                    // Atualizar DOM de uma vez só
+                    container.innerHTML = '';
+                    container.appendChild(fragment);
                     
-                    // Atualizar progresso
-                    const progresso = data.rotinas.length > 0 ? (data.rotinas.filter(r => r.status_hoje === 'concluido').length / data.rotinas.length) * 100 : 0;
-                    const progressElement = document.querySelector('.progress-circular');
-                    if (progressElement) {
-                        progressElement.style.setProperty('--progress', progresso + '%');
-                        const progressText = progressElement.querySelector('.progress-text');
-                        if (progressText) {
-                            progressText.textContent = Math.round(progresso) + '%';
-                        }
-                    }
+                    // Atualizar contadores e progresso
+                    atualizarContadoresRotinas(data.rotinas);
                 }
             }
         })
         .catch(error => {
             console.error('Erro ao atualizar rotinas fixas:', error);
         });
+}
+
+// Função auxiliar para criar elemento de rotina
+function criarElementoRotina(rotina) {
+    const habitItem = document.createElement('div');
+    habitItem.className = `habit-item ${rotina.status_hoje === 'concluido' ? 'completed' : ''}`;
+    
+    const horarioHtml = rotina.horario_sugerido ? `
+        <small class="habit-time">
+            <i class="bi bi-clock me-1"></i>
+            ${new Date('1970-01-01T' + rotina.horario_sugerido).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'})}
+        </small>
+    ` : '';
+    
+    const descricaoHtml = rotina.descricao ? `
+        <small class="habit-description">
+            <i class="bi bi-card-text me-1"></i>
+            ${rotina.descricao}
+        </small>
+    ` : '';
+    
+    habitItem.innerHTML = `
+        <div class="habit-main" onclick="toggleRotina(${rotina.id}, '${rotina.status_hoje || 'pendente'}')">
+            <div class="habit-icon">
+                <i class="bi bi-${rotina.status_hoje === 'concluido' ? 'check-circle-fill' : 'circle'}"></i>
+            </div>
+            <div class="habit-content">
+                <h6 class="habit-name">${rotina.nome}</h6>
+                ${horarioHtml}
+                ${descricaoHtml}
+            </div>
+        </div>
+        <div class="habit-actions">
+            <button class="btn btn-sm btn-outline-warning" onclick="editarRotina(${rotina.id}, '${rotina.nome}', '${rotina.horario_sugerido || ''}')" title="Editar hábito">
+                <i class="bi bi-pencil"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-danger" onclick="excluirRotina(${rotina.id}, '${rotina.nome}')" title="Excluir hábito">
+                <i class="bi bi-trash"></i>
+            </button>
+        </div>
+    `;
+    
+    return habitItem;
+}
+
+// Função auxiliar para atualizar contadores
+function atualizarContadoresRotinas(rotinas) {
+    const concluidas = rotinas.filter(r => r.status_hoje === 'concluido').length;
+    const total = rotinas.length;
+    const progresso = total > 0 ? (concluidas / total) * 100 : 0;
+    
+    // Atualizar badge
+    const badge = document.querySelector('.section-badge');
+    if (badge) {
+        badge.textContent = `${concluidas}/${total} concluídas`;
+    }
+    
+    // Atualizar progresso
+    const progressElement = document.querySelector('.progress-circular');
+    if (progressElement) {
+        progressElement.style.setProperty('--progress', progresso + '%');
+        const progressText = progressElement.querySelector('.progress-text');
+        if (progressText) {
+            progressText.textContent = Math.round(progresso) + '%';
+        }
+    }
 }
 
 function atualizarListaTarefas() {
@@ -2975,42 +3008,88 @@ function configurarEventListeners() {
     // Reconfigurar outros event listeners conforme necessário
 }
 
-// ===== FUNÇÕES ROTINA DIÁRIA =====
+// ===== FUNÇÕES ROTINA DIÁRIA OTIMIZADAS =====
+const rotinasEmProcessamento = new Set();
+
 function toggleRotina(id, statusAtual) {
-    console.log('Toggle rotina:', { id, statusAtual });
+    // Prevenir múltiplas requisições simultâneas
+    if (rotinasEmProcessamento.has(id)) {
+        return;
+    }
     
     const novoStatus = statusAtual === 'concluido' ? 'pendente' : 'concluido';
     const acao = novoStatus === 'concluido' ? 'concluir' : 'pendente';
     
-    console.log('Enviando:', { acao, rotina_id: id });
+    // Marcar como em processamento
+    rotinasEmProcessamento.add(id);
     
-    // Mostrar loading
-    showToast('Processando...', 'Atualizando rotina...', false);
+    // Atualizar interface IMEDIATAMENTE (otimistic update)
+    const habitItem = document.querySelector(`[onclick*="toggleRotina(${id}"]`).closest('.habit-item');
+    const icon = habitItem.querySelector('.habit-icon i');
+    const progressElement = document.querySelector('.progress-circular');
+    const badge = document.querySelector('.section-badge');
     
+    // Atualizar visual instantaneamente
+    if (novoStatus === 'concluido') {
+        habitItem.classList.add('completed');
+        icon.className = 'bi bi-check-circle-fill';
+    } else {
+        habitItem.classList.remove('completed');
+        icon.className = 'bi bi-circle';
+    }
+    
+    // Atualizar progresso instantaneamente
+    const totalRotinas = document.querySelectorAll('.habit-item').length;
+    const rotinasConcluidas = document.querySelectorAll('.habit-item.completed').length;
+    const progresso = totalRotinas > 0 ? (rotinasConcluidas / totalRotinas) * 100 : 0;
+    
+    if (progressElement) {
+        progressElement.style.setProperty('--progress', progresso + '%');
+        const progressText = progressElement.querySelector('.progress-text');
+        if (progressText) {
+            progressText.textContent = Math.round(progresso) + '%';
+        }
+    }
+    
+    if (badge) {
+        badge.textContent = `${rotinasConcluidas}/${totalRotinas} concluídas`;
+    }
+    
+    // Enviar para servidor em background
     fetch('processar_rotina_fixa.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: `acao=${acao}&rotina_id=${id}`
     })
-    .then(response => {
-        console.log('Response status:', response.status);
-        return response.json();
-    })
+    .then(response => response.json())
     .then(data => {
-        console.log('Response data:', data);
-        if (data.success) {
-            showToast('Sucesso!', data.message);
-            // Atualizar interface sem reload
-            setTimeout(() => {
-                atualizarSecaoRotinasFixas();
-            }, 1000);
-        } else {
+        if (!data.success) {
+            // Reverter mudanças se houver erro
+            if (novoStatus === 'concluido') {
+                habitItem.classList.remove('completed');
+                icon.className = 'bi bi-circle';
+            } else {
+                habitItem.classList.add('completed');
+                icon.className = 'bi bi-check-circle-fill';
+            }
             showToast('Erro!', data.message, true);
         }
     })
     .catch(error => {
         console.error('Erro:', error);
-        showToast('Erro!', 'Erro de conexão: ' + error.message, true);
+        // Reverter mudanças se houver erro de rede
+        if (novoStatus === 'concluido') {
+            habitItem.classList.remove('completed');
+            icon.className = 'bi bi-circle';
+        } else {
+            habitItem.classList.add('completed');
+            icon.className = 'bi bi-check-circle-fill';
+        }
+        showToast('Erro!', 'Erro de conexão', true);
+    })
+    .finally(() => {
+        // Remover da lista de processamento
+        rotinasEmProcessamento.delete(id);
     });
 }
 
