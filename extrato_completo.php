@@ -23,9 +23,20 @@ try {
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
     <h1 class="h2 mb-0">Extrato Detalhado</h1>
     <div>
-        <a href="importar_extrato_pdf.php" class="btn btn-primary me-2"><i class="bi bi-file-earmark-pdf me-2"></i>Importar PDF</a>
-        <a href="exportar_csv.php" id="btnExportarCsv" class="btn btn-success me-2"><i class="bi bi-file-earmark-spreadsheet-fill me-2"></i>Exportar</a>
-        <a href="dashboard.php" class="btn btn-secondary"><i class="bi bi-arrow-left me-2"></i>Voltar</a>
+        <div class="btn-group me-2" role="group">
+            <a href="importar_extrato_pdf.php" class="btn btn-primary">
+                <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+            </a>
+            <a href="importar_extrato_csv.php" class="btn btn-success">
+                <i class="bi bi-file-earmark-spreadsheet me-1"></i>CSV
+            </a>
+        </div>
+        <a href="exportar_csv.php" id="btnExportarCsv" class="btn btn-outline-success me-2">
+            <i class="bi bi-download me-1"></i>Exportar
+        </a>
+        <a href="dashboard.php" class="btn btn-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Voltar
+        </a>
     </div>
 </div>
 
