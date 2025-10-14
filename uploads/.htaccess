@@ -1,3 +1,15 @@
-# Proteger diretório de uploads
+# Permitir upload de PDFs
+<Files "*.pdf">
+    Order Allow,Deny
+    Allow from all
+</Files>
+
+# Bloquear execução de scripts
+<Files "*.php">
+    Order Deny,Allow
+    Deny from all
+</Files>
+
+# Permitir acesso a arquivos PDF
 Options -Indexes
-Deny from all
+Allow from all
