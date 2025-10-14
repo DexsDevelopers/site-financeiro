@@ -21,11 +21,29 @@ $userNome = null;
 if (isset($_SESSION['user_id']) && !empty($_SESSION['user_id'])) {
     $usuarioLogado = true;
     $userId = $_SESSION['user_id'];
-    $userEmail = $_SESSION['email'] ?? 'N/A';
-    $userNome = $_SESSION['nome'] ?? 'N/A';
+    $userEmail = $_SESSION['user_email'] ?? 'N/A';
+    $userNome = $_SESSION['user_name'] ?? 'N/A';
     
     // Log de logout
     error_log("LOGOUT: Usuário deslogado - ID: $userId, Nome: $userNome, Email: $userEmail");
+    
+    // Revogar tokens de "Lembre-se de mim" se existirem
+    try {
+        require_once 'includes/db_connect.php';
+        require_once 'includes/remember_me_manager.php';
+        
+        $rememberManager = new RememberMeManager($pdo);
+        
+        // Revogar todos os tokens do usuário
+        $rememberManager->revokeAllUserTokens($userId);
+        
+        // Log de revogação de tokens
+        error_log("LOGOUT: Tokens de 'Lembre-se de mim' revogados para usuário ID: $userId");
+        
+    } catch (Exception $e) {
+        // Log do erro, mas não interromper o logout
+        error_log("LOGOUT: Erro ao revogar tokens - " . $e->getMessage());
+    }
 }
 
 // Limpar todas as variáveis de sessão
