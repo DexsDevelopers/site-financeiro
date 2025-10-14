@@ -2,61 +2,67 @@
 require_once 'templates/header.php';
 require_once 'includes/db_connect.php';
 
-// ===== ROTINA DIÁRIA INTEGRADA =====
+// ===== ROTINA DIÁRIA FIXA INTEGRADA =====
 $dataHoje = date('Y-m-d');
 
-// Buscar rotinas do dia atual
-$rotinasHoje = [];
+// Buscar rotinas fixas do usuário
+$rotinasFixas = [];
 $progressoRotina = 0;
 try {
+    // Buscar rotinas fixas ativas com controle diário
     $stmt = $pdo->prepare("
-        SELECT rd.*, crp.horario_sugerido 
-        FROM rotina_diaria rd 
-        LEFT JOIN config_rotina_padrao crp ON rd.nome = crp.nome AND rd.id_usuario = crp.id_usuario
-        WHERE rd.id_usuario = ? AND rd.data_execucao = ? 
-        ORDER BY rd.ordem, crp.horario_sugerido
+        SELECT rf.*, 
+               rcd.status as status_hoje,
+               rcd.horario_execucao,
+               rcd.observacoes
+        FROM rotinas_fixas rf
+        LEFT JOIN rotina_controle_diario rcd ON rf.id = rcd.id_rotina_fixa 
+            AND rcd.id_usuario = rf.id_usuario 
+            AND rcd.data_execucao = ?
+        WHERE rf.id_usuario = ? AND rf.ativo = TRUE
+        ORDER BY rf.ordem, rf.horario_sugerido
     ");
-    $stmt->execute([$userId, $dataHoje]);
-    $rotinasHoje = $stmt->fetchAll();
+    $stmt->execute([$dataHoje, $userId]);
+    $rotinasFixas = $stmt->fetchAll();
     
-    // Se não há rotinas para hoje, criar baseadas na configuração padrão
-    if (empty($rotinasHoje)) {
-        $stmt = $pdo->prepare("
-            SELECT nome, horario_sugerido, ordem 
-            FROM config_rotina_padrao 
-            WHERE id_usuario = ? AND ativo = TRUE 
-            ORDER BY ordem
-        ");
-        $stmt->execute([$userId]);
-        $rotinasPadrao = $stmt->fetchAll();
-        
-        foreach ($rotinasPadrao as $rotina) {
+    // Se não há controle para hoje, criar automaticamente
+    foreach ($rotinasFixas as $rotina) {
+        if ($rotina["status_hoje"] === null) {
             $stmt = $pdo->prepare("
-                INSERT INTO rotina_diaria (id_usuario, nome, data_execucao, horario, ordem) 
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO rotina_controle_diario (id_usuario, id_rotina_fixa, data_execucao, status) 
+                VALUES (?, ?, ?, 'pendente')
             ");
-            $stmt->execute([$userId, $rotina['nome'], $dataHoje, $rotina['horario_sugerido'], $rotina['ordem']]);
+            $stmt->execute([$userId, $rotina["id"], $dataHoje]);
         }
-        
-        // Buscar novamente as rotinas criadas
-        $stmt = $pdo->prepare("
-            SELECT rd.*, crp.horario_sugerido 
-            FROM rotina_diaria rd 
-            LEFT JOIN config_rotina_padrao crp ON rd.nome = crp.nome AND rd.id_usuario = crp.id_usuario
-            WHERE rd.id_usuario = ? AND rd.data_execucao = ? 
-            ORDER BY rd.ordem, crp.horario_sugerido
-        ");
-        $stmt->execute([$userId, $dataHoje]);
-        $rotinasHoje = $stmt->fetchAll();
     }
     
+    // Buscar novamente com os controles criados
+    $stmt = $pdo->prepare("
+        SELECT rf.*, 
+               rcd.status as status_hoje,
+               rcd.horario_execucao,
+               rcd.observacoes
+        FROM rotinas_fixas rf
+        LEFT JOIN rotina_controle_diario rcd ON rf.id = rcd.id_rotina_fixa 
+            AND rcd.id_usuario = rf.id_usuario 
+            AND rcd.data_execucao = ?
+        WHERE rf.id_usuario = ? AND rf.ativo = TRUE
+        ORDER BY rf.ordem, rf.horario_sugerido
+    ");
+    $stmt->execute([$dataHoje, $userId]);
+    $rotinasFixas = $stmt->fetchAll();
+    
     // Calcular progresso
-    $totalRotinas = count($rotinasHoje);
-    $rotinasConcluidas = array_filter($rotinasHoje, function($r) { return $r['status'] === 'concluido'; });
+    $totalRotinas = count($rotinasFixas);
+    $rotinasConcluidas = array_filter($rotinasFixas, function($r) { 
+        return $r["status_hoje"] === "concluido"; 
+    });
     $progressoRotina = $totalRotinas > 0 ? (count($rotinasConcluidas) / $totalRotinas) * 100 : 0;
+    
 } catch (PDOException $e) {
-    $rotinasHoje = [];
+    $rotinasFixas = [];
     $progressoRotina = 0;
+    error_log("Erro ao buscar rotinas fixas: " . $e->getMessage());
 }
 
 // Buscar estatísticas para o dashboard
@@ -997,7 +1003,7 @@ function formatarTempo($minutos) {
     </div>
 
     <!-- ===== SEÇÃO ROTINA DIÁRIA ===== -->
-    <?php if (!empty($rotinasHoje)): ?>
+    <?php if (!empty($rotinasFixas)): ?>
     <div class="row mb-4">
         <div class="col-12">
             <div class="section-card rotina-card">
@@ -1005,7 +1011,7 @@ function formatarTempo($minutos) {
                     <div class="section-title">
                         <i class="bi bi-calendar-check me-2"></i>
                         <h3>Rotina Diária</h3>
-                        <span class="section-badge"><?php echo count($rotinasConcluidas); ?>/<?php echo count($rotinasHoje); ?> concluídas</span>
+                        <span class="section-badge"><?php echo count($rotinasConcluidas); ?>/<?php echo count($rotinasFixas); ?> concluídas</span>
                     </div>
                     <div class="section-progress">
                         <div class="progress-circular" style="--progress: <?php echo $progressoRotina; ?>%">
@@ -1015,7 +1021,7 @@ function formatarTempo($minutos) {
                 </div>
                 
                 <div class="habits-grid">
-                    <?php foreach ($rotinasHoje as $rotina): ?>
+                    <?php foreach ($rotinasFixas as $rotina): ?>
                     <div class="habit-item <?php echo $rotina['status'] === 'concluido' ? 'completed' : ''; ?>">
                         <div class="habit-main" onclick="toggleRotina(<?php echo $rotina['id']; ?>, '<?php echo $rotina['status']; ?>')">
                             <div class="habit-icon">
