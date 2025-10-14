@@ -2751,7 +2751,7 @@ function excluirRotina(id, nome) {
 function confirmarExclusaoHabit() {
     const id = document.getElementById('excluirHabitId').value;
     
-    fetch('excluir_rotina_diaria.php', {
+    fetch('excluir_rotina_fixa.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: id })
