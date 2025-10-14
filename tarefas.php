@@ -2770,10 +2770,8 @@ function atualizarSecaoRotinasFixas() {
         })
         .catch(error => {
             console.error('Erro ao atualizar rotinas fixas:', error);
-            // Em caso de erro, recarregar a página
-            setTimeout(() => {
-                window.location.reload();
-            }, 1000);
+            // Em caso de erro, mostrar mensagem mas não recarregar
+            showToast('Aviso', 'Erro ao atualizar hábitos. Recarregue a página se necessário.', false);
         });
 }
 
@@ -3274,9 +3272,9 @@ function salvarEdicaoHabit() {
             // Fechar modal
             const modal = bootstrap.Modal.getInstance(document.getElementById('modalEditarHabit'));
             modal.hide();
-            // Atualizar interface sem reload
+            // Recarregar a página para garantir sincronização
             setTimeout(() => {
-                atualizarSecaoRotinasFixas();
+                window.location.reload();
             }, 1000);
         } else {
             showToast('Erro!', data.message, true);
