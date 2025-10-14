@@ -1220,7 +1220,7 @@ function formatarTempo($minutos) {
                             </div>
                         </div>
                         <div class="habit-actions">
-                            <button class="btn btn-sm btn-outline-warning" onclick="editarRotina(<?php echo $rotina['id']; ?>, '<?php echo htmlspecialchars($rotina['nome'], ENT_QUOTES); ?>', '<?php echo $rotina['horario'] ? date('H:i', strtotime($rotina['horario'])) : ''; ?>')" title="Editar hábito">
+                            <button class="btn btn-sm btn-outline-warning" onclick="editarRotina(<?php echo $rotina['id']; ?>, '<?php echo htmlspecialchars($rotina['nome'], ENT_QUOTES); ?>', '<?php echo $rotina['horario'] ? date('H:i', strtotime($rotina['horario'])) : ''; ?>', '<?php echo htmlspecialchars($rotina['descricao'] ?? '', ENT_QUOTES); ?>')" title="Editar hábito">
                                 <i class="bi bi-pencil"></i>
                             </button>
                             <button class="btn btn-sm btn-outline-danger" onclick="excluirRotina(<?php echo $rotina['id']; ?>, '<?php echo htmlspecialchars($rotina['nome'], ENT_QUOTES); ?>')" title="Excluir hábito">
@@ -1803,6 +1803,11 @@ function formatarTempo($minutos) {
                         <label for="editHabitHorario" class="form-label">Horário (opcional)</label>
                         <input type="time" class="form-control" id="editHabitHorario" name="horario">
                         <div class="form-text">Deixe em branco se não quiser definir um horário específico</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editHabitDescricao" class="form-label">Descrição (opcional)</label>
+                        <textarea class="form-control" id="editHabitDescricao" name="descricao" rows="3" placeholder="Adicione uma descrição para o hábito..."></textarea>
+                        <div class="form-text">Descrição opcional para o hábito</div>
                     </div>
                 </form>
             </div>
@@ -2804,7 +2809,7 @@ function criarElementoRotina(rotina) {
             </div>
         </div>
         <div class="habit-actions">
-            <button class="btn btn-sm btn-outline-warning" onclick="editarRotina(${rotina.id}, '${rotina.nome}', '${rotina.horario_sugerido || ''}')" title="Editar hábito">
+            <button class="btn btn-sm btn-outline-warning" onclick="editarRotina(${rotina.id}, '${rotina.nome}', '${rotina.horario_sugerido || ''}', '${rotina.descricao || ''}')" title="Editar hábito">
                 <i class="bi bi-pencil"></i>
             </button>
             <button class="btn btn-sm btn-outline-danger" onclick="excluirRotina(${rotina.id}, '${rotina.nome}')" title="Excluir hábito">
@@ -3229,11 +3234,12 @@ function salvarRotinaFixa() {
 }
 
 // ===== FUNÇÕES DE EDIÇÃO E EXCLUSÃO DE HÁBITOS =====
-function editarRotina(id, nome, horario) {
+function editarRotina(id, nome, horario, descricao = '') {
     // Preencher o modal com os dados atuais
     document.getElementById('editHabitId').value = id;
     document.getElementById('editHabitNome').value = nome;
     document.getElementById('editHabitHorario').value = horario;
+    document.getElementById('editHabitDescricao').value = descricao;
     
     // Abrir o modal
     const modal = new bootstrap.Modal(document.getElementById('modalEditarHabit'));
@@ -3244,16 +3250,22 @@ function salvarEdicaoHabit() {
     const id = document.getElementById('editHabitId').value;
     const nome = document.getElementById('editHabitNome').value.trim();
     const horario = document.getElementById('editHabitHorario').value;
+    const descricao = document.getElementById('editHabitDescricao') ? document.getElementById('editHabitDescricao').value.trim() : '';
     
     if (!nome) {
         showToast('Erro!', 'Nome do hábito é obrigatório', true);
         return;
     }
     
-    fetch('editar_rotina_diaria.php', {
+    fetch('editar_rotina_fixa.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: id, nome: nome, horario: horario })
+        body: JSON.stringify({ 
+            id: id, 
+            nome: nome, 
+            horario: horario,
+            descricao: descricao
+        })
     })
     .then(response => response.json())
     .then(data => {
