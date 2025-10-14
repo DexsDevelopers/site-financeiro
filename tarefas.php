@@ -2672,10 +2672,10 @@ function exportarEstatisticas() {
 function toggleRotina(id, statusAtual) {
     const novoStatus = statusAtual === 'concluido' ? 'pendente' : 'concluido';
     
-    fetch('salvar_rotina_diaria.php', {
+    fetch('processar_rotina_fixa.php', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: id, status: novoStatus })
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `acao=${novoStatus === 'concluido' ? 'concluir' : 'pendente'}&rotina_id=${id}`
     })
     .then(response => response.json())
     .then(data => {
