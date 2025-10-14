@@ -1,6 +1,11 @@
 <?php
 // includes/auto_login.php - Sistema de login automático
 
+// Iniciar sessão se não estiver iniciada
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 require_once 'remember_me_manager.php';
 
 // Verificar se já está logado
@@ -20,13 +25,13 @@ if ($token) {
         $currentPage = basename($_SERVER['PHP_SELF']);
         
         // Se estiver na página de login, redirecionar para dashboard
-        if ($currentPage === 'index.php') {
+        if ($currentPage === 'index.php' || $currentPage === 'login.php') {
             header("Location: dashboard.php");
             exit();
         }
         
         // Se estiver em outra página, recarregar para aplicar a sessão
-        if (!in_array($currentPage, ['index.php', 'registrar.php'])) {
+        if (!in_array($currentPage, ['index.php', 'login.php', 'registrar.php'])) {
             header("Location: " . $_SERVER['REQUEST_URI']);
             exit();
         }

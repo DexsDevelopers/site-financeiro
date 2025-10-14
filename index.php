@@ -2,6 +2,10 @@
 // /index.php (Versão Robusta)
 session_start();
 
+// Incluir sistema de auto-login (Lembre-se de mim)
+require_once 'includes/db_connect.php';
+require_once 'includes/auto_login.php';
+
 // Se o usuário já estiver logado, redireciona para o dashboard.
 if (isset($_SESSION['user_id'])) {
     header("Location: dashboard.php");
