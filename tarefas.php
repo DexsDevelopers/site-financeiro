@@ -3104,13 +3104,19 @@ function toggleRotina(id, statusAtual) {
     }
     
     // Enviar para servidor em background
+    console.log('Enviando requisição:', { acao, rotina_id: id });
+    
     fetch('processar_rotina_fixa.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: `acao=${acao}&rotina_id=${id}`
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log('Response status:', response.status);
+        return response.json();
+    })
     .then(data => {
+        console.log('Response data:', data);
         if (!data.success) {
             // Reverter mudanças se houver erro
             if (novoStatus === 'concluido') {
@@ -3121,6 +3127,9 @@ function toggleRotina(id, statusAtual) {
                 icon.className = 'bi bi-check-circle-fill';
             }
             showToast('Erro!', data.message, true);
+            if (data.debug) {
+                console.error('Debug info:', data.debug);
+            }
         }
     })
     .catch(error => {
