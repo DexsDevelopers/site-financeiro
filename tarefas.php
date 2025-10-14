@@ -2085,18 +2085,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 body: formData
             })
             .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showToast('Sucesso!', data.message);
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1000);
-                } else {
-                    showToast('Erro!', data.message, true);
-                    button.disabled = false;
-                    button.innerHTML = '<i class="bi bi-plus-circle me-2"></i>Adicionar Subtarefa';
-                }
-            })
+        .then(data => {
+            if (data.success) {
+                showToast('Sucesso!', data.message);
+                setTimeout(() => {
+                    // Atualizar interface sem reload
+                    atualizarListaTarefas();
+                }, 1000);
+            } else {
+                showToast('Erro!', data.message, true);
+                button.disabled = false;
+                button.innerHTML = '<i class="bi bi-plus-circle me-2"></i>Adicionar Subtarefa';
+            }
+        })
             .catch(error => {
                 console.error('Erro:', error);
                 showToast('Erro de rede!', 'Não foi possível conectar ao servidor.', true);
@@ -2360,16 +2361,16 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
+                if (data.success) {
                     showToast('Sucesso!', data.message || 'Tarefa atualizada com sucesso!');
                     
                     // Fechar modal
                     const modal = bootstrap.Modal.getInstance(document.getElementById('modalEditarTarefa'));
                     modal.hide();
                     
-                    // Recarregar página após um tempo
+                    // Atualizar interface sem reload
                     setTimeout(() => {
-                        window.location.reload();
+                        atualizarListaTarefas();
                     }, 1000);
                 } else {
                     showToast('Erro!', data.message || 'Não foi possível atualizar a tarefa.', true);
@@ -2498,7 +2499,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.success) {
                     showToast('Sucesso!', data.message);
                     setTimeout(() => {
-                        window.location.reload();
+                        // Atualizar interface sem reload
+                        atualizarListaTarefas();
                     }, 1000);
                 } else {
                     showToast('Erro!', data.message, true);
@@ -2695,6 +2697,284 @@ function exportarEstatisticas() {
     showToast('Em Desenvolvimento', 'Funcionalidade de exportação será implementada em breve.', false);
 }
 
+// ===== FUNÇÕES DE ATUALIZAÇÃO SEM RELOAD =====
+function atualizarSecaoRotinasFixas() {
+    // Buscar dados atualizados das rotinas fixas
+    fetch('api_rotinas_fixas.php')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Atualizar a seção de rotinas fixas
+                const container = document.querySelector('.habits-grid');
+                if (container) {
+                    container.innerHTML = '';
+                    
+                    if (data.rotinas.length === 0) {
+                        // Mostrar estado vazio
+                        const emptyState = document.querySelector('.empty-state');
+                        if (emptyState) {
+                            emptyState.style.display = 'block';
+                        }
+                    } else {
+                        // Esconder estado vazio
+                        const emptyState = document.querySelector('.empty-state');
+                        if (emptyState) {
+                            emptyState.style.display = 'none';
+                        }
+                        
+                        // Renderizar rotinas
+                        data.rotinas.forEach(rotina => {
+                            const habitItem = document.createElement('div');
+                            habitItem.className = `habit-item ${rotina.status_hoje === 'concluido' ? 'completed' : ''}`;
+                            habitItem.innerHTML = `
+                                <div class="habit-main" onclick="toggleRotina(${rotina.id}, '${rotina.status_hoje || 'pendente'}')">
+                                    <div class="habit-icon">
+                                        <i class="bi bi-${rotina.status_hoje === 'concluido' ? 'check-circle-fill' : 'circle'}"></i>
+                                    </div>
+                                    <div class="habit-content">
+                                        <h6 class="habit-name">${rotina.nome}</h6>
+                                        ${rotina.horario_sugerido ? `
+                                        <small class="habit-time">
+                                            <i class="bi bi-clock me-1"></i>
+                                            ${new Date('1970-01-01T' + rotina.horario_sugerido).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'})}
+                                        </small>
+                                        ` : ''}
+                                        ${rotina.descricao ? `
+                                        <small class="habit-description">
+                                            <i class="bi bi-card-text me-1"></i>
+                                            ${rotina.descricao}
+                                        </small>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                                <div class="habit-actions">
+                                    <button class="btn btn-sm btn-outline-warning" onclick="editarRotina(${rotina.id}, '${rotina.nome}', '${rotina.horario_sugerido || ''}')" title="Editar hábito">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="excluirRotina(${rotina.id}, '${rotina.nome}')" title="Excluir hábito">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            `;
+                            container.appendChild(habitItem);
+                        });
+                    }
+                    
+                    // Atualizar contadores
+                    const badge = document.querySelector('.section-badge');
+                    if (badge) {
+                        const concluidas = data.rotinas.filter(r => r.status_hoje === 'concluido').length;
+                        badge.textContent = `${concluidas}/${data.rotinas.length} concluídas`;
+                    }
+                    
+                    // Atualizar progresso
+                    const progresso = data.rotinas.length > 0 ? (data.rotinas.filter(r => r.status_hoje === 'concluido').length / data.rotinas.length) * 100 : 0;
+                    const progressElement = document.querySelector('.progress-circular');
+                    if (progressElement) {
+                        progressElement.style.setProperty('--progress', progresso + '%');
+                        const progressText = progressElement.querySelector('.progress-text');
+                        if (progressText) {
+                            progressText.textContent = Math.round(progresso) + '%';
+                        }
+                    }
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao atualizar rotinas fixas:', error);
+        });
+}
+
+function atualizarListaTarefas() {
+    // Buscar dados atualizados das tarefas
+    fetch('api_tarefas_pendentes.php')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const container = document.getElementById('lista-tarefas-pendentes');
+                if (container) {
+                    container.innerHTML = '';
+                    
+                    if (data.tarefas.length === 0) {
+                        container.innerHTML = `
+                            <div class="text-center py-5">
+                                <i class="bi bi-check-circle" style="font-size: 4rem; color: var(--success); margin-bottom: 1rem;"></i>
+                                <h5 style="color: var(--text-primary);">Nenhuma tarefa pendente!</h5>
+                                <p style="color: var(--text-secondary);">Parabéns! Você está em dia com suas tarefas.</p>
+                            </div>
+                        `;
+                    } else {
+                        data.tarefas.forEach(tarefa => {
+                            const taskCard = document.createElement('div');
+                            taskCard.className = `task-card prioridade-${tarefa.prioridade} fade-in`;
+                            taskCard.setAttribute('data-id', tarefa.id);
+                            taskCard.setAttribute('data-priority', tarefa.prioridade.toLowerCase().replace('é', 'e'));
+                            
+                            taskCard.innerHTML = `
+                                <div class="task-header">
+                                    <i class="bi bi-grip-vertical handle" style="color: var(--text-secondary); cursor: grab;"></i>
+                                    
+                                    <div class="task-content">
+                                        <div class="task-title">${tarefa.descricao}</div>
+                                        
+                                        <div class="task-meta">
+                                            <span class="badge ${getPrioridadeBadgeClass(tarefa.prioridade)}">
+                                                ${tarefa.prioridade}
+                                            </span>
+                                            
+                                            ${tarefa.data_limite ? `
+                                                <span><i class="bi bi-calendar-event me-1"></i>${new Date(tarefa.data_limite).toLocaleDateString('pt-BR')}</span>
+                                            ` : ''}
+                                            
+                                            ${tarefa.tempo_estimado > 0 ? `
+                                                <span><i class="bi bi-clock me-1"></i>${formatarTempo(tarefa.tempo_estimado)}</span>
+                                            ` : ''}
+                                            
+                                            ${tarefa.subtarefas && tarefa.subtarefas.length > 0 ? `
+                                                <span><i class="bi bi-list-ul me-1"></i>${tarefa.subtarefas.length} subtarefas</span>
+                                            ` : ''}
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="task-actions">
+                                        <button class="btn-icon btn-subtask" data-id="${tarefa.id}" title="Adicionar Subtarefa">
+                                            <i class="bi bi-list-ul"></i>
+                                        </button>
+                                        <button class="btn-icon btn-timer" data-id="${tarefa.id}" title="Iniciar Timer">
+                                            <i class="bi bi-play-fill"></i>
+                                        </button>
+                                        <button class="btn-icon btn-complete" data-id="${tarefa.id}" title="Concluir">
+                                            <i class="bi bi-check-lg"></i>
+                                        </button>
+                                        <button class="btn-icon btn-edit" data-id="${tarefa.id}" title="Editar">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn-icon btn-delete" data-id="${tarefa.id}" title="Excluir">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                ${tarefa.subtarefas && tarefa.subtarefas.length > 0 ? `
+                                    <div class="subtasks mt-3 pt-3" style="border-top: 1px solid var(--border-color);">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <h6 class="mb-0" style="color: var(--text-secondary);">
+                                                <i class="bi bi-list-ul me-1"></i>Subtarefas
+                                            </h6>
+                                            <button class="btn btn-sm btn-outline-primary" onclick="toggleSubtasks(this)">
+                                                <i class="bi bi-chevron-down"></i>
+                                            </button>
+                                        </div>
+                                        <div class="subtasks-list">
+                                            ${tarefa.subtarefas.map(sub => `
+                                                <div class="subtask-item d-flex align-items-center mb-2 p-2" 
+                                                     style="background: var(--dark-bg); border-radius: 8px; border: 1px solid var(--border-color);">
+                                                    <div class="form-check me-3">
+                                                        <input class="form-check-input subtask-checkbox" type="checkbox" 
+                                                               data-id="${sub.id}" 
+                                                               ${sub.status === 'concluida' ? 'checked' : ''}>
+                                                    </div>
+                                                    <div class="flex-grow-1">
+                                                        <div class="d-flex justify-content-between align-items-center">
+                                                            <label class="form-check-label mb-0 subtask-label ${sub.status === 'concluida' ? 'text-decoration-line-through text-muted' : ''}" 
+                                                                   style="color: var(--text-primary); cursor: pointer;"
+                                                                   data-id="${sub.id}"
+                                                                   title="Clique para editar">
+                                                                ${sub.descricao}
+                                                            </label>
+                                                            <div class="d-flex align-items-center gap-2">
+                                                                ${sub.prioridade ? `
+                                                                    <span class="badge ${getPrioridadeBadgeClass(sub.prioridade)}" 
+                                                                          style="font-size: 0.7rem;">
+                                                                        ${sub.prioridade}
+                                                                    </span>
+                                                                ` : ''}
+                                                                ${sub.tempo_estimado > 0 ? `
+                                                                    <small class="text-muted">
+                                                                        <i class="bi bi-clock me-1"></i>${formatarTempo(sub.tempo_estimado)}
+                                                                    </small>
+                                                                ` : ''}
+                                                                
+                                                                <button class="btn btn-sm btn-outline-danger btn-delete-subtask" 
+                                                                        data-id="${sub.id}"
+                                                                        title="Excluir subtarefa"
+                                                                        style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">
+                                                                    <i class="bi bi-trash"></i>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                ` : ''}
+                                
+                                <div class="swipe-actions">
+                                    <i class="bi bi-check-lg"></i>
+                                </div>
+                            `;
+                            
+                            container.appendChild(taskCard);
+                        });
+                        
+                        // Reconfigurar event listeners
+                        configurarEventListeners();
+                    }
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao atualizar lista de tarefas:', error);
+        });
+}
+
+function getPrioridadeBadgeClass(prioridade) {
+    switch (prioridade) {
+        case 'Alta': return 'bg-danger';
+        case 'Média': return 'bg-warning text-dark';
+        case 'Baixa': return 'bg-success';
+        default: return 'bg-secondary';
+    }
+}
+
+function formatarTempo(minutos) {
+    if (minutos <= 0) return '0min';
+    const h = Math.floor(minutos / 60);
+    const m = minutos % 60;
+    let resultado = '';
+    if (h > 0) resultado += h + 'h ';
+    if (m > 0) resultado += m + 'min';
+    return resultado.trim();
+}
+
+function configurarEventListeners() {
+    // Reconfigurar todos os event listeners após atualização
+    document.querySelectorAll('.btn-complete').forEach(btn => {
+        btn.addEventListener('click', function() {
+            completeTask(this.dataset.id);
+        });
+    });
+    
+    document.querySelectorAll('.btn-edit').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const taskId = this.dataset.id;
+            // Abrir modal de edição
+            // ... implementar abertura do modal
+        });
+    });
+    
+    document.querySelectorAll('.btn-delete').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const taskId = this.dataset.id;
+            // Abrir modal de exclusão
+            // ... implementar abertura do modal
+        });
+    });
+    
+    // Reconfigurar outros event listeners conforme necessário
+}
+
 // ===== FUNÇÕES ROTINA DIÁRIA =====
 function toggleRotina(id, statusAtual) {
     console.log('Toggle rotina:', { id, statusAtual });
@@ -2722,7 +3002,7 @@ function toggleRotina(id, statusAtual) {
             showToast('Sucesso!', data.message);
             // Atualizar interface sem reload
             setTimeout(() => {
-                location.reload();
+                atualizarSecaoRotinasFixas();
             }, 1000);
         } else {
             showToast('Erro!', data.message, true);
@@ -2787,18 +3067,21 @@ function salvarRotinaFixa() {
         body: `acao=adicionar&nome=${encodeURIComponent(nome)}&horario=${encodeURIComponent(horario)}&descricao=${encodeURIComponent(descricao)}`
     })
     .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showToast('Sucesso!', data.message);
-            // Fechar modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('modalAdicionarRotinaFixa'));
-            modal.hide();
-            // Recarregar página
-            setTimeout(() => location.reload(), 1000);
-        } else {
-            showToast('Erro!', data.message, true);
-        }
-    })
+        .then(data => {
+            if (data.success) {
+                showToast('Sucesso!', data.message);
+                // Fechar modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('modalAdicionarRotinaFixa'));
+                modal.hide();
+                // Atualizar interface sem reload
+                setTimeout(() => {
+                    // Recriar a seção de rotinas fixas
+                    atualizarSecaoRotinasFixas();
+                }, 1000);
+            } else {
+                showToast('Erro!', data.message, true);
+            }
+        })
     .catch(error => {
         console.error('Erro:', error);
         showToast('Erro!', 'Erro de conexão', true);
@@ -2844,8 +3127,10 @@ function salvarEdicaoHabit() {
             // Fechar modal
             const modal = bootstrap.Modal.getInstance(document.getElementById('modalEditarHabit'));
             modal.hide();
-            // Recarregar página
-            setTimeout(() => location.reload(), 1000);
+            // Atualizar interface sem reload
+            setTimeout(() => {
+                atualizarSecaoRotinasFixas();
+            }, 1000);
         } else {
             showToast('Erro!', data.message, true);
         }
@@ -2881,8 +3166,10 @@ function confirmarExclusaoHabit() {
             // Fechar modal
             const modal = bootstrap.Modal.getInstance(document.getElementById('modalExcluirHabit'));
             modal.hide();
-            // Recarregar página
-            setTimeout(() => location.reload(), 1000);
+            // Atualizar interface sem reload
+            setTimeout(() => {
+                atualizarSecaoRotinasFixas();
+            }, 1000);
         } else {
             showToast('Erro!', data.message, true);
         }
