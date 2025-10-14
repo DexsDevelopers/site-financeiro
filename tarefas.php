@@ -387,10 +387,49 @@ function formatarTempo($minutos) {
     border-radius: 8px;
     padding: 1rem;
     display: flex;
-    align-items: center;
-    gap: 1rem;
+    flex-direction: column;
+    gap: 0.75rem;
     cursor: pointer;
     transition: all 0.3s ease;
+    position: relative;
+}
+
+.habit-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.habit-handle {
+    font-size: 1.2rem;
+    cursor: grab;
+    opacity: 0.6;
+    transition: opacity 0.3s ease;
+}
+
+.habit-handle:hover {
+    opacity: 1;
+}
+
+.habit-item:hover .habit-handle {
+    opacity: 1;
+}
+
+/* ===== ESTILOS PARA DRAG & DROP ===== */
+.sortable-ghost {
+    opacity: 0.4;
+    background: rgba(0, 123, 255, 0.1);
+    border: 2px dashed rgba(0, 123, 255, 0.5);
+}
+
+.sortable-chosen {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.sortable-drag {
+    transform: rotate(2deg);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
 }
 
 .habit-item:hover {
@@ -1196,31 +1235,34 @@ function formatarTempo($minutos) {
                 </div>
                 
                 <?php if (!empty($rotinasFixas)): ?>
-                <div class="habits-grid">
+                <div class="habits-grid" id="lista-habitos-fixos">
                     <?php foreach ($rotinasFixas as $rotina): ?>
-                    <div class="habit-item <?php echo $rotina['status_hoje'] === 'concluido' ? 'completed' : ''; ?>" data-rotina-id="<?php echo $rotina['id']; ?>">
-                        <div class="habit-main">
-                            <div class="habit-icon">
-                                <i class="bi bi-<?php echo $rotina['status_hoje'] === 'concluido' ? 'check-circle-fill' : 'circle'; ?>"></i>
-                            </div>
-                            <div class="habit-content">
-                                <h6 class="habit-name"><?php echo htmlspecialchars($rotina['nome']); ?></h6>
-                                <?php if ($rotina['horario_sugerido'] && $rotina['horario_sugerido'] !== '00:00:00'): ?>
-                                <small class="habit-time">
-                                    <i class="bi bi-clock me-1"></i>
-                                    <?php echo date('H:i', strtotime($rotina['horario_sugerido'])); ?>
-                                </small>
-                                <?php endif; ?>
-                                <?php if ($rotina['descricao']): ?>
-                                <small class="habit-description">
-                                    <i class="bi bi-card-text me-1"></i>
-                                    <?php echo htmlspecialchars($rotina['descricao']); ?>
-                                </small>
-                                <?php endif; ?>
+                    <div class="habit-item <?php echo $rotina['status_hoje'] === 'concluido' ? 'completed' : ''; ?>" data-rotina-id="<?php echo $rotina['id']; ?>" data-ordem="<?php echo $rotina['ordem']; ?>">
+                        <div class="habit-header">
+                            <i class="bi bi-grip-vertical habit-handle" style="color: var(--text-secondary); cursor: grab;"></i>
+                            <div class="habit-main">
+                                <div class="habit-icon">
+                                    <i class="bi bi-<?php echo $rotina['status_hoje'] === 'concluido' ? 'check-circle-fill' : 'circle'; ?>"></i>
+                                </div>
+                                <div class="habit-content">
+                                    <h6 class="habit-name"><?php echo htmlspecialchars($rotina['nome']); ?></h6>
+                                    <?php if ($rotina['horario_sugerido'] && $rotina['horario_sugerido'] !== '00:00:00'): ?>
+                                    <small class="habit-time">
+                                        <i class="bi bi-clock me-1"></i>
+                                        <?php echo date('H:i', strtotime($rotina['horario_sugerido'])); ?>
+                                    </small>
+                                    <?php endif; ?>
+                                    <?php if ($rotina['descricao']): ?>
+                                    <small class="habit-description">
+                                        <i class="bi bi-card-text me-1"></i>
+                                        <?php echo htmlspecialchars($rotina['descricao']); ?>
+                                    </small>
+                                    <?php endif; ?>
+                                </div>
                             </div>
                         </div>
                         <div class="habit-actions">
-                            <button class="btn btn-sm btn-outline-warning" onclick="editarRotina(<?php echo $rotina['id']; ?>, '<?php echo htmlspecialchars($rotina['nome'], ENT_QUOTES); ?>', '<?php echo $rotina['horario'] ? date('H:i', strtotime($rotina['horario'])) : ''; ?>', '<?php echo htmlspecialchars($rotina['descricao'] ?? '', ENT_QUOTES); ?>')" title="Editar hábito">
+                            <button class="btn btn-sm btn-outline-warning" onclick="editarRotina(<?php echo $rotina['id']; ?>, '<?php echo htmlspecialchars($rotina['nome'], ENT_QUOTES); ?>', '<?php echo $rotina['horario_sugerido'] ?: ''; ?>', '<?php echo htmlspecialchars($rotina['descricao'] ?: '', ENT_QUOTES); ?>')" title="Editar hábito">
                                 <i class="bi bi-pencil"></i>
                             </button>
                             <button class="btn btn-sm btn-outline-danger" onclick="excluirRotina(<?php echo $rotina['id']; ?>, '<?php echo htmlspecialchars($rotina['nome'], ENT_QUOTES); ?>')" title="Excluir hábito">
@@ -2512,6 +2554,37 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // ===== SORTABLE DRAG & DROP PARA HÁBITOS FIXOS =====
+    const listaHabitos = document.getElementById('lista-habitos-fixos');
+    if (listaHabitos) {
+        new Sortable(listaHabitos, {
+            animation: 200,
+            handle: '.habit-handle',
+            ghostClass: 'sortable-ghost',
+            onEnd: function(evt) {
+                const items = listaHabitos.querySelectorAll('.habit-item');
+                const novaOrdem = Array.from(items).map(item => item.dataset.rotinaId);
+                
+                fetch('atualizar_ordem_habitos.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ordem: novaOrdem })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        console.log('Ordem dos hábitos atualizada com sucesso');
+                    } else {
+                        console.error('Erro ao atualizar ordem:', data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro na requisição:', error);
+                });
+            }
+        });
+    }
+    
     // ===== ADICIONAR NOVA TAREFA =====
     const formNovaTarefa = document.getElementById('formNovaTarefa');
     if (formNovaTarefa) {
@@ -2780,6 +2853,7 @@ function criarElementoRotina(rotina) {
     const habitItem = document.createElement('div');
     habitItem.className = `habit-item ${rotina.status_hoje === 'concluido' ? 'completed' : ''}`;
     habitItem.setAttribute('data-rotina-id', rotina.id);
+    habitItem.setAttribute('data-ordem', rotina.ordem || 0);
     
     const horarioHtml = (rotina.horario_sugerido && rotina.horario_sugerido !== '00:00:00') ? `
         <small class="habit-time">
@@ -2796,14 +2870,17 @@ function criarElementoRotina(rotina) {
     ` : '';
     
     habitItem.innerHTML = `
-        <div class="habit-main">
-            <div class="habit-icon">
-                <i class="bi bi-${rotina.status_hoje === 'concluido' ? 'check-circle-fill' : 'circle'}"></i>
-            </div>
-            <div class="habit-content">
-                <h6 class="habit-name">${rotina.nome}</h6>
-                ${horarioHtml}
-                ${descricaoHtml}
+        <div class="habit-header">
+            <i class="bi bi-grip-vertical habit-handle" style="color: var(--text-secondary); cursor: grab;"></i>
+            <div class="habit-main">
+                <div class="habit-icon">
+                    <i class="bi bi-${rotina.status_hoje === 'concluido' ? 'check-circle-fill' : 'circle'}"></i>
+                </div>
+                <div class="habit-content">
+                    <h6 class="habit-name">${rotina.nome}</h6>
+                    ${horarioHtml}
+                    ${descricaoHtml}
+                </div>
             </div>
         </div>
         <div class="habit-actions">
