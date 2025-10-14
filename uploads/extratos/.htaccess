@@ -1,0 +1,3 @@
+# Proteger diretório de extratos
+Options -Indexes
+Deny from all

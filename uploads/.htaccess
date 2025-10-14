@@ -1,0 +1,3 @@
+# Proteger diretório de uploads
+Options -Indexes
+Deny from all
