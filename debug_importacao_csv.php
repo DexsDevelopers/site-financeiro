@@ -65,7 +65,7 @@ foreach ($transacoesTeste as $i => $transacao) {
         $stmt = $pdo->prepare("
             SELECT id FROM transacoes 
             WHERE id_usuario = ? 
-            AND data = ? 
+            AND data_transacao = ? 
             AND valor = ? 
             AND descricao LIKE ?
         ");
@@ -94,13 +94,12 @@ foreach ($transacoesTeste as $i => $transacao) {
         $stmt = $pdo->prepare("
             INSERT INTO transacoes (
                 id_usuario, 
-                data, 
+                data_transacao, 
                 descricao, 
                 valor, 
                 tipo, 
-                categoria, 
                 data_criacao
-            ) VALUES (?, ?, ?, ?, ?, ?, NOW())
+            ) VALUES (?, ?, ?, ?, ?, NOW())
         ");
         
         $resultado = $stmt->execute([
@@ -108,8 +107,7 @@ foreach ($transacoesTeste as $i => $transacao) {
             $data,
             $descricao,
             $valor,
-            $transacao['tipo'],
-            'Debug Teste'
+            $transacao['tipo']
         ]);
         
         if ($resultado) {
@@ -191,7 +189,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['transacoes'])) {
                 $stmt = $pdo->prepare("
                     SELECT id FROM transacoes 
                     WHERE id_usuario = ? 
-                    AND data = ? 
+                    AND data_transacao = ? 
                     AND valor = ? 
                     AND descricao LIKE ?
                 ");
@@ -211,13 +209,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['transacoes'])) {
                 $stmt = $pdo->prepare("
                     INSERT INTO transacoes (
                         id_usuario, 
-                        data, 
+                        data_transacao, 
                         descricao, 
                         valor, 
                         tipo, 
-                        categoria, 
                         data_criacao
-                    ) VALUES (?, ?, ?, ?, ?, ?, NOW())
+                    ) VALUES (?, ?, ?, ?, ?, NOW())
                 ");
                 
                 $stmt->execute([
@@ -225,8 +222,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['transacoes'])) {
                     $transacao['data'],
                     $transacao['descricao'],
                     $transacao['valor'],
-                    $transacao['tipo'],
-                    'Debug Teste'
+                    $transacao['tipo']
                 ]);
                 
                 $salvas++;
@@ -274,7 +270,7 @@ echo "<h3>📋 Transações Existentes (Últimas 5):</h3>";
 
 try {
     $stmt = $pdo->prepare("
-        SELECT id, data, descricao, valor, tipo, categoria, data_criacao
+        SELECT id, data_transacao, descricao, valor, tipo, data_criacao
         FROM transacoes 
         WHERE id_usuario = ? 
         ORDER BY data_criacao DESC 
@@ -288,18 +284,17 @@ try {
     } else {
         echo "<div class='table-responsive'>";
         echo "<table class='table table-striped'>";
-        echo "<thead><tr><th>ID</th><th>Data</th><th>Descrição</th><th>Valor</th><th>Tipo</th><th>Categoria</th><th>Criado em</th></tr></thead>";
+        echo "<thead><tr><th>ID</th><th>Data</th><th>Descrição</th><th>Valor</th><th>Tipo</th><th>Criado em</th></tr></thead>";
         echo "<tbody>";
         
         foreach ($transacoesExistentes as $transacao) {
             $cor = $transacao['valor'] > 0 ? 'text-success' : 'text-danger';
             echo "<tr>";
             echo "<td>" . $transacao['id'] . "</td>";
-            echo "<td>" . $transacao['data'] . "</td>";
+            echo "<td>" . $transacao['data_transacao'] . "</td>";
             echo "<td>" . htmlspecialchars($transacao['descricao']) . "</td>";
             echo "<td class='$cor'>R$ " . number_format($transacao['valor'], 2, ',', '.') . "</td>";
             echo "<td><span class='badge bg-" . ($transacao['tipo'] === 'receita' ? 'success' : 'danger') . "'>" . ucfirst($transacao['tipo']) . "</span></td>";
-            echo "<td>" . htmlspecialchars($transacao['categoria']) . "</td>";
             echo "<td>" . date('d/m/Y H:i', strtotime($transacao['data_criacao'])) . "</td>";
             echo "</tr>";
         }

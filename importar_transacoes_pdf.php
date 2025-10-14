@@ -51,7 +51,7 @@ try {
             $stmt = $pdo->prepare("
                 SELECT id FROM transacoes 
                 WHERE id_usuario = ? 
-                AND data = ? 
+                AND data_transacao = ? 
                 AND valor = ? 
                 AND descricao LIKE ?
             ");
@@ -71,13 +71,12 @@ try {
             $stmt = $pdo->prepare("
                 INSERT INTO transacoes (
                     id_usuario, 
-                    data, 
+                    data_transacao, 
                     descricao, 
                     valor, 
                     tipo, 
-                    categoria, 
                     data_criacao
-                ) VALUES (?, ?, ?, ?, ?, ?, NOW())
+                ) VALUES (?, ?, ?, ?, ?, NOW())
             ");
             
             $stmt->execute([
@@ -85,8 +84,7 @@ try {
                 $transacao['data'],
                 $transacao['descricao'],
                 $transacao['valor'],
-                $transacao['tipo'],
-                'Importado via PDF'
+                $transacao['tipo']
             ]);
             
             $salvas++;
