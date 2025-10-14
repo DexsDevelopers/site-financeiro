@@ -86,6 +86,33 @@ try {
         }
     }
     
+    // Verificar se precisa criar controles para amanhã (reset automático)
+    $dataAmanha = date('Y-m-d', strtotime('+1 day'));
+    $stmt = $pdo->prepare("
+        SELECT COUNT(*) FROM rotina_controle_diario 
+        WHERE id_usuario = ? AND data_execucao = ?
+    ");
+    $stmt->execute([$userId, $dataAmanha]);
+    $controlesAmanha = $stmt->fetchColumn();
+    
+    if ($controlesAmanha == 0) {
+        // Criar controles para amanhã (reset automático)
+        $stmt = $pdo->prepare("
+            SELECT id FROM rotinas_fixas 
+            WHERE id_usuario = ? AND ativo = TRUE
+        ");
+        $stmt->execute([$userId]);
+        $rotinasAtivas = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        
+        foreach ($rotinasAtivas as $rotinaId) {
+            $stmt = $pdo->prepare("
+                INSERT INTO rotina_controle_diario (id_usuario, id_rotina_fixa, data_execucao, status) 
+                VALUES (?, ?, ?, 'pendente')
+            ");
+            $stmt->execute([$userId, $rotinaId, $dataAmanha]);
+        }
+    }
+    
     // Buscar novamente com os controles criados
     $stmt = $pdo->prepare("
         SELECT rf.*, 
