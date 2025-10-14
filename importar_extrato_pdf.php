@@ -51,20 +51,11 @@ function processarUploadPDF($arquivo) {
             return $resultado;
         }
         
-        // Processar PDF usando o processador
-        require_once 'includes/pdf_processor.php';
-        $processor = new PDFProcessor($pdo, $userId);
-        $transacoes = $processor->extrairTransacoes($caminhoArquivo);
-        
-        if (empty($transacoes)) {
-            $resultado['message'] = 'Nenhuma transação encontrada no PDF.';
-            return $resultado;
-        }
-        
+        // Salvar arquivo e processar com JavaScript no frontend
         $resultado['success'] = true;
-        $resultado['message'] = count($transacoes) . ' transações encontradas.';
-        $resultado['transacoes'] = $transacoes;
+        $resultado['message'] = 'Arquivo PDF carregado. Processando...';
         $resultado['arquivo'] = $caminhoArquivo;
+        $resultado['transacoes'] = []; // Será preenchido pelo JavaScript
         
     } catch (Exception $e) {
         $resultado['message'] = 'Erro ao processar PDF: ' . $e->getMessage();
@@ -101,12 +92,21 @@ function processarUploadPDF($arquivo) {
                 <div class="card-body">
                     <?php if ($resultado): ?>
                         <?php if ($resultado['success']): ?>
-                            <div class="alert alert-success">
-                                <i class="bi bi-check-circle me-2"></i>
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle me-2"></i>
                                 <?php echo $resultado['message']; ?>
                             </div>
                             
-                            <div class="mt-4">
+                            <div id="processamento-pdf" class="mt-4">
+                                <div class="text-center">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Processando...</span>
+                                    </div>
+                                    <p class="mt-2">Extraindo texto do PDF...</p>
+                                </div>
+                            </div>
+                            
+                            <div id="resultado-processamento" style="display: none;">
                                 <h6>Transações Encontradas:</h6>
                                 <div class="table-responsive">
                                     <table class="table table-sm table-striped">
@@ -118,21 +118,7 @@ function processarUploadPDF($arquivo) {
                                                 <th>Tipo</th>
                                             </tr>
                                         </thead>
-                                        <tbody>
-                                            <?php foreach ($resultado['transacoes'] as $transacao): ?>
-                                                <tr>
-                                                    <td><?php echo $transacao['data']; ?></td>
-                                                    <td><?php echo htmlspecialchars($transacao['descricao']); ?></td>
-                                                    <td class="<?php echo $transacao['valor'] > 0 ? 'text-success' : 'text-danger'; ?>">
-                                                        R$ <?php echo number_format($transacao['valor'], 2, ',', '.'); ?>
-                                                    </td>
-                                                    <td>
-                                                        <span class="badge bg-<?php echo $transacao['tipo'] === 'receita' ? 'success' : 'danger'; ?>">
-                                                            <?php echo ucfirst($transacao['tipo']); ?>
-                                                        </span>
-                                                    </td>
-                                                </tr>
-                                            <?php endforeach; ?>
+                                        <tbody id="tabela-transacoes">
                                         </tbody>
                                     </table>
                                 </div>
@@ -255,17 +241,196 @@ function processarUploadPDF($arquivo) {
     </div>
 </div>
 
+<!-- PDF.js para processamento no frontend -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
 <script>
-function importarTransacoes() {
-    const transacoes = <?php echo json_encode($resultado['transacoes'] ?? []); ?>;
+// Configurar PDF.js
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+let transacoesEncontradas = [];
+
+// Processar PDF quando a página carregar (se houver resultado)
+document.addEventListener('DOMContentLoaded', function() {
+    <?php if ($resultado && $resultado['success']): ?>
+        processarPDF('<?php echo $resultado['arquivo']; ?>');
+    <?php endif; ?>
+});
+
+async function processarPDF(caminhoArquivo) {
+    try {
+        // Buscar o arquivo PDF
+        const response = await fetch(caminhoArquivo);
+        const arrayBuffer = await response.arrayBuffer();
+        
+        // Carregar PDF
+        const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+        let textoCompleto = '';
+        
+        // Extrair texto de todas as páginas
+        for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+            const pageText = textContent.items.map(item => item.str).join(' ');
+            textoCompleto += pageText + '\n';
+        }
+        
+        console.log('Texto extraído:', textoCompleto);
+        
+        // Processar transações
+        transacoesEncontradas = extrairTransacoesDoTexto(textoCompleto);
+        
+        // Mostrar resultado
+        mostrarResultado(transacoesEncontradas);
+        
+    } catch (error) {
+        console.error('Erro ao processar PDF:', error);
+        document.getElementById('processamento-pdf').innerHTML = `
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                Erro ao processar PDF: ${error.message}
+            </div>
+        `;
+    }
+}
+
+function extrairTransacoesDoTexto(texto) {
+    const transacoes = [];
+    const linhas = texto.split('\n');
+    
+    linhas.forEach(linha => {
+        linha = linha.trim();
+        if (linha.length < 10) return;
+        
+        // Padrões para extratos bancários brasileiros
+        const padroes = [
+            // Data + Descrição + Valor
+            /(\d{2}\/\d{2}\/\d{4})\s+(.+?)\s+([+-]?\d{1,3}(?:\.\d{3})*(?:,\d{2})?)$/,
+            // Data + Valor + Descrição
+            /(\d{2}\/\d{2}\/\d{4})\s+([+-]?\d{1,3}(?:\.\d{3})*(?:,\d{2})?)\s+(.+)$/,
+            // Data + Descrição + Valor (com espaços extras)
+            /(\d{2}\/\d{2}\/\d{4})\s+(.+?)\s+([+-]?\d{1,3}(?:\.\d{3})*(?:,\d{2})?)\s*$/
+        ];
+        
+        for (const padrao of padroes) {
+            const match = linha.match(padrao);
+            if (match) {
+                const transacao = criarTransacao(match);
+                if (transacao) {
+                    transacoes.push(transacao);
+                }
+                break;
+            }
+        }
+    });
+    
+    return transacoes;
+}
+
+function criarTransacao(match) {
+    let data, descricao, valor;
+    
+    if (match.length === 4) {
+        // Padrão: Data + Descrição + Valor
+        data = match[1];
+        descricao = match[2];
+        valor = match[3];
+    } else if (match.length === 4) {
+        // Padrão: Data + Valor + Descrição
+        data = match[1];
+        valor = match[2];
+        descricao = match[3];
+    }
+    
+    if (!data || !descricao || !valor) return null;
+    
+    // Normalizar data
+    const dataNormalizada = normalizarData(data);
+    if (!dataNormalizada) return null;
+    
+    // Normalizar valor
+    const valorNormalizado = normalizarValor(valor);
+    if (valorNormalizado === null) return null;
+    
+    return {
+        data: dataNormalizada,
+        descricao: descricao.trim(),
+        valor: valorNormalizado,
+        tipo: valorNormalizado > 0 ? 'receita' : 'despesa'
+    };
+}
+
+function normalizarData(data) {
+    // Converter DD/MM/YYYY para YYYY-MM-DD
+    const match = data.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+    if (match) {
+        const dia = match[1];
+        const mes = match[2];
+        const ano = match[3];
+        
+        // Validar data
+        const dataObj = new Date(ano, mes - 1, dia);
+        if (dataObj.getDate() == dia && dataObj.getMonth() == mes - 1 && dataObj.getFullYear() == ano) {
+            return `${ano}-${mes}-${dia}`;
+        }
+    }
+    return null;
+}
+
+function normalizarValor(valor) {
+    // Remover espaços
+    valor = valor.trim();
+    
+    // Converter formato brasileiro (1.234,56) para formato americano (1234.56)
+    valor = valor.replace(/\./g, '');
+    valor = valor.replace(',', '.');
+    
+    // Converter para float
+    const valorFloat = parseFloat(valor);
+    
+    // Verificar se é um valor válido
+    if (isNaN(valorFloat)) return null;
+    
+    return valorFloat;
+}
+
+function mostrarResultado(transacoes) {
+    document.getElementById('processamento-pdf').style.display = 'none';
+    document.getElementById('resultado-processamento').style.display = 'block';
+    
+    const tbody = document.getElementById('tabela-transacoes');
+    tbody.innerHTML = '';
     
     if (transacoes.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Nenhuma transação encontrada</td></tr>';
+    } else {
+        transacoes.forEach(transacao => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${transacao.data}</td>
+                <td>${transacao.descricao}</td>
+                <td class="${transacao.valor > 0 ? 'text-success' : 'text-danger'}">
+                    R$ ${transacao.valor.toFixed(2).replace('.', ',')}
+                </td>
+                <td>
+                    <span class="badge bg-${transacao.tipo === 'receita' ? 'success' : 'danger'}">
+                        ${transacao.tipo === 'receita' ? 'Receita' : 'Despesa'}
+                    </span>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+}
+
+function importarTransacoes() {
+    if (transacoesEncontradas.length === 0) {
         alert('Nenhuma transação para importar.');
         return;
     }
     
     // Confirmar importação
-    if (!confirm(`Deseja importar ${transacoes.length} transações para seu extrato?`)) {
+    if (!confirm(`Deseja importar ${transacoesEncontradas.length} transações para seu extrato?`)) {
         return;
     }
     
@@ -277,7 +442,7 @@ function importarTransacoes() {
     
     // Enviar para processamento
     const formData = new FormData();
-    formData.append('transacoes', JSON.stringify(transacoes));
+    formData.append('transacoes', JSON.stringify(transacoesEncontradas));
     
     fetch('processar_importacao_pdf.php', {
         method: 'POST',

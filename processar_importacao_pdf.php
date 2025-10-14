@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 require_once 'includes/db_connect.php';
-require_once 'includes/pdf_processor.php';
+require_once 'includes/pdfjs_processor.php';
 
 $userId = $_SESSION['user_id'];
 $transacoes = json_decode($_POST['transacoes'] ?? '[]', true);
@@ -31,7 +31,7 @@ if (empty($transacoes)) {
 }
 
 try {
-    $processor = new PDFProcessor($pdo, $userId);
+    $processor = new PDFJSProcessor($pdo, $userId);
     $resultado = $processor->salvarTransacoes($transacoes);
     
     $response['success'] = true;
