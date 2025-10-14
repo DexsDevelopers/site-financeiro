@@ -46,7 +46,7 @@ class RememberMeManager {
         
         try {
             $stmt = $this->pdo->prepare("
-                SELECT rt.*, u.id, u.nome, u.email 
+                SELECT rt.*, u.id, u.nome_completo as nome, u.email 
                 FROM remember_tokens rt 
                 JOIN usuarios u ON rt.user_id = u.id 
                 WHERE rt.token = ? 
