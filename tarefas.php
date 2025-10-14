@@ -64,7 +64,8 @@ try {
         }
     }
 } catch (PDOException $e) {
-    // Ignorar erros de criação de tabela
+    // Log do erro para debug
+    error_log("Erro ao criar tabelas de rotinas fixas: " . $e->getMessage());
 }
 
 // Buscar rotinas fixas do usuário
@@ -125,6 +126,24 @@ try {
     $rotinasFixas = [];
     $progressoRotina = 0;
     error_log("Erro ao buscar rotinas fixas: " . $e->getMessage());
+}
+
+// Debug: Mostrar informações das rotinas fixas
+if (isset($_GET['debug']) && $_GET['debug'] == 'rotinas') {
+    echo "<div style='background: #f8f9fa; padding: 1rem; border-radius: 8px; margin: 1rem 0; border-left: 4px solid #007bff;'>";
+    echo "<h4>🔍 Debug - Rotinas Fixas</h4>";
+    echo "<p><strong>Total de rotinas:</strong> " . count($rotinasFixas) . "</p>";
+    echo "<p><strong>Progresso:</strong> " . round($progressoRotina) . "%</p>";
+    if (!empty($rotinasFixas)) {
+        echo "<p><strong>Rotinas encontradas:</strong></p><ul>";
+        foreach ($rotinasFixas as $rotina) {
+            echo "<li>{$rotina['nome']} - Status: " . ($rotina['status_hoje'] ?? 'pendente') . "</li>";
+        }
+        echo "</ul>";
+    } else {
+        echo "<p><strong>Nenhuma rotina fixa encontrada</strong></p>";
+    }
+    echo "</div>";
 }
 
 // ===== ROTINAS DE HOJE (ESPECÍFICAS DO DIA) =====
