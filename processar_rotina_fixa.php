@@ -26,11 +26,43 @@ $acao = $_POST['acao'] ?? '';
 $rotinaId = (int)($_POST['rotina_id'] ?? 0);
 $dataHoje = date('Y-m-d');
 
+// Verificar se as tabelas existem
+try {
+    $pdo->query("SELECT 1 FROM rotinas_fixas LIMIT 1");
+    $pdo->query("SELECT 1 FROM rotina_controle_diario LIMIT 1");
+} catch (PDOException $e) {
+    $response['message'] = 'Tabelas não encontradas. Execute o script de criação.';
+    $response['debug'] = $e->getMessage();
+    echo json_encode($response);
+    exit;
+}
+
+// Validar parâmetros
+if (empty($acao)) {
+    $response['message'] = 'Ação não especificada';
+    echo json_encode($response);
+    exit;
+}
+
+if ($rotinaId <= 0 && in_array($acao, ['concluir', 'pendente'])) {
+    $response['message'] = 'ID da rotina inválido';
+    echo json_encode($response);
+    exit;
+}
+
 try {
     switch ($acao) {
         case 'concluir':
         case 'pendente':
             $novoStatus = $acao === 'concluir' ? 'concluido' : 'pendente';
+            
+            // Verificar se a rotina pertence ao usuário
+            $stmt = $pdo->prepare("SELECT id FROM rotinas_fixas WHERE id = ? AND id_usuario = ?");
+            $stmt->execute([$rotinaId, $userId]);
+            if (!$stmt->fetch()) {
+                $response['message'] = 'Rotina não encontrada ou não pertence ao usuário';
+                break;
+            }
             
             // Verificar se já existe controle para hoje
             $stmt = $pdo->prepare("
@@ -102,8 +134,17 @@ try {
     }
     
 } catch (PDOException $e) {
-    $response['message'] = 'Erro no banco de dados';
+    $response['message'] = 'Erro no banco de dados: ' . $e->getMessage();
+    $response['debug'] = [
+        'acao' => $acao,
+        'rotina_id' => $rotinaId,
+        'user_id' => $userId,
+        'data_hoje' => $dataHoje,
+        'error_code' => $e->getCode(),
+        'error_message' => $e->getMessage()
+    ];
     error_log("Erro ao processar rotina fixa: " . $e->getMessage());
+    error_log("Debug info: " . json_encode($response['debug']));
 }
 
 echo json_encode($response);
