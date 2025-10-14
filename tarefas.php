@@ -14,6 +14,7 @@ try {
         id_usuario INT NOT NULL,
         nome VARCHAR(100) NOT NULL,
         horario_sugerido TIME DEFAULT NULL,
+        descricao TEXT DEFAULT NULL,
         ordem INT DEFAULT 0,
         ativo BOOLEAN DEFAULT TRUE,
         data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -22,6 +23,13 @@ try {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ";
     $pdo->exec($sql_rotinas_fixas);
+    
+    // Adicionar coluna descricao se não existir
+    try {
+        $pdo->exec("ALTER TABLE rotinas_fixas ADD COLUMN descricao TEXT DEFAULT NULL AFTER horario_sugerido");
+    } catch (PDOException $e) {
+        // Coluna já existe, ignorar erro
+    }
     
     // Criar tabela rotina_controle_diario se não existir
     $sql_controle = "
@@ -459,6 +467,14 @@ function formatarTempo($minutos) {
 .habit-time {
     color: var(--text-secondary);
     font-size: 0.85rem;
+}
+
+.habit-description {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-style: italic;
+    display: block;
+    margin-top: 0.25rem;
 }
 
 
@@ -1154,10 +1170,16 @@ function formatarTempo($minutos) {
                             </div>
                             <div class="habit-content">
                                 <h6 class="habit-name"><?php echo htmlspecialchars($rotina['nome']); ?></h6>
-                                <?php if ($rotina['horario']): ?>
+                                <?php if ($rotina['horario_sugerido']): ?>
                                 <small class="habit-time">
                                     <i class="bi bi-clock me-1"></i>
-                                    <?php echo date('H:i', strtotime($rotina['horario'])); ?>
+                                    <?php echo date('H:i', strtotime($rotina['horario_sugerido'])); ?>
+                                </small>
+                                <?php endif; ?>
+                                <?php if ($rotina['descricao']): ?>
+                                <small class="habit-description">
+                                    <i class="bi bi-card-text me-1"></i>
+                                    <?php echo htmlspecialchars($rotina['descricao']); ?>
                                 </small>
                                 <?php endif; ?>
                             </div>

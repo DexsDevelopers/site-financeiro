@@ -25,14 +25,14 @@ function atualizarStatusRotinaFixa($pdo, $userId, $rotinaId, $status, $observaco
 /**
  * Adicionar nova rotina fixa
  */
-function adicionarRotinaFixa($pdo, $userId, $nome, $horario = null, $ordem = 0) {
+function adicionarRotinaFixa($pdo, $userId, $nome, $horario = null, $descricao = null, $ordem = 0) {
     try {
         $stmt = $pdo->prepare("
-            INSERT INTO rotinas_fixas (id_usuario, nome, horario_sugerido, ordem, ativo) 
-            VALUES (?, ?, ?, ?, TRUE)
+            INSERT INTO rotinas_fixas (id_usuario, nome, horario_sugerido, descricao, ordem, ativo) 
+            VALUES (?, ?, ?, ?, ?, TRUE)
         ");
         
-        if ($stmt->execute([$userId, $nome, $horario, $ordem])) {
+        if ($stmt->execute([$userId, $nome, $horario, $descricao, $ordem])) {
             $idRotina = $pdo->lastInsertId();
             
             // Criar controle para hoje

@@ -62,6 +62,7 @@ try {
         case 'adicionar':
             $nome = $_POST['nome'] ?? '';
             $horario = $_POST['horario'] ?? null;
+            $descricao = $_POST['descricao'] ?? null;
             $ordem = (int)($_POST['ordem'] ?? 0);
             
             if (empty($nome)) {
@@ -69,7 +70,7 @@ try {
                 break;
             }
             
-            $idRotina = adicionarRotinaFixa($pdo, $userId, $nome, $horario, $ordem);
+            $idRotina = adicionarRotinaFixa($pdo, $userId, $nome, $horario, $descricao, $ordem);
             if ($idRotina) {
                 $response['success'] = true;
                 $response['message'] = 'Rotina adicionada com sucesso';
