@@ -7,8 +7,8 @@ require_once 'includes/db_connect.php';
 echo "[" . date('Y-m-d H:i:s') . "] Iniciando reset automático das rotinas fixas...\n";
 
 try {
-    // Buscar todos os usuários ativos
-    $stmt = $pdo->query("SELECT id FROM usuarios WHERE ativo = 1");
+    // Buscar todos os usuários
+    $stmt = $pdo->query("SELECT id FROM usuarios");
     $usuarios = $stmt->fetchAll(PDO::FETCH_COLUMN);
     
     $dataHoje = date('Y-m-d');
