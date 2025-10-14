@@ -505,7 +505,7 @@ function importarTransacoes() {
     const formData = new FormData();
     formData.append('transacoes', JSON.stringify(transacoesEncontradas));
     
-    fetch('processar_importacao_pdf.php', {
+    fetch('importar_transacoes_pdf.php', {
         method: 'POST',
         body: formData
     })
