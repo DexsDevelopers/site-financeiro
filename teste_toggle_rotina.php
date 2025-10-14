@@ -4,9 +4,19 @@ require_once 'includes/db_connect.php';
 
 header('Content-Type: application/json');
 
-// Simular dados de POST
+// Primeiro, buscar uma rotina que realmente existe
+$stmt = $pdo->prepare("SELECT id FROM rotinas_fixas WHERE id_usuario = ? LIMIT 1");
+$stmt->execute([$userId]);
+$rotinaExiste = $stmt->fetch();
+
+if (!$rotinaExiste) {
+    echo json_encode(['erro' => 'Nenhuma rotina encontrada para o usuário']);
+    exit;
+}
+
+// Simular dados de POST com ID real
 $_POST['acao'] = 'concluir';
-$_POST['rotina_id'] = '1'; // Assumindo que existe uma rotina com ID 1
+$_POST['rotina_id'] = $rotinaExiste['id']; // Usar ID que realmente existe
 
 $userId = $_SESSION['user_id'] ?? null;
 $acao = $_POST['acao'] ?? '';
