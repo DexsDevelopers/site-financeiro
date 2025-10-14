@@ -1784,6 +1784,53 @@ function formatarTempo($minutos) {
     </div>
 </div>
 
+<!-- Modal de Adicionar Rotina Fixa -->
+<div class="modal fade" id="modalAdicionarRotinaFixa" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background: var(--card-bg); border: 1px solid var(--border-color);">
+            <div class="modal-header" style="border-bottom: 1px solid var(--border-color);">
+                <h5 class="modal-title" style="color: var(--text-primary);">
+                    <i class="bi bi-plus-circle me-2"></i>Adicionar Rotina Fixa
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formAdicionarRotinaFixa">
+                    <div class="mb-3">
+                        <label for="nomeRotinaFixa" class="form-label" style="color: var(--text-primary);">
+                            <i class="bi bi-tag me-1"></i>Nome da Rotina
+                        </label>
+                        <input type="text" class="form-control" id="nomeRotinaFixa" placeholder="Ex: Treinar, Estudar, Meditar..." required style="background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-primary);">
+                    </div>
+                    <div class="mb-3">
+                        <label for="horarioRotinaFixa" class="form-label" style="color: var(--text-primary);">
+                            <i class="bi bi-clock me-1"></i>Horário Sugerido (Opcional)
+                        </label>
+                        <input type="time" class="form-control" id="horarioRotinaFixa" style="background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-primary);">
+                        <div class="form-text" style="color: var(--text-secondary);">
+                            <i class="bi bi-info-circle me-1"></i>Defina um horário ideal para esta rotina
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="descricaoRotinaFixa" class="form-label" style="color: var(--text-primary);">
+                            <i class="bi bi-card-text me-1"></i>Descrição (Opcional)
+                        </label>
+                        <textarea class="form-control" id="descricaoRotinaFixa" rows="2" placeholder="Adicione uma descrição ou observações sobre esta rotina..." style="background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-primary);"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid var(--border-color);">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle me-1"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-primary" onclick="salvarRotinaFixa()">
+                    <i class="bi bi-check-circle me-1"></i>Adicionar Rotina
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
@@ -2646,29 +2693,56 @@ function adicionarHabit() {
 }
 
 function adicionarRotinaFixa() {
-    const nome = prompt('Nome da rotina fixa:');
-    if (nome && nome.trim()) {
-        const horario = prompt('Horário sugerido (opcional, formato HH:MM):');
-        
-        fetch('processar_rotina_fixa.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `acao=adicionar&nome=${encodeURIComponent(nome.trim())}&horario=${encodeURIComponent(horario || '')}`
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showToast('Sucesso!', data.message);
-                setTimeout(() => location.reload(), 1000);
-            } else {
-                showToast('Erro!', data.message, true);
-            }
-        })
-        .catch(error => {
-            console.error('Erro:', error);
-            showToast('Erro!', 'Erro de conexão', true);
-        });
+    // Limpar formulário
+    document.getElementById('formAdicionarRotinaFixa').reset();
+    
+    // Abrir modal
+    const modal = new bootstrap.Modal(document.getElementById('modalAdicionarRotinaFixa'));
+    modal.show();
+}
+
+function salvarRotinaFixa() {
+    const nome = document.getElementById('nomeRotinaFixa').value.trim();
+    const horario = document.getElementById('horarioRotinaFixa').value;
+    const descricao = document.getElementById('descricaoRotinaFixa').value.trim();
+    
+    if (!nome) {
+        showToast('Erro!', 'Nome da rotina é obrigatório', true);
+        return;
     }
+    
+    // Desabilitar botão durante o envio
+    const btnSalvar = document.querySelector('#modalAdicionarRotinaFixa .btn-primary');
+    btnSalvar.disabled = true;
+    btnSalvar.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Salvando...';
+    
+    fetch('processar_rotina_fixa.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `acao=adicionar&nome=${encodeURIComponent(nome)}&horario=${encodeURIComponent(horario)}&descricao=${encodeURIComponent(descricao)}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Sucesso!', data.message);
+            // Fechar modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('modalAdicionarRotinaFixa'));
+            modal.hide();
+            // Recarregar página
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast('Erro!', data.message, true);
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        showToast('Erro!', 'Erro de conexão', true);
+    })
+    .finally(() => {
+        // Reabilitar botão
+        btnSalvar.disabled = false;
+        btnSalvar.innerHTML = '<i class="bi bi-check-circle me-1"></i>Adicionar Rotina';
+    });
 }
 
 // ===== FUNÇÕES DE EDIÇÃO E EXCLUSÃO DE HÁBITOS =====
