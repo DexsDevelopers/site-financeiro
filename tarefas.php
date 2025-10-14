@@ -1198,8 +1198,8 @@ function formatarTempo($minutos) {
                 <?php if (!empty($rotinasFixas)): ?>
                 <div class="habits-grid">
                     <?php foreach ($rotinasFixas as $rotina): ?>
-                    <div class="habit-item <?php echo $rotina['status_hoje'] === 'concluido' ? 'completed' : ''; ?>">
-                        <div class="habit-main" onclick="toggleRotina(<?php echo $rotina['id']; ?>, '<?php echo $rotina['status_hoje'] ?? 'pendente'; ?>')">
+                    <div class="habit-item <?php echo $rotina['status_hoje'] === 'concluido' ? 'completed' : ''; ?>" data-rotina-id="<?php echo $rotina['id']; ?>">
+                        <div class="habit-main">
                             <div class="habit-icon">
                                 <i class="bi bi-<?php echo $rotina['status_hoje'] === 'concluido' ? 'check-circle-fill' : 'circle'; ?>"></i>
                             </div>
@@ -1893,6 +1893,26 @@ function formatarTempo($minutos) {
 <script>
 // ===== SISTEMA DE BUSCA E FILTROS =====
 document.addEventListener('DOMContentLoaded', function() {
+    
+    // ===== EVENT DELEGATION PARA ROTINAS FIXAS =====
+    // Usar event delegation para garantir que funcione mesmo após atualizações dinâmicas
+    document.addEventListener('click', function(e) {
+        // Verificar se é um clique em habit-main
+        if (e.target.closest('.habit-main')) {
+            const habitMain = e.target.closest('.habit-main');
+            const habitItem = habitMain.closest('.habit-item');
+            const rotinaId = habitItem.getAttribute('data-rotina-id');
+            
+            if (rotinaId) {
+                // Encontrar o status atual
+                const isCompleted = habitItem.classList.contains('completed');
+                const statusAtual = isCompleted ? 'concluido' : 'pendente';
+                
+                // Chamar toggleRotina
+                toggleRotina(parseInt(rotinaId), statusAtual);
+            }
+        }
+    });
     const searchInput = document.getElementById('searchTasks');
     const filterChips = document.querySelectorAll('.filter-chip');
     const taskCards = document.querySelectorAll('.task-card');
@@ -2756,6 +2776,7 @@ function atualizarSecaoRotinasFixas() {
 function criarElementoRotina(rotina) {
     const habitItem = document.createElement('div');
     habitItem.className = `habit-item ${rotina.status_hoje === 'concluido' ? 'completed' : ''}`;
+    habitItem.setAttribute('data-rotina-id', rotina.id);
     
     const horarioHtml = rotina.horario_sugerido ? `
         <small class="habit-time">
@@ -2772,7 +2793,7 @@ function criarElementoRotina(rotina) {
     ` : '';
     
     habitItem.innerHTML = `
-        <div class="habit-main" onclick="toggleRotina(${rotina.id}, '${rotina.status_hoje || 'pendente'}')">
+        <div class="habit-main">
             <div class="habit-icon">
                 <i class="bi bi-${rotina.status_hoje === 'concluido' ? 'check-circle-fill' : 'circle'}"></i>
             </div>
@@ -3023,9 +3044,36 @@ function toggleRotina(id, statusAtual) {
     // Marcar como em processamento
     rotinasEmProcessamento.add(id);
     
-    // Atualizar interface IMEDIATAMENTE (otimistic update)
-    const habitItem = document.querySelector(`[onclick*="toggleRotina(${id}"]`).closest('.habit-item');
-    const icon = habitItem.querySelector('.habit-icon i');
+    // Encontrar o elemento da rotina de forma mais robusta
+    let habitItem = null;
+    let icon = null;
+    
+    // Tentar encontrar pelo data attribute primeiro
+    habitItem = document.querySelector(`[data-rotina-id="${id}"]`);
+    
+    // Se não encontrar, tentar pelo onclick
+    if (!habitItem) {
+        const elements = document.querySelectorAll('.habit-main');
+        for (let element of elements) {
+            if (element.getAttribute('onclick') && element.getAttribute('onclick').includes(`toggleRotina(${id}`)) {
+                habitItem = element.closest('.habit-item');
+                break;
+            }
+        }
+    }
+    
+    // Se ainda não encontrar, usar o evento atual
+    if (!habitItem) {
+        habitItem = event.currentTarget.closest('.habit-item');
+    }
+    
+    if (!habitItem) {
+        console.error('Elemento da rotina não encontrado');
+        rotinasEmProcessamento.delete(id);
+        return;
+    }
+    
+    icon = habitItem.querySelector('.habit-icon i');
     const progressElement = document.querySelector('.progress-circular');
     const badge = document.querySelector('.section-badge');
     
