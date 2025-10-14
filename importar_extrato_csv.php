@@ -92,6 +92,9 @@ function extrairTransacoesCSV($caminhoArquivo) {
         file_put_contents($caminhoArquivo, $conteudo);
     }
     
+    // Detectar separador (vírgula ou ponto e vírgula)
+    $separador = strpos($conteudo, ';') !== false ? ';' : ',';
+    
     // Abrir arquivo CSV
     $handle = fopen($caminhoArquivo, 'r');
     if (!$handle) {
@@ -101,7 +104,7 @@ function extrairTransacoesCSV($caminhoArquivo) {
     $linha = 0;
     $cabecalhos = [];
     
-    while (($dados = fgetcsv($handle, 1000, ',')) !== FALSE) {
+    while (($dados = fgetcsv($handle, 1000, $separador)) !== FALSE) {
         $linha++;
         
         // Primeira linha - cabeçalhos
@@ -128,15 +131,13 @@ function extrairTransacoesCSV($caminhoArquivo) {
 }
 
 function processarLinhaCSV($dados, $cabecalhos) {
-    // Mapear colunas comuns
+    // Mapear colunas comuns (mais variações)
     $mapeamento = [
-        'data' => ['data', 'date', 'data_transacao', 'data_transaction'],
-        'descricao' => ['descricao', 'description', 'desc', 'descricao_transacao'],
-        'valor' => ['valor', 'value', 'amount', 'valor_transacao'],
-        'tipo' => ['tipo', 'type', 'categoria', 'category']
+        'data' => ['data', 'date', 'data_transacao', 'data_transaction', 'dt', 'data_movimentacao'],
+        'descricao' => ['descricao', 'description', 'desc', 'descricao_transacao', 'historico', 'detalhes', 'observacao'],
+        'valor' => ['valor', 'value', 'amount', 'valor_transacao', 'vlr', 'saldo', 'movimentacao'],
+        'tipo' => ['tipo', 'type', 'categoria', 'category', 'natureza']
     ];
-    
-    $transacao = [];
     
     // Encontrar índices das colunas
     $indices = [];
@@ -167,7 +168,15 @@ function processarLinhaCSV($dados, $cabecalhos) {
     $descricao = isset($dados[$indices['descricao']]) ? trim($dados[$indices['descricao']]) : '';
     $valor = isset($dados[$indices['valor']]) ? trim($dados[$indices['valor']]) : '';
     
+    // Validações básicas
     if (empty($data) || empty($descricao) || empty($valor)) {
+        return null;
+    }
+    
+    // Pular linhas que parecem ser cabeçalhos ou totais
+    if (stripos($descricao, 'total') !== false || 
+        stripos($descricao, 'saldo') !== false ||
+        stripos($descricao, 'resumo') !== false) {
         return null;
     }
     
@@ -220,7 +229,12 @@ function normalizarDataCSV($data) {
 function normalizarValorCSV($valor) {
     // Remover espaços e caracteres especiais
     $valor = trim($valor);
-    $valor = str_replace(['R$', '$', ' '], '', $valor);
+    $valor = str_replace(['R$', '$', ' ', '€', '£'], '', $valor);
+    
+    // Se estiver vazio após limpeza
+    if (empty($valor)) {
+        return null;
+    }
     
     // Detectar formato brasileiro (1.234,56) vs americano (1234.56)
     if (strpos($valor, ',') !== false && strpos($valor, '.') !== false) {
@@ -232,9 +246,15 @@ function normalizarValorCSV($valor) {
         $valor = str_replace(',', '.', $valor);
     }
     
+    // Verificar se é um número válido
+    if (!is_numeric($valor)) {
+        return null;
+    }
+    
     $valorFloat = floatval($valor);
     
-    if ($valorFloat == 0 && $valor !== '0' && $valor !== '0,00' && $valor !== '0.00') {
+    // Aceitar zero apenas se for explicitamente zero
+    if ($valorFloat == 0 && $valor !== '0' && $valor !== '0,00' && $valor !== '0.00' && $valor !== '0,0' && $valor !== '0.0') {
         return null;
     }
     
