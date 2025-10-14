@@ -41,28 +41,7 @@ try {
     ";
     $pdo->exec($sql_controle);
     
-    // Criar rotinas fixas de exemplo se não existirem
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM rotinas_fixas WHERE id_usuario = ?");
-    $stmt->execute([$userId]);
-    $total_rotinas = $stmt->fetchColumn();
-    
-    if ($total_rotinas == 0) {
-        $rotinas_exemplo = [
-            ['Treinar', '06:00:00'],
-            ['Estudar', '08:00:00'],
-            ['Ler', '20:00:00'],
-            ['Organizar o dia', '07:00:00'],
-            ['Meditar', '19:00:00']
-        ];
-        
-        foreach ($rotinas_exemplo as $index => $rotina) {
-            $stmt = $pdo->prepare("
-                INSERT INTO rotinas_fixas (id_usuario, nome, horario_sugerido, ordem, ativo) 
-                VALUES (?, ?, ?, ?, TRUE)
-            ");
-            $stmt->execute([$userId, $rotina[0], $rotina[1], $index + 1]);
-        }
-    }
+    // Rotinas de exemplo removidas - usuário deve criar suas próprias rotinas
 } catch (PDOException $e) {
     // Log do erro para debug
     error_log("Erro ao criar tabelas de rotinas fixas: " . $e->getMessage());
