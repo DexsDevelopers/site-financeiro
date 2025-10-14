@@ -5,6 +5,68 @@ require_once 'includes/db_connect.php';
 // ===== ROTINA DIÁRIA FIXA INTEGRADA =====
 $dataHoje = date('Y-m-d');
 
+// Verificar e criar tabelas se necessário
+try {
+    // Criar tabela rotinas_fixas se não existir
+    $sql_rotinas_fixas = "
+    CREATE TABLE IF NOT EXISTS rotinas_fixas (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        id_usuario INT NOT NULL,
+        nome VARCHAR(100) NOT NULL,
+        horario_sugerido TIME DEFAULT NULL,
+        ordem INT DEFAULT 0,
+        ativo BOOLEAN DEFAULT TRUE,
+        data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (id_usuario) REFERENCES usuarios(id) ON DELETE CASCADE,
+        UNIQUE KEY unique_rotina_usuario (id_usuario, nome)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    ";
+    $pdo->exec($sql_rotinas_fixas);
+    
+    // Criar tabela rotina_controle_diario se não existir
+    $sql_controle = "
+    CREATE TABLE IF NOT EXISTS rotina_controle_diario (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        id_usuario INT NOT NULL,
+        id_rotina_fixa INT NOT NULL,
+        data_execucao DATE NOT NULL,
+        status ENUM('pendente', 'concluido', 'pulado') DEFAULT 'pendente',
+        horario_execucao TIME DEFAULT NULL,
+        observacoes TEXT DEFAULT NULL,
+        data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (id_usuario) REFERENCES usuarios(id) ON DELETE CASCADE,
+        FOREIGN KEY (id_rotina_fixa) REFERENCES rotinas_fixas(id) ON DELETE CASCADE,
+        UNIQUE KEY unique_controle_dia (id_usuario, id_rotina_fixa, data_execucao)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    ";
+    $pdo->exec($sql_controle);
+    
+    // Criar rotinas fixas de exemplo se não existirem
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM rotinas_fixas WHERE id_usuario = ?");
+    $stmt->execute([$userId]);
+    $total_rotinas = $stmt->fetchColumn();
+    
+    if ($total_rotinas == 0) {
+        $rotinas_exemplo = [
+            ['Treinar', '06:00:00'],
+            ['Estudar', '08:00:00'],
+            ['Ler', '20:00:00'],
+            ['Organizar o dia', '07:00:00'],
+            ['Meditar', '19:00:00']
+        ];
+        
+        foreach ($rotinas_exemplo as $index => $rotina) {
+            $stmt = $pdo->prepare("
+                INSERT INTO rotinas_fixas (id_usuario, nome, horario_sugerido, ordem, ativo) 
+                VALUES (?, ?, ?, ?, TRUE)
+            ");
+            $stmt->execute([$userId, $rotina[0], $rotina[1], $index + 1]);
+        }
+    }
+} catch (PDOException $e) {
+    // Ignorar erros de criação de tabela
+}
+
 // Buscar rotinas fixas do usuário
 $rotinasFixas = [];
 $progressoRotina = 0;
