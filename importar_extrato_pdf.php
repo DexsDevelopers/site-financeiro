@@ -261,21 +261,56 @@ async function processarPDF(caminhoArquivo) {
     try {
         // Buscar o arquivo PDF
         const response = await fetch(caminhoArquivo);
+        if (!response.ok) {
+            throw new Error(`Erro ao carregar arquivo: ${response.status}`);
+        }
+        
         const arrayBuffer = await response.arrayBuffer();
         
-        // Carregar PDF
-        const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+        // Verificar se é um PDF válido
+        const uint8Array = new Uint8Array(arrayBuffer);
+        const pdfHeader = String.fromCharCode(...uint8Array.slice(0, 4));
+        
+        if (pdfHeader !== '%PDF') {
+            throw new Error('Arquivo não é um PDF válido');
+        }
+        
+        // Configurar opções do PDF.js
+        const loadingTask = pdfjsLib.getDocument({
+            data: arrayBuffer,
+            verbosity: 0, // Reduzir logs
+            disableAutoFetch: true,
+            disableStream: true
+        });
+        
+        // Carregar PDF com timeout
+        const pdf = await Promise.race([
+            loadingTask.promise,
+            new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Timeout ao carregar PDF')), 30000)
+            )
+        ]);
+        
         let textoCompleto = '';
         
         // Extrair texto de todas as páginas
         for (let i = 1; i <= pdf.numPages; i++) {
-            const page = await pdf.getPage(i);
-            const textContent = await page.getTextContent();
-            const pageText = textContent.items.map(item => item.str).join(' ');
-            textoCompleto += pageText + '\n';
+            try {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                const pageText = textContent.items.map(item => item.str).join(' ');
+                textoCompleto += pageText + '\n';
+            } catch (pageError) {
+                console.warn(`Erro ao processar página ${i}:`, pageError);
+                // Continuar com as outras páginas
+            }
         }
         
         console.log('Texto extraído:', textoCompleto);
+        
+        if (textoCompleto.trim().length === 0) {
+            throw new Error('Não foi possível extrair texto do PDF. O arquivo pode estar corrompido ou ser uma imagem escaneada.');
+        }
         
         // Processar transações
         transacoesEncontradas = extrairTransacoesDoTexto(textoCompleto);
@@ -285,10 +320,36 @@ async function processarPDF(caminhoArquivo) {
         
     } catch (error) {
         console.error('Erro ao processar PDF:', error);
+        
+        let mensagemErro = 'Erro ao processar PDF: ' + error.message;
+        
+        // Mensagens mais amigáveis para erros comuns
+        if (error.message.includes('Invalid PDF structure')) {
+            mensagemErro = 'O arquivo PDF parece estar corrompido ou em formato não suportado. Tente com outro arquivo.';
+        } else if (error.message.includes('Timeout')) {
+            mensagemErro = 'O PDF é muito grande ou complexo. Tente com um arquivo menor.';
+        } else if (error.message.includes('não é um PDF válido')) {
+            mensagemErro = 'O arquivo não é um PDF válido. Verifique se o arquivo está correto.';
+        }
+        
         document.getElementById('processamento-pdf').innerHTML = `
             <div class="alert alert-danger">
                 <i class="bi bi-exclamation-triangle me-2"></i>
-                Erro ao processar PDF: ${error.message}
+                ${mensagemErro}
+                <div class="mt-2">
+                    <small>
+                        <strong>Dicas:</strong><br>
+                        • Certifique-se de que o PDF tem texto selecionável (não é uma imagem escaneada)<br>
+                        • Tente com um arquivo menor (menos de 5MB)<br>
+                        • Verifique se o PDF não está corrompido
+                    </small>
+                </div>
+                <div class="mt-3">
+                    <button class="btn btn-outline-secondary btn-sm" onclick="reprocessarPDF()">
+                        <i class="bi bi-arrow-clockwise me-1"></i>
+                        Tentar Novamente
+                    </button>
+                </div>
             </div>
         `;
     }
