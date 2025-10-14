@@ -639,6 +639,11 @@ if (!isset($_SESSION['dias_uso_cache_time']) ||
                         <i class="bi bi-stars me-2"></i> Analista Pessoal
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="https://helmer.netlify.app/" target="_blank">
+                        <i class="bi bi-people-fill me-2"></i> Minha Equipe
+                    </a>
+                </li>
             </ul>
             
             <!-- acordeão menus -->
