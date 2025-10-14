@@ -1197,7 +1197,7 @@ function formatarTempo($minutos) {
                 </div>
                 
                 <div class="section-actions">
-                    <button class="btn btn-outline-primary btn-sm" onclick="adicionarHabit()">
+                    <button class="btn btn-outline-primary btn-sm" onclick="adicionarRotinaFixa()">
                         <i class="bi bi-plus-circle me-1"></i>
                         Adicionar Hábito
                     </button>
