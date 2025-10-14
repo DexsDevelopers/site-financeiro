@@ -8,12 +8,12 @@ echo "<hr>";
 
 try {
     // 1. Buscar todos os usuários
-    $stmt = $pdo->query("SELECT id, nome FROM usuarios ORDER BY id");
+    $stmt = $pdo->query("SELECT id, nome_completo FROM usuarios ORDER BY id");
     $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     echo "<h3>👥 Usuários encontrados:</h3>";
     foreach ($usuarios as $usuario) {
-        echo "• ID {$usuario['id']}: {$usuario['nome']}<br>";
+        echo "• ID {$usuario['id']}: {$usuario['nome_completo']}<br>";
     }
     echo "<br>";
     
@@ -32,7 +32,7 @@ try {
     
     foreach ($usuarios as $usuario) {
         $userId = $usuario['id'];
-        echo "<h4>🔄 Processando usuário: {$usuario['nome']} (ID: $userId)</h4>";
+        echo "<h4>🔄 Processando usuário: {$usuario['nome_completo']} (ID: $userId)</h4>";
         
         // Verificar se já tem rotinas padrão
         $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM config_rotina_padrao WHERE id_usuario = ?");
