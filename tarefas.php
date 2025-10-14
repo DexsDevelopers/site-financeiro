@@ -65,6 +65,63 @@ try {
     error_log("Erro ao buscar rotinas fixas: " . $e->getMessage());
 }
 
+// ===== ROTINAS DE HOJE (ESPECÍFICAS DO DIA) =====
+$rotinasHoje = [];
+$progressoRotinaHoje = 0;
+try {
+    // Buscar rotinas específicas de hoje
+    $stmt = $pdo->prepare("
+        SELECT rd.*, crp.horario_sugerido 
+        FROM rotina_diaria rd 
+        LEFT JOIN config_rotina_padrao crp ON rd.nome = crp.nome AND rd.id_usuario = crp.id_usuario
+        WHERE rd.id_usuario = ? AND rd.data_execucao = ? 
+        ORDER BY rd.ordem, crp.horario_sugerido
+    ");
+    $stmt->execute([$userId, $dataHoje]);
+    $rotinasHoje = $stmt->fetchAll();
+    
+    // Se não há rotinas para hoje, criar baseadas na configuração padrão
+    if (empty($rotinasHoje)) {
+        $stmt = $pdo->prepare("
+            SELECT nome, horario_sugerido, ordem 
+            FROM config_rotina_padrao 
+            WHERE id_usuario = ? AND ativo = TRUE 
+            ORDER BY ordem
+        ");
+        $stmt->execute([$userId]);
+        $rotinasPadrao = $stmt->fetchAll();
+        
+        foreach ($rotinasPadrao as $rotina) {
+            $stmt = $pdo->prepare("
+                INSERT INTO rotina_diaria (id_usuario, nome, data_execucao, horario, ordem) 
+                VALUES (?, ?, ?, ?, ?)
+            ");
+            $stmt->execute([$userId, $rotina['nome'], $dataHoje, $rotina['horario_sugerido'], $rotina['ordem']]);
+        }
+        
+        // Buscar novamente as rotinas criadas
+        $stmt = $pdo->prepare("
+            SELECT rd.*, crp.horario_sugerido 
+            FROM rotina_diaria rd 
+            LEFT JOIN config_rotina_padrao crp ON rd.nome = crp.nome AND rd.id_usuario = crp.id_usuario
+            WHERE rd.id_usuario = ? AND rd.data_execucao = ? 
+            ORDER BY rd.ordem, crp.horario_sugerido
+        ");
+        $stmt->execute([$userId, $dataHoje]);
+        $rotinasHoje = $stmt->fetchAll();
+    }
+    
+    // Calcular progresso das rotinas de hoje
+    $totalRotinasHoje = count($rotinasHoje);
+    $rotinasConcluidasHoje = array_filter($rotinasHoje, function($r) { return $r['status'] === 'concluido'; });
+    $progressoRotinaHoje = $totalRotinasHoje > 0 ? (count($rotinasConcluidasHoje) / $totalRotinasHoje) * 100 : 0;
+    
+} catch (PDOException $e) {
+    $rotinasHoje = [];
+    $progressoRotinaHoje = 0;
+    error_log("Erro ao buscar rotinas de hoje: " . $e->getMessage());
+}
+
 // Buscar estatísticas para o dashboard
 $stats = [];
 try {
