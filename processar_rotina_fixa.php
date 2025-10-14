@@ -105,13 +105,16 @@ try {
                 break;
             }
             
+            // Se horário estiver vazio ou for 00:00, salvar como NULL
+            $horarioFinal = (!empty($horario) && $horario !== '00:00' && $horario !== '00:00:00') ? $horario : null;
+            
             // Inserir rotina fixa
             $stmt = $pdo->prepare("
                 INSERT INTO rotinas_fixas (id_usuario, nome, horario_sugerido, descricao, ordem, ativo) 
                 VALUES (?, ?, ?, ?, ?, TRUE)
             ");
             
-            if ($stmt->execute([$userId, $nome, $horario, $descricao, $ordem])) {
+            if ($stmt->execute([$userId, $nome, $horarioFinal, $descricao, $ordem])) {
                 $idRotina = $pdo->lastInsertId();
                 
                 // Criar controle para hoje

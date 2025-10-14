@@ -1205,7 +1205,7 @@ function formatarTempo($minutos) {
                             </div>
                             <div class="habit-content">
                                 <h6 class="habit-name"><?php echo htmlspecialchars($rotina['nome']); ?></h6>
-                                <?php if ($rotina['horario_sugerido']): ?>
+                                <?php if ($rotina['horario_sugerido'] && $rotina['horario_sugerido'] !== '00:00:00'): ?>
                                 <small class="habit-time">
                                     <i class="bi bi-clock me-1"></i>
                                     <?php echo date('H:i', strtotime($rotina['horario_sugerido'])); ?>
@@ -2781,7 +2781,7 @@ function criarElementoRotina(rotina) {
     habitItem.className = `habit-item ${rotina.status_hoje === 'concluido' ? 'completed' : ''}`;
     habitItem.setAttribute('data-rotina-id', rotina.id);
     
-    const horarioHtml = rotina.horario_sugerido ? `
+    const horarioHtml = (rotina.horario_sugerido && rotina.horario_sugerido !== '00:00:00') ? `
         <small class="habit-time">
             <i class="bi bi-clock me-1"></i>
             ${new Date('1970-01-01T' + rotina.horario_sugerido).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'})}

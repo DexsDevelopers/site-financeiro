@@ -62,9 +62,12 @@ try {
         WHERE id = ? AND id_usuario = ?
     ");
     
+    // Se horário estiver vazio ou for 00:00, salvar como NULL
+    $horarioFinal = (!empty($horario) && $horario !== '00:00' && $horario !== '00:00:00') ? $horario : null;
+    
     $stmt->execute([
         $nome, 
-        $horario ?: null, 
+        $horarioFinal, 
         $descricao ?: null,
         $id, 
         $userId
