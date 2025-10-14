@@ -389,6 +389,27 @@ function formatarTempo($minutos) {
     border-color: #dc3545;
     color: #fff;
 }
+
+.empty-state {
+    text-align: center;
+    padding: 3rem 2rem;
+    color: #6c757d;
+}
+
+.empty-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.empty-state h5 {
+    margin-bottom: 0.5rem;
+    color: #495057;
+}
+
+.empty-state p {
+    margin-bottom: 1.5rem;
+}
     font-weight: 600;
 }
 
@@ -1059,16 +1080,19 @@ function formatarTempo($minutos) {
         </div>
     </div>
 
-    <!-- ===== SEÇÃO ROTINA DIÁRIA ===== -->
-    <?php if (!empty($rotinasFixas)): ?>
+    <!-- ===== SEÇÃO ROTINAS FIXAS ===== -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="section-card rotina-card">
                 <div class="section-header">
                     <div class="section-title">
                         <i class="bi bi-calendar-check me-2"></i>
-                        <h3>Rotina Diária</h3>
+                        <h3>Rotinas Fixas (Hábitos Permanentes)</h3>
+                        <?php if (!empty($rotinasFixas)): ?>
                         <span class="section-badge"><?php echo count($rotinasConcluidas); ?>/<?php echo count($rotinasFixas); ?> concluídas</span>
+                        <?php else: ?>
+                        <span class="section-badge">Nenhuma rotina fixa</span>
+                        <?php endif; ?>
                     </div>
                     <div class="section-progress">
                         <div class="progress-circular" style="--progress: <?php echo $progressoRotina; ?>%">
@@ -1077,6 +1101,7 @@ function formatarTempo($minutos) {
                     </div>
                 </div>
                 
+                <?php if (!empty($rotinasFixas)): ?>
                 <div class="habits-grid">
                     <?php foreach ($rotinasFixas as $rotina): ?>
                     <div class="habit-item <?php echo $rotina['status'] === 'concluido' ? 'completed' : ''; ?>">
@@ -1112,10 +1137,22 @@ function formatarTempo($minutos) {
                         Adicionar Hábito
                     </button>
                 </div>
+                <?php else: ?>
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <i class="bi bi-calendar-check"></i>
+                    </div>
+                    <h5>Nenhuma rotina fixa configurada</h5>
+                    <p class="text-muted">Adicione hábitos permanentes que você quer fazer todos os dias</p>
+                    <button class="btn btn-primary" onclick="adicionarRotinaFixa()">
+                        <i class="bi bi-plus-circle me-1"></i>
+                        Adicionar Primeira Rotina Fixa
+                    </button>
+                </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>
-    <?php endif; ?>
 
 
     <!-- ===== BARRA DE BUSCA E FILTROS ===== -->
@@ -2553,6 +2590,32 @@ function adicionarHabit() {
         .then(data => {
             if (data.success) {
                 location.reload();
+            } else {
+                showToast('Erro!', data.message, true);
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            showToast('Erro!', 'Erro de conexão', true);
+        });
+    }
+}
+
+function adicionarRotinaFixa() {
+    const nome = prompt('Nome da rotina fixa:');
+    if (nome && nome.trim()) {
+        const horario = prompt('Horário sugerido (opcional, formato HH:MM):');
+        
+        fetch('processar_rotina_fixa.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `acao=adicionar&nome=${encodeURIComponent(nome.trim())}&horario=${encodeURIComponent(horario || '')}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Sucesso!', data.message);
+                setTimeout(() => location.reload(), 1000);
             } else {
                 showToast('Erro!', data.message, true);
             }
