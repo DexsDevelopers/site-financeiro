@@ -2132,16 +2132,17 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // ===== ADICIONAR SUBTAREFA =====
-    const btnSubtask = document.querySelectorAll('.btn-subtask');
-    btnSubtask.forEach(btn => {
-        btn.addEventListener('click', function() {
-            const taskId = this.dataset.id;
+    // Usar event delegation para funcionar com elementos dinâmicos
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.btn-subtask')) {
+            const btn = e.target.closest('.btn-subtask');
+            const taskId = btn.dataset.id;
             document.getElementById('id_tarefa_principal').value = taskId;
             
             // Abrir modal
             const modal = new bootstrap.Modal(document.getElementById('modalAdicionarSubtarefa'));
             modal.show();
-        });
+        }
     });
     
     // Formulário de subtarefa
@@ -2332,20 +2333,21 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // ===== EXCLUSÃO DE SUBTAREFAS =====
-    // Excluir subtarefa
-    document.querySelectorAll('.btn-delete-subtask').forEach(btn => {
-        btn.addEventListener('click', function(e) {
+    // Excluir subtarefa usando event delegation
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.btn-delete-subtask')) {
             e.stopPropagation(); // Evitar conflito com edição inline
-            const subtaskId = this.dataset.id;
-            const subtaskItem = this.closest('.subtask-item');
+            const btn = e.target.closest('.btn-delete-subtask');
+            const subtaskId = btn.dataset.id;
+            const subtaskItem = btn.closest('.subtask-item');
             const subtaskText = subtaskItem.querySelector('.subtask-label').textContent.trim();
             
             // Confirmação antes de excluir
             if (confirm(`Tem certeza que deseja excluir a subtarefa "${subtaskText}"?`)) {
                 // Mostrar loading no botão
-                const originalContent = this.innerHTML;
-                this.disabled = true;
-                this.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+                const originalContent = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
                 
                 // Enviar para servidor
                 fetch('excluir_subtarefa.php', {
@@ -2377,27 +2379,28 @@ document.addEventListener('DOMContentLoaded', function() {
                         }, 300);
                     } else {
                         showToast('Erro!', data.message || 'Não foi possível excluir a subtarefa.', true);
-                        this.disabled = false;
-                        this.innerHTML = originalContent;
+                        btn.disabled = false;
+                        btn.innerHTML = originalContent;
                     }
                 })
                 .catch(error => {
                     console.error('Erro:', error);
                     showToast('Erro!', 'Erro de conexão', true);
-                    this.disabled = false;
-                    this.innerHTML = originalContent;
+                    btn.disabled = false;
+                    btn.innerHTML = originalContent;
                 });
             }
-        });
+        }
     });
     
     // ===== MODAL DE EDITAR TAREFA =====
     let currentEditTaskId = null;
     
-    // Abrir modal de editar
-    document.querySelectorAll('.btn-edit').forEach(btn => {
-        btn.addEventListener('click', function() {
-                const taskId = this.dataset.id;
+    // Abrir modal de editar usando event delegation
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.btn-edit')) {
+            const btn = e.target.closest('.btn-edit');
+            const taskId = btn.dataset.id;
             currentEditTaskId = taskId;
             
             // Buscar dados da tarefa
@@ -2477,14 +2480,15 @@ document.addEventListener('DOMContentLoaded', function() {
     // ===== MODAL DE EXCLUIR TAREFA =====
     let currentDeleteTaskId = null;
     
-    // Abrir modal de excluir
-    document.querySelectorAll('.btn-delete').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const taskId = this.dataset.id;
+    // Abrir modal de excluir usando event delegation
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.btn-delete')) {
+            const btn = e.target.closest('.btn-delete');
+            const taskId = btn.dataset.id;
             currentDeleteTaskId = taskId;
             
             // Buscar título da tarefa para exibir no modal
-            const taskCard = this.closest('.task-card');
+            const taskCard = btn.closest('.task-card');
             const taskTitle = taskCard.querySelector('.task-title').textContent;
             
             document.getElementById('delete_task_title').textContent = taskTitle;
@@ -2492,7 +2496,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Abrir modal
             const modal = new bootstrap.Modal(document.getElementById('modalExcluirTarefa'));
             modal.show();
-        });
+        }
     });
     
     // Confirmar exclusão
