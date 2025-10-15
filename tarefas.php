@@ -1239,14 +1239,14 @@ function formatarTempo($minutos) {
                         <div class="habit-header">
                             <i class="bi bi-grip-vertical habit-handle" style="color: var(--text-secondary); cursor: grab;"></i>
                             <div class="habit-main">
-                                <div class="habit-icon">
+                            <div class="habit-icon">
                                     <i class="bi bi-<?php echo $rotina['status_hoje'] === 'concluido' ? 'check-circle-fill' : 'circle'; ?>"></i>
-                                </div>
-                                <div class="habit-content">
-                                    <h6 class="habit-name"><?php echo htmlspecialchars($rotina['nome']); ?></h6>
+                            </div>
+                            <div class="habit-content">
+                                <h6 class="habit-name"><?php echo htmlspecialchars($rotina['nome']); ?></h6>
                                     <?php if ($rotina['horario_sugerido'] && $rotina['horario_sugerido'] !== '00:00:00'): ?>
-                                    <small class="habit-time">
-                                        <i class="bi bi-clock me-1"></i>
+                                <small class="habit-time">
+                                    <i class="bi bi-clock me-1"></i>
                                         <?php echo date('H:i', strtotime($rotina['horario_sugerido'])); ?>
                                     </small>
                                     <?php endif; ?>
@@ -1254,8 +1254,8 @@ function formatarTempo($minutos) {
                                     <small class="habit-description">
                                         <i class="bi bi-card-text me-1"></i>
                                         <?php echo htmlspecialchars($rotina['descricao']); ?>
-                                    </small>
-                                    <?php endif; ?>
+                                </small>
+                                <?php endif; ?>
                                 </div>
                             </div>
                         </div>
@@ -1272,7 +1272,7 @@ function formatarTempo($minutos) {
                 </div>
                 
                 <div class="section-actions">
-                    <button class="btn btn-outline-primary btn-sm" onclick="adicionarRotinaFixa()">
+                    <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalAdicionarRotinaFixa">
                         <i class="bi bi-plus-circle me-1"></i>
                         Adicionar Hábito
                     </button>
@@ -1281,15 +1281,15 @@ function formatarTempo($minutos) {
                 <div class="empty-state">
                     <div class="empty-icon">
                         <i class="bi bi-calendar-check"></i>
-                    </div>
+            </div>
                     <h5>Nenhuma rotina fixa configurada</h5>
                     <p class="text-muted">Adicione hábitos permanentes que você quer fazer todos os dias</p>
-                    <button class="btn btn-primary" onclick="adicionarRotinaFixa()">
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAdicionarRotinaFixa">
                         <i class="bi bi-plus-circle me-1"></i>
                         Adicionar Primeira Rotina Fixa
                     </button>
-                </div>
-                <?php endif; ?>
+    </div>
+    <?php endif; ?>
                 
             </div>
         </div>
@@ -1331,7 +1331,7 @@ function formatarTempo($minutos) {
                         <h3>Minhas Tarefas</h3>
                     </div>
                     <div class="section-actions">
-                        <button class="btn btn-outline-info me-2" onclick="mostrarEstatisticas()">
+                        <button class="btn btn-outline-info me-2" data-bs-toggle="modal" data-bs-target="#modalEstatisticas">
                             <i class="bi bi-graph-up me-2"></i>Estatísticas
                         </button>
                         <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalNovaTarefa">
@@ -1934,7 +1934,7 @@ function formatarTempo($minutos) {
 </div>
 
 <!-- Bootstrap JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
@@ -2511,7 +2511,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     btn.innerHTML = originalContent;
                 });
             }
-        }
+            }
     });
     
     // ===== MODAL DE EDITAR TAREFA =====
@@ -2572,7 +2572,7 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(response => response.json())
         .then(data => {
-                if (data.success) {
+            if (data.success) {
                     showToast('Sucesso!', data.message || 'Tarefa atualizada com sucesso!');
                     
                     // Fechar modal
@@ -2805,13 +2805,15 @@ function showToast(title, message, isError = false) {
 }
 
 // ===== FUNÇÕES DO MODAL DE ESTATÍSTICAS =====
-window.mostrarEstatisticas = function() {
-    const modal = new bootstrap.Modal(document.getElementById('modalEstatisticas'));
-    modal.show();
-    
-    // Carregar dados das estatísticas
+// Event listener para carregar estatísticas quando o modal abrir
+document.addEventListener('DOMContentLoaded', function() {
+    const modalEstatisticas = document.getElementById('modalEstatisticas');
+    if (modalEstatisticas) {
+        modalEstatisticas.addEventListener('show.bs.modal', function() {
     carregarEstatisticas();
+        });
 }
+});
 
 function carregarEstatisticas() {
     // Carregar tarefas de hoje
@@ -3071,9 +3073,9 @@ function atualizarContadoresRotinas(rotinas) {
 function atualizarListaTarefas() {
     // Buscar dados atualizados das tarefas
     fetch('api_tarefas_pendentes.php')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
                 const container = document.getElementById('lista-tarefas-pendentes');
                 if (container) {
                     container.innerHTML = '';
@@ -3086,7 +3088,7 @@ function atualizarListaTarefas() {
                                 <p style="color: var(--text-secondary);">Parabéns! Você está em dia com suas tarefas.</p>
                             </div>
                         `;
-                    } else {
+        } else {
                         data.tarefas.forEach(tarefa => {
                             const taskCard = document.createElement('div');
                             taskCard.className = `task-card prioridade-${tarefa.prioridade} fade-in`;
@@ -3380,16 +3382,8 @@ function adicionarHabit() {
     }
 }
 
-window.adicionarRotinaFixa = function() {
-    // Limpar formulário
-    document.getElementById('formAdicionarRotinaFixa').reset();
-    
-    // Abrir modal
-    const modal = new bootstrap.Modal(document.getElementById('modalAdicionarRotinaFixa'));
-    modal.show();
-}
-
-function salvarRotinaFixa() {
+// Função para salvar rotina fixa
+window.salvarRotinaFixa = function() {
     const nome = document.getElementById('nomeRotinaFixa').value.trim();
     const horario = document.getElementById('horarioRotinaFixa').value;
     const descricao = document.getElementById('descricaoRotinaFixa').value.trim();
