@@ -77,6 +77,28 @@ try {
     error_log("Erro: " . $e->getMessage());
 }
 
+// ===== BUSCAR SUBTAREFAS (agrupadas por tarefa) =====
+$subtarefasPorTarefa = [];
+try {
+    $sqlSub = "
+        SELECT s.id, s.id_tarefa_principal, s.descricao, 
+               COALESCE(s.status, CASE WHEN s.concluida = 1 THEN 'concluida' ELSE 'pendente' END) as status
+        FROM subtarefas s
+        JOIN tarefas t ON s.id_tarefa_principal = t.id
+        WHERE t.id_usuario = ?
+        ORDER BY s.id ASC
+    ";
+    $stmtSub = $pdo->prepare($sqlSub);
+    $stmtSub->execute([$userId]);
+    while ($row = $stmtSub->fetch(PDO::FETCH_ASSOC)) {
+        $tid = (int)$row['id_tarefa_principal'];
+        if (!isset($subtarefasPorTarefa[$tid])) { $subtarefasPorTarefa[$tid] = []; }
+        $subtarefasPorTarefa[$tid][] = $row;
+    }
+} catch (PDOException $e) {
+    error_log("Erro subtarefas: " . $e->getMessage());
+}
+
 function getPrioridadeBadge($prioridade) {
     return match($prioridade) {
         'Alta' => 'badge-danger',
@@ -801,6 +823,30 @@ body::before {
                             </button>
                         </div>
                     </div>
+                    <?php $tid = (int)$tarefa['id']; $subs = $subtarefasPorTarefa[$tid] ?? []; ?>
+                    <?php if (!empty($subs)): ?>
+                    <div class="subtasks" style="margin-top: 0.75rem;">
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;color:var(--text-secondary)">
+                            <button type="button" class="btn-neuro" onclick="toggleSubtasks(this)" style="padding:0.25rem 0.5rem;font-size:0.85rem;">
+                                <i class="bi bi-chevron-down"></i>
+                            </button>
+                            <span>Subtarefas (<?= count($subs) ?>)</span>
+                        </div>
+                        <div class="subtasks-list">
+                            <?php foreach ($subs as $sub): ?>
+                            <div class="subtask-item" style="display:flex;align-items:center;gap:8px;margin:6px 0;">
+                                <input class="form-check-input subtask-checkbox" type="checkbox" data-id="<?= (int)$sub['id'] ?>" <?= ($sub['status']==='concluida'?'checked':'') ?> />
+                                <label class="subtask-label" data-id="<?= (int)$sub['id'] ?>" style="flex:1;<?= ($sub['status']==='concluida'?'text-decoration:line-through;color:#888':'') ?>">
+                                    <?= htmlspecialchars($sub['descricao']) ?>
+                                </label>
+                                <button type="button" class="btn-icon-neuro btn-delete-subtask" data-id="<?= (int)$sub['id'] ?>" title="Excluir subtarefa">
+                                    <i class="bi bi-x"></i>
+                                </button>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                    <?php endif; ?>
                 </div>
             <?php endforeach; ?>
         <?php endif; ?>
@@ -923,6 +969,31 @@ body::before {
             </form>
         </div>
     </div>
+</div>
+
+<!-- Modal Adicionar Subtarefa -->
+<div class="modal fade" id="modalAdicionarSubtarefa" tabindex="-1">
+	<div class="modal-dialog">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title"><i class="bi bi-plus-circle"></i> Adicionar Subtarefa</h5>
+				<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+			</div>
+			<form id="formAdicionarSubtarefa">
+				<input type="hidden" name="id_tarefa_principal" id="subtaskTaskId">
+				<div class="modal-body">
+					<div class="mb-3">
+						<label class="form-label">Descrição</label>
+						<input type="text" name="descricao" class="form-control" required>
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn-neuro" data-bs-dismiss="modal">Cancelar</button>
+					<button type="submit" class="btn-neuro btn-neuro-danger"><i class="bi bi-plus-circle me-2"></i>Adicionar Subtarefa</button>
+				</div>
+			</form>
+		</div>
+	</div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -1227,6 +1298,104 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
-</script>
 
+// Abrir modal de adicionar subtarefa para uma tarefa específica
+function abrirModalSubtarefa(taskId) {
+	document.getElementById('subtaskTaskId').value = taskId;
+	new bootstrap.Modal(document.getElementById('modalAdicionarSubtarefa')).show();
+}
+
+// Submit adicionar subtarefa
+const formAdicionarSubtarefa = document.getElementById('formAdicionarSubtarefa');
+if (formAdicionarSubtarefa) {
+	formAdicionarSubtarefa.addEventListener('submit', function(e) {
+		e.preventDefault();
+		const formData = new FormData(this);
+		const btn = this.querySelector('button[type="submit"]');
+		btn.disabled = true;
+		btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Adicionando...';
+		
+		fetch('adicionar_subtarefa.php', {
+			method: 'POST',
+			body: formData
+		})
+		.then(r => r.json())
+		.then(data => {
+			if (data.success) {
+				showToast('Sucesso!', 'Subtarefa adicionada!');
+				bootstrap.Modal.getInstance(document.getElementById('modalAdicionarSubtarefa')).hide();
+				setTimeout(() => location.reload(), 800);
+			} else {
+				showToast('Erro', data.message, 'error');
+				btn.disabled = false;
+				btn.innerHTML = '<i class="bi bi-plus-circle me-2"></i>Adicionar Subtarefa';
+			}
+		})
+		.catch(() => {
+			showToast('Erro', 'Falha de conexão', 'error');
+			btn.disabled = false;
+			btn.innerHTML = '<i class="bi bi-plus-circle me-2"></i>Adicionar Subtarefa';
+		});
+	});
+}
+
+// Toggle exibição subtarefas
+window.toggleSubtasks = function(button) {
+	const list = button.closest('.subtasks').querySelector('.subtasks-list');
+	const icon = button.querySelector('i');
+	if (list.style.display === 'none') { list.style.display = 'block'; icon.className = 'bi bi-chevron-down'; }
+	else { list.style.display = 'none'; icon.className = 'bi bi-chevron-right'; }
+};
+
+// Event delegation: checkbox de subtarefa
+
+document.addEventListener('change', function(e) {
+	if (e.target.classList.contains('subtask-checkbox')) {
+		const checkbox = e.target;
+		const subtaskId = checkbox.dataset.id;
+		const status = checkbox.checked ? 'concluida' : 'pendente';
+		const label = checkbox.closest('.subtask-item').querySelector('.subtask-label');
+		if (status === 'concluida') { label.style.textDecoration = 'line-through'; label.style.color = '#888'; }
+		else { label.style.textDecoration = ''; label.style.color = ''; }
+		fetch('atualizar_status_subtarefa.php', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ id: subtaskId, status })
+		}).then(r => r.json()).then(data => {
+			if (!data.success) {
+				checkbox.checked = !checkbox.checked;
+				if (status === 'concluida') { label.style.textDecoration = ''; label.style.color = ''; }
+				else { label.style.textDecoration = 'line-through'; label.style.color = '#888'; }
+				showToast('Erro', data.message, 'error');
+			}
+		}).catch(() => {
+			checkbox.checked = !checkbox.checked;
+			showToast('Erro', 'Erro de conexão', 'error');
+		});
+	}
+});
+
+// Event delegation: excluir subtarefa
+
+document.addEventListener('click', function(e) {
+	if (e.target.closest('.btn-delete-subtask')) {
+		e.stopPropagation();
+		const btn = e.target.closest('.btn-delete-subtask');
+		const subtaskId = btn.dataset.id;
+		const item = btn.closest('.subtask-item');
+		if (confirm('Deseja excluir esta subtarefa?')) {
+			const original = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+			fetch('excluir_subtarefa.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: subtaskId }) })
+			.then(r => r.json()).then(data => {
+				if (data.success) {
+					item.style.transition = 'all .3s'; item.style.transform = 'translateX(-100%)'; item.style.opacity = '0';
+					setTimeout(() => { item.remove(); }, 300);
+					showToast('Sucesso!', 'Subtarefa excluída!');
+				} else { btn.disabled = false; btn.innerHTML = original; showToast('Erro', data.message, 'error'); }
+			}).catch(() => { btn.disabled = false; btn.innerHTML = original; showToast('Erro', 'Erro de conexão', 'error'); });
+		}
+	}
+});
+
+</script>
 <?php require_once 'templates/footer.php'; ?>
