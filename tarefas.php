@@ -3018,17 +3018,20 @@ function atualizarListaTarefas() {
                                                 ${tarefa.prioridade}
                                             </span>
                                             
-                                            ${tarefa.data_limite ? `
-                                                <span><i class="bi bi-calendar-event me-1"></i>${new Date(tarefa.data_limite).toLocaleDateString('pt-BR')}</span>
-                                            ` : ''}
+                                            ${tarefa.data_limite ? 
+                                                `<span><i class="bi bi-calendar-event me-1"></i>${new Date(tarefa.data_limite).toLocaleDateString('pt-BR')}</span>` : 
+                                                ''
+                                            }
                                             
-                                            ${tarefa.tempo_estimado > 0 ? `
-                                                <span><i class="bi bi-clock me-1"></i>${formatarTempo(tarefa.tempo_estimado)}</span>
-                                            ` : ''}
+                                            ${tarefa.tempo_estimado > 0 ? 
+                                                `<span><i class="bi bi-clock me-1"></i>${formatarTempo(tarefa.tempo_estimado)}</span>` : 
+                                                ''
+                                            }
                                             
-                                            ${tarefa.subtarefas && tarefa.subtarefas.length > 0 ? `
-                                                <span><i class="bi bi-list-ul me-1"></i>${tarefa.subtarefas.length} subtarefas</span>
-                                            ` : ''}
+                                            ${tarefa.subtarefas && tarefa.subtarefas.length > 0 ? 
+                                                `<span><i class="bi bi-list-ul me-1"></i>${tarefa.subtarefas.length} subtarefas</span>` : 
+                                                ''
+                                            }
                                         </div>
                                     </div>
                                     
