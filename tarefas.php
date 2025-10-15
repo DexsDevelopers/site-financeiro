@@ -3009,7 +3009,7 @@ function criarElementoRotina(rotina) {
     const horarioHtml = (rotina.horario_sugerido && rotina.horario_sugerido !== '00:00:00') ? `
         <small class="habit-time">
             <i class="bi bi-clock me-1"></i>
-            ${new Date('1970-01-01T' + rotina.horario_sugerido).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'})}
+            ${rotina.horario_sugerido.substring(0, 5)}
         </small>
     ` : '';
     
