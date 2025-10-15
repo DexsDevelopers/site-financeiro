@@ -1,18 +1,23 @@
 <?php
+session_start();
 require_once 'includes/db_connect.php';
 
 header('Content-Type: application/json');
 
-if (!isset($_SESSION['user_id'])) {
+// Verificar autenticação
+$userId = $_SESSION['user_id'] ?? $_SESSION['user']['id'] ?? null;
+
+if (!$userId) {
     echo json_encode(['success' => false, 'message' => 'Usuário não autenticado']);
     exit;
 }
 
-$userId = $_SESSION['user_id'];
-$rotinaId = $_POST['id'] ?? null;
-$nome = trim($_POST['nome'] ?? '');
-$horarioSugerido = $_POST['horario_sugerido'] ?? null;
-$descricao = trim($_POST['descricao'] ?? '');
+// Receber dados JSON
+$input = json_decode(file_get_contents('php://input'), true);
+$rotinaId = $input['id'] ?? null;
+$nome = trim($input['nome'] ?? '');
+$horarioSugerido = $input['horario'] ?? null;
+$descricao = trim($input['descricao'] ?? '');
 
 if (!$rotinaId || !$nome) {
     echo json_encode(['success' => false, 'message' => 'Dados obrigatórios não fornecidos']);

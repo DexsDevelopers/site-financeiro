@@ -1,14 +1,16 @@
 <?php
+session_start();
 require_once 'includes/db_connect.php';
 
 header('Content-Type: application/json');
 
-if (!isset($_SESSION['user_id'])) {
+// Verificar autenticação
+$userId = $_SESSION['user_id'] ?? $_SESSION['user']['id'] ?? null;
+
+if (!$userId) {
     echo json_encode(['success' => false, 'message' => 'Usuário não autenticado']);
     exit;
 }
-
-$userId = $_SESSION['user_id'];
 $data = json_decode(file_get_contents('php://input'), true);
 $id = $data['id'] ?? 0;
 
