@@ -1170,22 +1170,44 @@ function excluirTarefa(id) {
 }
 
 document.getElementById('formNovaTarefa').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const formData = new FormData(this);
-    
-    fetch('adicionar_tarefa.php', {
-        method: 'POST',
-        body: formData
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) {
-            showToast('Sucesso!', 'Tarefa adicionada!');
-            setTimeout(() => location.reload(), 1500);
-        } else {
-            showToast('Erro', data.message, 'error');
-        }
-    });
+	e.preventDefault();
+	// Evita duplo clique
+	if (this.dataset.submitting === '1') return;
+	this.dataset.submitting = '1';
+	const formData = new FormData(this);
+	const btn = this.querySelector('button[type="submit"]');
+	if (btn) {
+		btn.disabled = true;
+		btn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Adicionando...';
+	}
+	
+	fetch('adicionar_tarefa.php', {
+		method: 'POST',
+		body: formData
+	})
+	.then(r => r.json())
+	.then(data => {
+		if (data.success) {
+			showToast('Sucesso!', 'Tarefa adicionada!');
+			setTimeout(() => location.reload(), 1200);
+		} else {
+			showToast('Erro', data.message, 'error');
+			// Reabilita em caso de erro
+			this.dataset.submitting = '';
+			if (btn) {
+				btn.disabled = false;
+				btn.innerHTML = '<i class="bi bi-save me-2"></i>Criar Tarefa';
+			}
+		}
+	})
+	.catch(() => {
+		showToast('Erro', 'Falha de conexão. Tente novamente.', 'error');
+		this.dataset.submitting = '';
+		if (btn) {
+			btn.disabled = false;
+			btn.innerHTML = '<i class="bi bi-save me-2"></i>Criar Tarefa';
+		}
+	});
 });
 
 // Animações CSS
