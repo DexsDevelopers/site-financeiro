@@ -3054,8 +3054,8 @@ function atualizarListaTarefas() {
                                     </div>
                                 </div>
                                 
-                                ${tarefa.subtarefas && tarefa.subtarefas.length > 0 ? `
-                                    <div class="subtasks mt-3 pt-3" style="border-top: 1px solid var(--border-color);">
+                                ${tarefa.subtarefas && tarefa.subtarefas.length > 0 ? 
+                                    `<div class="subtasks mt-3 pt-3" style="border-top: 1px solid var(--border-color);">
                                         <div class="d-flex justify-content-between align-items-center mb-2">
                                             <h6 class="mb-0" style="color: var(--text-secondary);">
                                                 <i class="bi bi-list-ul me-1"></i>Subtarefas
@@ -3065,8 +3065,8 @@ function atualizarListaTarefas() {
                                             </button>
                                         </div>
                                         <div class="subtasks-list">
-                                            ${tarefa.subtarefas.map(sub => `
-                                                <div class="subtask-item d-flex align-items-center mb-2 p-2" 
+                                            ${tarefa.subtarefas.map(sub => 
+                                                `<div class="subtask-item d-flex align-items-center mb-2 p-2" 
                                                      style="background: var(--dark-bg); border-radius: 8px; border: 1px solid var(--border-color);">
                                                     <div class="form-check me-3">
                                                         <input class="form-check-input subtask-checkbox" type="checkbox" 
@@ -3082,17 +3082,17 @@ function atualizarListaTarefas() {
                                                                 ${sub.descricao}
                                                             </label>
                                                             <div class="d-flex align-items-center gap-2">
-                                                                ${sub.prioridade ? `
-                                                                    <span class="badge ${getPrioridadeBadgeClass(sub.prioridade)}" 
+                                                                ${sub.prioridade ? 
+                                                                    `<span class="badge ${getPrioridadeBadgeClass(sub.prioridade)}" 
                                                                           style="font-size: 0.7rem;">
                                                                         ${sub.prioridade}
-                                                                    </span>
-                                                                ` : ''}
-                                                                ${sub.tempo_estimado > 0 ? `
-                                                                    <small class="text-muted">
+                                                                    </span>` : ''
+                                                                }
+                                                                ${sub.tempo_estimado > 0 ? 
+                                                                    `<small class="text-muted">
                                                                         <i class="bi bi-clock me-1"></i>${formatarTempo(sub.tempo_estimado)}
-                                                                    </small>
-                                                                ` : ''}
+                                                                    </small>` : ''
+                                                                }
                                                                 
                                                                 <button class="btn btn-sm btn-outline-danger btn-delete-subtask" 
                                                                         data-id="${sub.id}"
@@ -3103,11 +3103,12 @@ function atualizarListaTarefas() {
                                                             </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            `).join('')}
+                                                </div>`
+                                            ).join('')}
                                         </div>
-                                    </div>
-                                ` : ''}
+                                    </div>` : 
+                                    ''
+                                }
                                 
                                 <div class="swipe-actions">
                                     <i class="bi bi-check-lg"></i>
