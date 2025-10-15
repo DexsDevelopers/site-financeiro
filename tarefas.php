@@ -383,6 +383,9 @@ body::before {
     gap: 0.75rem;
     padding-top: 1rem;
     border-top: 1px solid rgba(255, 255, 255, 0.05);
+    position: relative;
+    z-index: 10;
+    pointer-events: auto;
 }
 
 .btn-icon-neuro {
@@ -400,6 +403,9 @@ body::before {
     box-shadow: 
         3px 3px 6px rgba(0, 0, 0, 0.4),
         -3px -3px 6px rgba(40, 40, 40, 0.1);
+    pointer-events: auto;
+    position: relative;
+    z-index: 11;
 }
 
 .btn-icon-neuro:hover {
@@ -923,34 +929,43 @@ body::before {
 <script>
 // ===== EVENT DELEGATION PARA HÁBITOS =====
 document.addEventListener('click', function(e) {
-    // Toggle hábito (clique no card, exceto nos botões)
-    const habitItem = e.target.closest('.habit-item');
-    if (habitItem && !e.target.closest('.habit-actions')) {
-        const id = habitItem.dataset.id;
-        const statusAtual = habitItem.dataset.status;
-        toggleHabito(parseInt(id), statusAtual);
-        return;
-    }
+    console.log('Click detectado:', e.target);
     
-    // Botão editar
+    // Botão editar (VERIFICAR PRIMEIRO)
     if (e.target.closest('.btn-edit-habit')) {
+        e.preventDefault();
         e.stopPropagation();
+        console.log('Botão editar clicado!');
         const habitItem = e.target.closest('.habit-item');
         const id = habitItem.dataset.id;
         const nome = habitItem.dataset.nome;
         const horario = habitItem.dataset.horario;
         const descricao = habitItem.dataset.descricao;
+        console.log('Dados:', {id, nome, horario, descricao});
         editarHabito(parseInt(id), nome, horario, descricao);
         return;
     }
     
-    // Botão excluir
+    // Botão excluir (VERIFICAR SEGUNDO)
     if (e.target.closest('.btn-delete-habit')) {
+        e.preventDefault();
         e.stopPropagation();
+        console.log('Botão excluir clicado!');
         const habitItem = e.target.closest('.habit-item');
         const id = habitItem.dataset.id;
         const nome = habitItem.dataset.nome;
+        console.log('Excluindo:', {id, nome});
         excluirHabito(parseInt(id), nome);
+        return;
+    }
+    
+    // Toggle hábito (clique no card, exceto nos botões)
+    const habitItem = e.target.closest('.habit-item');
+    if (habitItem && !e.target.closest('.habit-actions')) {
+        const id = habitItem.dataset.id;
+        const statusAtual = habitItem.dataset.status;
+        console.log('Toggle hábito:', {id, statusAtual});
+        toggleHabito(parseInt(id), statusAtual);
         return;
     }
 });
