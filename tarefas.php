@@ -2152,8 +2152,36 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.target.closest('.btn-edit')) {
             const btn = e.target.closest('.btn-edit');
             const taskId = btn.dataset.id;
-            // Implementar abertura do modal de edição
-            console.log('Editar tarefa:', taskId);
+            currentEditTaskId = taskId;
+            
+            // Buscar dados da tarefa
+            fetch(`buscar_tarefa_detalhes.php?id=${taskId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const tarefa = data.tarefa;
+                    
+                    // Preencher o formulário
+                    document.getElementById('edit_task_id').value = tarefa.id;
+                    document.getElementById('edit_descricao').value = tarefa.descricao || '';
+                    document.getElementById('edit_prioridade').value = tarefa.prioridade || 'Média';
+                    document.getElementById('edit_status').value = tarefa.status || 'pendente';
+                    document.getElementById('edit_tempo_estimado').value = tarefa.tempo_estimado || '';
+                    document.getElementById('edit_data_limite').value = tarefa.data_limite || '';
+                    document.getElementById('edit_hora_inicio').value = tarefa.hora_inicio || '';
+                    document.getElementById('edit_hora_fim').value = tarefa.hora_fim || '';
+                    
+                    // Abrir modal
+                    const modal = new bootstrap.Modal(document.getElementById('modalEditarTarefa'));
+                    modal.show();
+                } else {
+                    showToast('Erro!', data.message || 'Não foi possível carregar os dados da tarefa.', true);
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                showToast('Erro de rede!', 'Não foi possível conectar ao servidor.', true);
+            });
             return;
         }
         
@@ -2161,8 +2189,17 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.target.closest('.btn-delete')) {
             const btn = e.target.closest('.btn-delete');
             const taskId = btn.dataset.id;
-            // Implementar abertura do modal de exclusão
-            console.log('Excluir tarefa:', taskId);
+            currentDeleteTaskId = taskId;
+            
+            // Buscar título da tarefa para exibir no modal
+            const taskCard = btn.closest('.task-card');
+            const taskTitle = taskCard.querySelector('.task-title').textContent;
+            
+            document.getElementById('delete_task_title').textContent = taskTitle;
+            
+            // Abrir modal
+            const modal = new bootstrap.Modal(document.getElementById('modalExcluirTarefa'));
+            modal.show();
             return;
         }
         
@@ -2170,7 +2207,57 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.target.closest('.btn-delete-subtask')) {
             const btn = e.target.closest('.btn-delete-subtask');
             const subtaskId = btn.dataset.id;
-            console.log('Excluir subtarefa:', subtaskId);
+            const subtaskItem = btn.closest('.subtask-item');
+            const subtaskText = subtaskItem.querySelector('.subtask-label').textContent.trim();
+            
+            // Confirmação antes de excluir
+            if (confirm(`Tem certeza que deseja excluir a subtarefa "${subtaskText}"?`)) {
+                // Mostrar loading no botão
+                const originalContent = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+                
+                // Enviar para servidor
+                fetch('excluir_subtarefa.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: subtaskId })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('Sucesso!', 'Subtarefa excluída com sucesso!');
+                        
+                        // Remover subtarefa da interface com animação
+                        subtaskItem.style.transition = 'all 0.3s ease';
+                        subtaskItem.style.transform = 'translateX(-100%)';
+                        subtaskItem.style.opacity = '0';
+                        
+                        setTimeout(() => {
+                            subtaskItem.remove();
+                            
+                            // Verificar se não há mais subtarefas e ocultar seção
+                            const subtasksList = subtaskItem.closest('.subtasks-list');
+                            if (subtasksList && subtasksList.children.length === 0) {
+                                const subtasksSection = subtaskItem.closest('.subtasks');
+                                if (subtasksSection) {
+                                    subtasksSection.style.display = 'none';
+                                }
+                            }
+                        }, 300);
+                    } else {
+                        showToast('Erro!', data.message || 'Não foi possível excluir a subtarefa.', true);
+                        btn.disabled = false;
+                        btn.innerHTML = originalContent;
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro:', error);
+                    showToast('Erro!', 'Erro de conexão', true);
+                    btn.disabled = false;
+                    btn.innerHTML = originalContent;
+                });
+            }
             return;
         }
     });
