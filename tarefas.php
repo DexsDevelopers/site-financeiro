@@ -3035,10 +3035,10 @@ function criarElementoRotina(rotina) {
             </div>
         </div>
         <div class="habit-actions">
-            <button class="btn btn-sm btn-outline-warning" onclick="editarRotina(${rotina.id}, \`${rotina.nome}\`, \`${rotina.horario_sugerido || ''}\`, \`${rotina.descricao || ''}\`)" title="Editar hábito">
+            <button class="btn btn-sm btn-outline-warning" onclick="editarRotina(${rotina.id}, '${rotina.nome.replace(/'/g, "\\'")}', '${rotina.horario_sugerido || ''}', '${(rotina.descricao || '').replace(/'/g, "\\'")}');" title="Editar hábito">
                 <i class="bi bi-pencil"></i>
             </button>
-            <button class="btn btn-sm btn-outline-danger" onclick="excluirRotina(${rotina.id}, \`${rotina.nome}\`)" title="Excluir hábito">
+            <button class="btn btn-sm btn-outline-danger" onclick="excluirRotina(${rotina.id}, '${rotina.nome.replace(/'/g, "\\'")}');" title="Excluir hábito">
                 <i class="bi bi-trash"></i>
             </button>
         </div>
