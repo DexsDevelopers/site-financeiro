@@ -247,22 +247,24 @@ function isDiaAtual($dias) {
     
     <style>
         :root {
-            --primary-red: #e50914;
-            --dark-bg: #0d1117;
-            --card-bg: #161b22;
-            --border-color: #30363d;
-            --text-primary: #f0f6fc;
-            --text-secondary: #8b949e;
-            --success: #238636;
-            --warning: #d29922;
-            --danger: #da3633;
-            --radius: 12px;
-            --shadow: 0 4px 12px rgba(0,0,0,0.15);
-            --shadow-hover: 0 8px 25px rgba(0,0,0,0.25);
+            --primary-red: #FF0000;
+            --dark-bg: #000000;
+            --card-bg: #1a1a1a;
+            --border-color: #333333;
+            --text-primary: #FFFFFF;
+            --text-secondary: #CCCCCC;
+            --success: #00FF00;
+            --warning: #FFFF00;
+            --danger: #FF0000;
+            --info: #00FFFF;
+            --radius: 8px;
+            --shadow: 0 4px 12px rgba(255,0,0,0.3);
+            --shadow-hover: 0 8px 25px rgba(255,0,0,0.5);
         }
 
         body {
             background: var(--dark-bg);
+            color: var(--text-primary);
             min-height: 100vh;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
@@ -361,21 +363,23 @@ function isDiaAtual($dias) {
         }
 
         .section-card {
-            background: white;
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-md);
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
             margin-bottom: 2rem;
             overflow: hidden;
             border: 1px solid var(--border-color);
+            color: var(--text-primary);
         }
 
         .section-header {
-            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            background: var(--primary-red);
             padding: 1.5rem;
             border-bottom: 1px solid var(--border-color);
             display: flex;
             align-items: center;
             justify-content: space-between;
+            color: var(--text-primary);
         }
 
         .section-title {
@@ -383,6 +387,7 @@ function isDiaAtual($dias) {
             align-items: center;
             gap: 0.75rem;
             margin: 0;
+            color: var(--text-primary);
         }
 
         .section-title h3 {
@@ -558,10 +563,10 @@ function isDiaAtual($dias) {
         .btn-action {
             width: 32px;
             height: 32px;
-            border-radius: var(--radius-sm);
+            border-radius: var(--radius);
             border: 1px solid var(--border-color);
-            background: white;
-            color: var(--text-secondary);
+            background: var(--card-bg);
+            color: var(--text-primary);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -570,30 +575,31 @@ function isDiaAtual($dias) {
         }
 
         .btn-action:hover {
-            background: var(--primary-color);
-            color: white;
-            border-color: var(--primary-color);
+            background: var(--primary-red);
+            color: var(--text-primary);
+            border-color: var(--primary-red);
             transform: scale(1.05);
         }
 
         .btn-action.danger:hover {
-            background: var(--danger-color);
-            border-color: var(--danger-color);
+            background: var(--danger);
+            border-color: var(--danger);
         }
 
         .btn-action.success:hover {
-            background: var(--success-color);
-            border-color: var(--success-color);
+            background: var(--success);
+            border-color: var(--success);
         }
 
         .task-card {
-            background: white;
+            background: var(--card-bg);
             border: 1px solid var(--border-color);
-            border-radius: var(--radius-md);
+            border-radius: var(--radius);
             padding: 1.25rem;
             margin-bottom: 1rem;
             transition: all 0.3s ease;
             position: relative;
+            color: var(--text-primary);
         }
 
         .task-card::before {
@@ -607,9 +613,9 @@ function isDiaAtual($dias) {
             border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
         }
 
-        .task-card.prioridade-Alta::before { background: var(--danger-color); }
-        .task-card.prioridade-Média::before { background: var(--warning-color); }
-        .task-card.prioridade-Baixa::before { background: var(--success-color); }
+        .task-card.prioridade-Alta::before { background: var(--danger); }
+        .task-card.prioridade-Média::before { background: var(--warning); }
+        .task-card.prioridade-Baixa::before { background: var(--success); }
 
         .task-card:hover {
             transform: translateY(-2px);
@@ -721,26 +727,33 @@ function isDiaAtual($dias) {
 
         .modal-content {
             border: none;
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-xl);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-hover);
+            background: var(--card-bg);
+            color: var(--text-primary);
         }
 
         .modal-header {
-            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            background: var(--primary-red);
             border-bottom: 1px solid var(--border-color);
-            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+            border-radius: var(--radius) var(--radius) 0 0;
+            color: var(--text-primary);
         }
 
         .form-control, .form-select {
             border: 1px solid var(--border-color);
-            border-radius: var(--radius-md);
+            border-radius: var(--radius);
             padding: 0.75rem 1rem;
             transition: all 0.3s ease;
+            background: var(--card-bg);
+            color: var(--text-primary);
         }
 
         .form-control:focus, .form-select:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+            border-color: var(--primary-red);
+            box-shadow: 0 0 0 3px rgba(255, 0, 0, 0.3);
+            background: var(--card-bg);
+            color: var(--text-primary);
         }
 
         .btn {
@@ -751,36 +764,42 @@ function isDiaAtual($dias) {
         }
 
         .btn-primary {
-            background: var(--primary-color);
-            border-color: var(--primary-color);
+            background: var(--primary-red);
+            border-color: var(--primary-red);
+            color: var(--text-primary);
         }
 
         .btn-primary:hover {
-            background: #4f46e5;
-            border-color: #4f46e5;
+            background: #CC0000;
+            border-color: #CC0000;
             transform: translateY(-1px);
+            color: var(--text-primary);
         }
 
         .btn-success {
-            background: var(--success-color);
-            border-color: var(--success-color);
+            background: var(--success);
+            border-color: var(--success);
+            color: var(--dark-bg);
         }
 
         .btn-warning {
-            background: var(--warning-color);
-            border-color: var(--warning-color);
+            background: var(--warning);
+            border-color: var(--warning);
+            color: var(--dark-bg);
         }
 
         .btn-danger {
-            background: var(--danger-color);
-            border-color: var(--danger-color);
+            background: var(--danger);
+            border-color: var(--danger);
+            color: var(--text-primary);
         }
 
         .badge {
             font-size: 0.75rem;
             font-weight: 600;
             padding: 0.375rem 0.75rem;
-            border-radius: var(--radius-sm);
+            border-radius: var(--radius);
+            color: var(--text-primary);
         }
 
         .toast-container {
@@ -797,8 +816,9 @@ function isDiaAtual($dias) {
         }
 
         .toast-header {
-            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            background: var(--card-bg);
             border-bottom: 1px solid var(--border-color);
+            color: var(--text-primary);
         }
 
         .header-actions {
