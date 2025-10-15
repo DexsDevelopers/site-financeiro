@@ -196,29 +196,46 @@ class RememberMeManager {
     private function setRememberCookie($token, $expiresAt) {
         $expires = strtotime($expiresAt);
         
-        setcookie(
+        // Verificar se estamos em HTTPS
+        $secure = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';
+        
+        // Definir cookie com configurações apropriadas
+        $result = setcookie(
             $this->cookie_name,
             $token,
-            $expires,
-            '/',
-            '',
-            true,  // HTTPS only
-            true   // HttpOnly
+            [
+                'expires' => $expires,
+                'path' => '/',
+                'domain' => '',
+                'secure' => $secure,
+                'httponly' => true,
+                'samesite' => 'Lax'
+            ]
         );
+        
+        // Log para debugging
+        error_log("Remember Me Cookie - Token: " . substr($token, 0, 10) . "... Expires: " . $expiresAt . " Secure: " . ($secure ? 'Yes' : 'No') . " Result: " . ($result ? 'Success' : 'Failed'));
+        
+        return $result;
     }
     
     /**
      * Limpar cookie de lembrança
      */
     private function clearRememberCookie() {
+        $secure = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';
+        
         setcookie(
             $this->cookie_name,
             '',
-            time() - 3600,
-            '/',
-            '',
-            true,
-            true
+            [
+                'expires' => time() - 3600,
+                'path' => '/',
+                'domain' => '',
+                'secure' => $secure,
+                'httponly' => true,
+                'samesite' => 'Lax'
+            ]
         );
     }
     
