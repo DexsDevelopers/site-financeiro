@@ -160,9 +160,11 @@ try {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ id: taskId, status: 'concluida' })
                 })
-                .then(response => response.json())
-                .then(data => {
+                .then(response => {
                     log(`Response status: ${response.status}`, 'info');
+                    return response.json();
+                })
+                .then(data => {
                     log(`Response data: ${JSON.stringify(data)}`, 'info');
                     
                     if (data.success) {
