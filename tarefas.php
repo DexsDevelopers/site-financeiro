@@ -534,7 +534,6 @@ function formatarTempo($minutos) {
 
 .empty-state p {
     margin-bottom: 1.5rem;
-}
     font-weight: 600;
 }
 
@@ -661,7 +660,6 @@ function formatarTempo($minutos) {
     z-index: 1;
     font-weight: 600;
     color: var(--text-primary);
-}
 }
 
 /* ===== DASHBOARD DE ESTATÍSTICAS ===== */
