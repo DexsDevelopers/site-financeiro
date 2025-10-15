@@ -1,14 +1,9 @@
 <?php
 require_once 'templates/header.php';
-require_once 'includes/db_connect.php';
 
-// ===== VERIFICAR AUTENTICAÇÃO =====
-if (!isset($_SESSION['user_id'])) {
-    header('Location: login.php');
-    exit;
-}
+// O header.php já verifica autenticação e define $userId
+// Não precisa incluir db_connect.php pois já está no header
 
-$userId = $_SESSION['user_id'];
 $dataHoje = date('Y-m-d');
 
 // ===== CRIAR TABELAS =====
