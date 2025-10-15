@@ -86,15 +86,39 @@ echo "<h2>3. 🔍 Teste de Sintaxe PHP</h2>";
 $arquivos_php = ['tarefas.php', 'index.php', 'login.php', 'dashboard.php'];
 foreach ($arquivos_php as $arquivo) {
     if (file_exists($arquivo)) {
-        $output = shell_exec("php -l $arquivo 2>&1");
-        if (strpos($output, 'No syntax errors') !== false) {
+        // Verificação alternativa de sintaxe PHP
+        $syntax_ok = true;
+        $error_message = '';
+        
+        try {
+            // Tentar incluir o arquivo para verificar sintaxe
+            ob_start();
+            $result = include_once $arquivo;
+            ob_end_clean();
+            
+            if ($result === false) {
+                $syntax_ok = false;
+                $error_message = 'Erro ao incluir arquivo';
+            }
+        } catch (ParseError $e) {
+            $syntax_ok = false;
+            $error_message = $e->getMessage();
+        } catch (Error $e) {
+            $syntax_ok = false;
+            $error_message = $e->getMessage();
+        } catch (Exception $e) {
+            // Exceções são normais durante verificação de sintaxe
+            $syntax_ok = true;
+        }
+        
+        if ($syntax_ok) {
             echo "<div class='success'>";
             echo "<span class='status'>✅</span> $arquivo: Sintaxe OK<br>";
             echo "</div>";
         } else {
             echo "<div class='error'>";
             echo "<span class='status'>❌</span> $arquivo: Erro de sintaxe<br>";
-            echo "<span class='details'>$output</span>";
+            echo "<span class='details'>$error_message</span>";
             echo "</div>";
         }
     }
