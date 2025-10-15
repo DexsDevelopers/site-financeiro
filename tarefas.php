@@ -2807,7 +2807,7 @@ function showToast(title, message, isError = false) {
 }
 
 // ===== FUNÇÕES DO MODAL DE ESTATÍSTICAS =====
-function mostrarEstatisticas() {
+window.mostrarEstatisticas = function() {
     const modal = new bootstrap.Modal(document.getElementById('modalEstatisticas'));
     modal.show();
     
@@ -3241,7 +3241,7 @@ function formatarTempo(minutos) {
 // ===== FUNÇÕES ROTINA DIÁRIA OTIMIZADAS =====
 const rotinasEmProcessamento = new Set();
 
-function toggleRotina(id, statusAtual) {
+window.toggleRotina = function(id, statusAtual) {
     // Prevenir múltiplas requisições simultâneas
     if (rotinasEmProcessamento.has(id)) {
         return;
@@ -3382,7 +3382,7 @@ function adicionarHabit() {
     }
 }
 
-function adicionarRotinaFixa() {
+window.adicionarRotinaFixa = function() {
     // Limpar formulário
     document.getElementById('formAdicionarRotinaFixa').reset();
     
@@ -3438,7 +3438,7 @@ function salvarRotinaFixa() {
 }
 
 // ===== FUNÇÕES DE EDIÇÃO E EXCLUSÃO DE HÁBITOS =====
-function editarRotina(id, nome, horario, descricao = '') {
+window.editarRotina = function(id, nome, horario, descricao = '') {
     // Preencher o modal com os dados atuais
     document.getElementById('editHabitId').value = id;
     document.getElementById('editHabitNome').value = nome;
@@ -3492,7 +3492,7 @@ function salvarEdicaoHabit() {
     });
 }
 
-function excluirRotina(id, nome) {
+window.excluirRotina = function(id, nome) {
     // Preencher o modal com os dados
     document.getElementById('excluirHabitId').value = id;
     document.getElementById('excluirHabitNome').textContent = nome;
