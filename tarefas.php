@@ -2,6 +2,14 @@
 require_once 'templates/header.php';
 require_once 'includes/db_connect.php';
 
+// ===== VERIFICAR AUTENTICAÇÃO =====
+if (!isset($_SESSION['user_id'])) {
+    header('Location: login.php');
+    exit;
+}
+
+$userId = $_SESSION['user_id'];
+
 // ===== CONFIGURAÇÃO INICIAL =====
 $dataHoje = date('Y-m-d');
 
