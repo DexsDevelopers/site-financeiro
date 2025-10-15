@@ -929,32 +929,26 @@ body::before {
 <script>
 // ===== EVENT DELEGATION PARA HÁBITOS =====
 document.addEventListener('click', function(e) {
-    console.log('Click detectado:', e.target);
-    
-    // Botão editar (VERIFICAR PRIMEIRO)
+    // Botão editar
     if (e.target.closest('.btn-edit-habit')) {
         e.preventDefault();
         e.stopPropagation();
-        console.log('Botão editar clicado!');
         const habitItem = e.target.closest('.habit-item');
         const id = habitItem.dataset.id;
         const nome = habitItem.dataset.nome;
         const horario = habitItem.dataset.horario;
         const descricao = habitItem.dataset.descricao;
-        console.log('Dados:', {id, nome, horario, descricao});
         editarHabito(parseInt(id), nome, horario, descricao);
         return;
     }
     
-    // Botão excluir (VERIFICAR SEGUNDO)
+    // Botão excluir
     if (e.target.closest('.btn-delete-habit')) {
         e.preventDefault();
         e.stopPropagation();
-        console.log('Botão excluir clicado!');
         const habitItem = e.target.closest('.habit-item');
         const id = habitItem.dataset.id;
         const nome = habitItem.dataset.nome;
-        console.log('Excluindo:', {id, nome});
         excluirHabito(parseInt(id), nome);
         return;
     }
@@ -964,7 +958,6 @@ document.addEventListener('click', function(e) {
     if (habitItem && !e.target.closest('.habit-actions')) {
         const id = habitItem.dataset.id;
         const statusAtual = habitItem.dataset.status;
-        console.log('Toggle hábito:', {id, statusAtual});
         toggleHabito(parseInt(id), statusAtual);
         return;
     }
