@@ -1400,5 +1400,58 @@ document.addEventListener('click', function(e) {
 	}
 });
 
+// Edição inline da descrição da subtarefa
+
+document.addEventListener('click', function(e) {
+	const label = e.target.closest('.subtask-label');
+	if (!label) return;
+	// Evitar múltiplas instâncias de input
+	if (label.dataset.editing === '1') return;
+	label.dataset.editing = '1';
+	const subtaskId = label.dataset.id;
+	const currentText = label.textContent.trim();
+	
+	const input = document.createElement('input');
+	input.type = 'text';
+	input.value = currentText;
+	input.className = 'form-control form-control-sm';
+	input.style.cssText = 'background: var(--bg-secondary); border: 1px solid var(--primary); color: var(--text-primary); padding: 0.25rem 0.5rem; max-width: 100%;';
+	
+	label.style.display = 'none';
+	label.parentNode.insertBefore(input, label);
+	input.focus();
+	input.select();
+	
+	const restore = () => {
+		label.style.display = '';
+		label.dataset.editing = '';
+		input.remove();
+	};
+	
+	const save = () => {
+		const newText = input.value.trim();
+		if (!newText || newText === currentText) { restore(); return; }
+		fetch('atualizar_subtarefa.php', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ id: subtaskId, descricao: newText })
+		}).then(r => r.json()).then(data => {
+			if (data.success) {
+				label.textContent = newText;
+				showToast('Sucesso!', 'Subtarefa atualizada!');
+			} else {
+				showToast('Erro', data.message || 'Não foi possível atualizar.', 'error');
+			}
+			restore();
+		}).catch(() => { showToast('Erro', 'Erro de conexão', 'error'); restore(); });
+	};
+	
+	input.addEventListener('blur', save);
+	input.addEventListener('keydown', function(ev) {
+		if (ev.key === 'Enter') { ev.preventDefault(); save(); }
+		if (ev.key === 'Escape') { ev.preventDefault(); restore(); }
+	});
+});
+
 </script>
 <?php require_once 'templates/footer.php'; ?>
