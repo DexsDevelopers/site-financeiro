@@ -2124,11 +2124,12 @@ document.addEventListener('DOMContentLoaded', function() {
         .catch(error => console.error('Erro ao atualizar contadores:', error));
     }
     
-    // Event listeners para botões
-    document.querySelectorAll('.btn-complete').forEach(btn => {
-        btn.addEventListener('click', function() {
-            completeTask(this.dataset.id);
-        });
+    // Event listeners para botões usando event delegation
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.btn-complete')) {
+            const btn = e.target.closest('.btn-complete');
+            completeTask(btn.dataset.id);
+        }
     });
     
     // ===== ADICIONAR SUBTAREFA =====
@@ -2290,12 +2291,13 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Atualizar status de subtarefa
-    document.querySelectorAll('.subtask-checkbox').forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
-            const subtaskId = this.dataset.id;
-            const status = this.checked ? 'concluida' : 'pendente';
-            const label = this.closest('.subtask-item').querySelector('label');
+    // Atualizar status de subtarefa usando event delegation
+    document.addEventListener('change', function(e) {
+        if (e.target.classList.contains('subtask-checkbox')) {
+            const checkbox = e.target;
+            const subtaskId = checkbox.dataset.id;
+            const status = checkbox.checked ? 'concluida' : 'pendente';
+            const label = checkbox.closest('.subtask-item').querySelector('label');
             
             // Atualizar visual
             if (status === 'concluida') {
@@ -2314,7 +2316,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 if (!data.success) {
                     // Reverter se houver erro
-                    this.checked = !this.checked;
+                    checkbox.checked = !checkbox.checked;
                     if (status === 'concluida') {
                         label.classList.remove('text-decoration-line-through', 'text-muted');
                     } else {
@@ -2326,10 +2328,10 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(error => {
                 console.error('Erro:', error);
                 // Reverter se houver erro
-                this.checked = !this.checked;
+                checkbox.checked = !checkbox.checked;
                 showToast('Erro!', 'Erro de conexão', true);
             });
-        });
+        }
     });
     
     // ===== EXCLUSÃO DE SUBTAREFAS =====
@@ -3080,8 +3082,7 @@ function atualizarListaTarefas() {
                             container.appendChild(taskCard);
                         });
                         
-                        // Reconfigurar event listeners
-                        configurarEventListeners();
+                        // Event listeners já configurados globalmente com event delegation
                     }
                 }
             }
@@ -3110,32 +3111,7 @@ function formatarTempo(minutos) {
     return resultado.trim();
 }
 
-function configurarEventListeners() {
-    // Reconfigurar todos os event listeners após atualização
-    document.querySelectorAll('.btn-complete').forEach(btn => {
-        btn.addEventListener('click', function() {
-            completeTask(this.dataset.id);
-        });
-    });
-    
-    document.querySelectorAll('.btn-edit').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const taskId = this.dataset.id;
-            // Abrir modal de edição
-            // ... implementar abertura do modal
-        });
-    });
-    
-    document.querySelectorAll('.btn-delete').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const taskId = this.dataset.id;
-            // Abrir modal de exclusão
-            // ... implementar abertura do modal
-        });
-    });
-    
-    // Reconfigurar outros event listeners conforme necessário
-}
+// Função removida - agora usamos event delegation global
 
 // ===== FUNÇÕES ROTINA DIÁRIA OTIMIZADAS =====
 const rotinasEmProcessamento = new Set();
