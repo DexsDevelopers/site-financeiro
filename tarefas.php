@@ -2124,23 +2124,19 @@ document.addEventListener('DOMContentLoaded', function() {
         .catch(error => console.error('Erro ao atualizar contadores:', error));
     }
     
-    // Event listeners para botões usando event delegation
+    // Event listener único para todos os botões
     document.addEventListener('click', function(e) {
         console.log('Clique detectado em:', e.target.tagName, e.target.className);
         
-        // Verificar se é um botão de concluir
+        // Botão de concluir tarefa
         if (e.target.closest('.btn-complete')) {
             const btn = e.target.closest('.btn-complete');
             console.log('✅ Botão de concluir encontrado:', btn.dataset.id);
             completeTask(btn.dataset.id);
-        } else if (e.target.closest('.btn-icon')) {
-            console.log('🔍 Botão .btn-icon clicado, mas não é .btn-complete');
+            return;
         }
-    });
-    
-    // ===== ADICIONAR SUBTAREFA =====
-    // Usar event delegation para funcionar com elementos dinâmicos
-    document.addEventListener('click', function(e) {
+        
+        // Botão de adicionar subtarefa
         if (e.target.closest('.btn-subtask')) {
             const btn = e.target.closest('.btn-subtask');
             const taskId = btn.dataset.id;
@@ -2149,8 +2145,38 @@ document.addEventListener('DOMContentLoaded', function() {
             // Abrir modal
             const modal = new bootstrap.Modal(document.getElementById('modalAdicionarSubtarefa'));
             modal.show();
+            return;
+        }
+        
+        // Botão de editar tarefa
+        if (e.target.closest('.btn-edit')) {
+            const btn = e.target.closest('.btn-edit');
+            const taskId = btn.dataset.id;
+            // Implementar abertura do modal de edição
+            console.log('Editar tarefa:', taskId);
+            return;
+        }
+        
+        // Botão de excluir tarefa
+        if (e.target.closest('.btn-delete')) {
+            const btn = e.target.closest('.btn-delete');
+            const taskId = btn.dataset.id;
+            // Implementar abertura do modal de exclusão
+            console.log('Excluir tarefa:', taskId);
+            return;
+        }
+        
+        // Botão de excluir subtarefa
+        if (e.target.closest('.btn-delete-subtask')) {
+            const btn = e.target.closest('.btn-delete-subtask');
+            const subtaskId = btn.dataset.id;
+            console.log('Excluir subtarefa:', subtaskId);
+            return;
         }
     });
+    
+    // ===== ADICIONAR SUBTAREFA =====
+    // Event listener já consolidado acima
     
     // Formulário de subtarefa
     const formAdicionarSubtarefa = document.getElementById('formAdicionarSubtarefa');
