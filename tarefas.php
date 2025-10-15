@@ -247,45 +247,38 @@ function isDiaAtual($dias) {
     
     <style>
         :root {
-            --primary-color: #6366f1;
-            --secondary-color: #8b5cf6;
-            --success-color: #10b981;
-            --warning-color: #f59e0b;
-            --danger-color: #ef4444;
-            --info-color: #06b6d4;
-            --dark-color: #1f2937;
-            --light-color: #f8fafc;
-            --border-color: #e5e7eb;
-            --text-primary: #111827;
-            --text-secondary: #6b7280;
-            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
-            --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
-            --radius-sm: 0.375rem;
-            --radius-md: 0.5rem;
-            --radius-lg: 0.75rem;
-            --radius-xl: 1rem;
+            --primary-red: #e50914;
+            --dark-bg: #0d1117;
+            --card-bg: #161b22;
+            --border-color: #30363d;
+            --text-primary: #f0f6fc;
+            --text-secondary: #8b949e;
+            --success: #238636;
+            --warning: #d29922;
+            --danger: #da3633;
+            --radius: 12px;
+            --shadow: 0 4px 12px rgba(0,0,0,0.15);
+            --shadow-hover: 0 8px 25px rgba(0,0,0,0.25);
         }
 
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--dark-bg);
             min-height: 100vh;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
 
         .main-container {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            border-radius: var(--radius-xl);
-            box-shadow: var(--shadow-xl);
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
             margin: 2rem auto;
             max-width: 1400px;
             overflow: hidden;
+            border: 1px solid var(--border-color);
         }
 
         .header-section {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            background: var(--primary-red);
             color: white;
             padding: 2rem;
             position: relative;
@@ -808,6 +801,32 @@ function isDiaAtual($dias) {
             border-bottom: 1px solid var(--border-color);
         }
 
+        .header-actions {
+            margin-top: 1rem;
+        }
+
+        .stat-card-large {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-card-large h6 {
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+        }
+
+        .progress {
+            height: 8px;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .progress-bar {
+            background-color: var(--primary-red);
+        }
+
         /* Responsividade */
         @media (max-width: 768px) {
             .main-container {
@@ -937,6 +956,13 @@ function isDiaAtual($dias) {
                     Dashboard de Tarefas
                 </h1>
                 <p class="page-subtitle">Organize sua rotina e maximize sua produtividade</p>
+                
+                <!-- Botão de Estatísticas -->
+                <div class="header-actions">
+                    <button class="btn btn-outline-info" onclick="mostrarEstatisticas()">
+                        <i class="bi bi-graph-up me-2"></i>Ver Estatísticas
+                    </button>
+                </div>
                 
                 <!-- Estatísticas -->
                 <div class="stats-grid">
@@ -1425,6 +1451,174 @@ function isDiaAtual($dias) {
         </div>
     </div>
 
+    <!-- Modal Editar Rotina Fixa -->
+    <div class="modal fade" id="modalEditarRotinaFixa" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar Rotina Fixa</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="formEditarRotinaFixa">
+                    <input type="hidden" id="editRotinaFixaId" name="id">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="editNomeRotinaFixa" class="form-label">Nome da Rotina</label>
+                            <input type="text" class="form-control" id="editNomeRotinaFixa" name="nome" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editHorarioRotinaFixa" class="form-label">Horário Sugerido</label>
+                            <input type="time" class="form-control" id="editHorarioRotinaFixa" name="horario_sugerido">
+                        </div>
+                        <div class="mb-3">
+                            <label for="editDescricaoRotinaFixa" class="form-label">Descrição</label>
+                            <textarea class="form-control" id="editDescricaoRotinaFixa" name="descricao" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Editar Rotina Diária -->
+    <div class="modal fade" id="modalEditarRotinaDiaria" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar Rotina Diária</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="formEditarRotinaDiaria">
+                    <input type="hidden" id="editRotinaDiariaId" name="id">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="editNomeRotinaDiaria" class="form-label">Nome da Rotina</label>
+                            <input type="text" class="form-control" id="editNomeRotinaDiaria" name="nome" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editHorarioRotinaDiaria" class="form-label">Horário Sugerido</label>
+                            <input type="time" class="form-control" id="editHorarioRotinaDiaria" name="horario_sugerido">
+                        </div>
+                        <div class="mb-3">
+                            <label for="editDescricaoRotinaDiaria" class="form-label">Descrição</label>
+                            <textarea class="form-control" id="editDescricaoRotinaDiaria" name="descricao" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Editar Tarefa -->
+    <div class="modal fade" id="modalEditarTarefa" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar Tarefa</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="formEditarTarefa">
+                    <input type="hidden" id="editTarefaId" name="id">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="editTituloTarefa" class="form-label">Título</label>
+                            <input type="text" class="form-control" id="editTituloTarefa" name="titulo" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editDescricaoTarefa" class="form-label">Descrição</label>
+                            <textarea class="form-control" id="editDescricaoTarefa" name="descricao" rows="3"></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="editPrioridadeTarefa" class="form-label">Prioridade</label>
+                                <select class="form-select" id="editPrioridadeTarefa" name="prioridade" required>
+                                    <option value="Baixa">Baixa</option>
+                                    <option value="Média">Média</option>
+                                    <option value="Alta">Alta</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="editDataTarefa" class="form-label">Data de Vencimento</label>
+                                <input type="date" class="form-control" id="editDataTarefa" name="data_vencimento">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Estatísticas -->
+    <div class="modal fade" id="modalEstatisticas" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-graph-up me-2"></i>Estatísticas Detalhadas
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="stat-card-large">
+                                <h6>Rotinas Fixas</h6>
+                                <div class="progress mb-2">
+                                    <div class="progress-bar" role="progressbar" style="width: <?php echo $estatisticas['rotinas_fixas']['percentual']; ?>%"></div>
+                                </div>
+                                <small><?php echo $estatisticas['rotinas_fixas']['concluidas']; ?>/<?php echo $estatisticas['rotinas_fixas']['total']; ?> concluídas</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="stat-card-large">
+                                <h6>Rotinas Diárias</h6>
+                                <div class="progress mb-2">
+                                    <div class="progress-bar bg-success" role="progressbar" style="width: <?php echo $estatisticas['rotinas_diarias']['percentual']; ?>%"></div>
+                                </div>
+                                <small><?php echo $estatisticas['rotinas_diarias']['concluidas']; ?>/<?php echo $estatisticas['rotinas_diarias']['total']; ?> concluídas</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <div class="stat-card-large">
+                                <h6>Tarefas Pendentes</h6>
+                                <div class="progress mb-2">
+                                    <div class="progress-bar bg-warning" role="progressbar" style="width: <?php echo $estatisticas['tarefas']['percentual']; ?>%"></div>
+                                </div>
+                                <small><?php echo $estatisticas['tarefas']['pendentes']; ?> pendentes</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="stat-card-large">
+                                <h6>Produtividade Geral</h6>
+                                <div class="progress mb-2">
+                                    <div class="progress-bar bg-info" role="progressbar" style="width: <?php echo $estatisticas['produtividade']; ?>%"></div>
+                                </div>
+                                <small><?php echo $estatisticas['produtividade']; ?>% de produtividade</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
@@ -1549,7 +1743,85 @@ function isDiaAtual($dias) {
             });
         });
 
+        // ===== FORMULÁRIOS DE EDIÇÃO =====
+        document.getElementById('formEditarRotinaFixa').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            
+            fetch('editar_rotina_fixa.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Sucesso!', data.message);
+                    bootstrap.Modal.getInstance(document.getElementById('modalEditarRotinaFixa')).hide();
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showToast('Erro!', data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                showToast('Erro!', 'Erro de conexão', 'error');
+            });
+        });
+
+        document.getElementById('formEditarRotinaDiaria').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            
+            fetch('editar_rotina_diaria.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Sucesso!', data.message);
+                    bootstrap.Modal.getInstance(document.getElementById('modalEditarRotinaDiaria')).hide();
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showToast('Erro!', data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                showToast('Erro!', 'Erro de conexão', 'error');
+            });
+        });
+
+        document.getElementById('formEditarTarefa').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            
+            fetch('atualizar_tarefa.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Sucesso!', data.message);
+                    bootstrap.Modal.getInstance(document.getElementById('modalEditarTarefa')).hide();
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showToast('Erro!', data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                showToast('Erro!', 'Erro de conexão', 'error');
+            });
+        });
+
         // ===== FUNÇÕES DE AÇÃO =====
+        function mostrarEstatisticas() {
+            const modal = new bootstrap.Modal(document.getElementById('modalEstatisticas'));
+            modal.show();
+        }
+
         function toggleRotinaFixa(id, statusAtual) {
             const novoStatus = statusAtual === 'concluido' ? 'pendente' : 'concluido';
             const acao = novoStatus === 'concluido' ? 'concluir' : 'pendente';
@@ -1619,15 +1891,79 @@ function isDiaAtual($dias) {
         }
 
         function editarRotinaFixa(id) {
-            showToast('Info', 'Funcionalidade de edição será implementada em breve', 'info');
+            // Buscar dados da rotina
+            fetch(`buscar_rotina_fixa.php?id=${id}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Preencher modal de edição
+                    document.getElementById('editNomeRotinaFixa').value = data.rotina.nome;
+                    document.getElementById('editHorarioRotinaFixa').value = data.rotina.horario_sugerido || '';
+                    document.getElementById('editDescricaoRotinaFixa').value = data.rotina.descricao || '';
+                    document.getElementById('editRotinaFixaId').value = id;
+                    
+                    // Mostrar modal
+                    const modal = new bootstrap.Modal(document.getElementById('modalEditarRotinaFixa'));
+                    modal.show();
+                } else {
+                    showToast('Erro!', data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                showToast('Erro!', 'Erro ao carregar dados da rotina', 'error');
+            });
         }
 
         function editarRotinaDiaria(id) {
-            showToast('Info', 'Funcionalidade de edição será implementada em breve', 'info');
+            // Buscar dados da rotina diária
+            fetch(`buscar_rotina_diaria.php?id=${id}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Preencher modal de edição
+                    document.getElementById('editNomeRotinaDiaria').value = data.rotina.nome;
+                    document.getElementById('editHorarioRotinaDiaria').value = data.rotina.horario_sugerido || '';
+                    document.getElementById('editDescricaoRotinaDiaria').value = data.rotina.descricao || '';
+                    document.getElementById('editRotinaDiariaId').value = id;
+                    
+                    // Mostrar modal
+                    const modal = new bootstrap.Modal(document.getElementById('modalEditarRotinaDiaria'));
+                    modal.show();
+                } else {
+                    showToast('Erro!', data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                showToast('Erro!', 'Erro ao carregar dados da rotina', 'error');
+            });
         }
 
         function editarTarefa(id) {
-            showToast('Info', 'Funcionalidade de edição será implementada em breve', 'info');
+            // Buscar dados da tarefa
+            fetch(`buscar_tarefa_detalhes.php?id=${id}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Preencher modal de edição
+                    document.getElementById('editTituloTarefa').value = data.tarefa.titulo;
+                    document.getElementById('editDescricaoTarefa').value = data.tarefa.descricao || '';
+                    document.getElementById('editPrioridadeTarefa').value = data.tarefa.prioridade;
+                    document.getElementById('editDataTarefa').value = data.tarefa.data_vencimento;
+                    document.getElementById('editTarefaId').value = id;
+                    
+                    // Mostrar modal
+                    const modal = new bootstrap.Modal(document.getElementById('modalEditarTarefa'));
+                    modal.show();
+                } else {
+                    showToast('Erro!', data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                showToast('Erro!', 'Erro ao carregar dados da tarefa', 'error');
+            });
         }
 
         function excluirRotinaFixa(id, nome) {

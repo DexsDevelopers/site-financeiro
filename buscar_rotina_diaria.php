@@ -9,28 +9,28 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $userId = $_SESSION['user_id'];
-$tarefaId = $_GET['id'] ?? null;
+$rotinaId = $_GET['id'] ?? null;
 
-if (!$tarefaId) {
-    echo json_encode(['success' => false, 'message' => 'ID da tarefa não fornecido']);
+if (!$rotinaId) {
+    echo json_encode(['success' => false, 'message' => 'ID da rotina não fornecido']);
     exit;
 }
 
 try {
     $stmt = $pdo->prepare("
-        SELECT id, titulo, descricao, prioridade, data_vencimento 
-        FROM tarefas 
+        SELECT id, nome, horario_sugerido, descricao 
+        FROM rotina_diaria 
         WHERE id = ? AND id_usuario = ?
     ");
-    $stmt->execute([$tarefaId, $userId]);
-    $tarefa = $stmt->fetch(PDO::FETCH_ASSOC);
+    $stmt->execute([$rotinaId, $userId]);
+    $rotina = $stmt->fetch(PDO::FETCH_ASSOC);
     
-    if (!$tarefa) {
-        echo json_encode(['success' => false, 'message' => 'Tarefa não encontrada']);
+    if (!$rotina) {
+        echo json_encode(['success' => false, 'message' => 'Rotina não encontrada']);
         exit;
     }
     
-    echo json_encode(['success' => true, 'tarefa' => $tarefa]);
+    echo json_encode(['success' => true, 'rotina' => $rotina]);
     
 } catch (PDOException $e) {
     echo json_encode(['success' => false, 'message' => 'Erro no banco de dados: ' . $e->getMessage()]);

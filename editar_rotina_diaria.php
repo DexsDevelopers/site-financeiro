@@ -1,78 +1,51 @@
 <?php
-// editar_rotina_diaria.php - Editar hábito da rotina diária
-
-session_start();
 require_once 'includes/db_connect.php';
 
-// Verificar se o usuário está logado
+header('Content-Type: application/json');
+
 if (!isset($_SESSION['user_id'])) {
-    http_response_code(403);
-    echo json_encode(['success' => false, 'message' => 'Acesso negado']);
-    exit();
+    echo json_encode(['success' => false, 'message' => 'Usuário não autenticado']);
+    exit;
 }
 
 $userId = $_SESSION['user_id'];
+$rotinaId = $_POST['id'] ?? null;
+$nome = trim($_POST['nome'] ?? '');
+$horarioSugerido = $_POST['horario_sugerido'] ?? null;
+$descricao = trim($_POST['descricao'] ?? '');
 
-// Verificar se é uma requisição POST
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    echo json_encode(['success' => false, 'message' => 'Método não permitido']);
-    exit();
+if (!$rotinaId || !$nome) {
+    echo json_encode(['success' => false, 'message' => 'Dados obrigatórios não fornecidos']);
+    exit;
 }
 
-// Obter dados do POST
-$input = json_decode(file_get_contents('php://input'), true);
-
-if (!$input || !isset($input['id']) || !isset($input['nome']) || !isset($input['horario'])) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Dados inválidos']);
-    exit();
-}
-
-$id = (int)$input['id'];
-$nome = trim($input['nome']);
-$horario = trim($input['horario']);
-
-// Validar dados
-if (empty($nome)) {
-    echo json_encode(['success' => false, 'message' => 'Nome do hábito é obrigatório']);
-    exit();
-}
-
-if (!empty($horario) && !preg_match('/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/', $horario)) {
-    echo json_encode(['success' => false, 'message' => 'Formato de horário inválido (use HH:MM)']);
-    exit();
+// Converter horário vazio para NULL
+if (empty($horarioSugerido) || $horarioSugerido === '00:00') {
+    $horarioSugerido = null;
 }
 
 try {
-    // Verificar se o hábito pertence ao usuário
+    // Verificar se a rotina pertence ao usuário
     $stmt = $pdo->prepare("SELECT id FROM rotina_diaria WHERE id = ? AND id_usuario = ?");
-    $stmt->execute([$id, $userId]);
+    $stmt->execute([$rotinaId, $userId]);
     
     if (!$stmt->fetch()) {
-        echo json_encode(['success' => false, 'message' => 'Hábito não encontrado']);
-        exit();
+        echo json_encode(['success' => false, 'message' => 'Rotina não encontrada ou não pertence ao usuário']);
+        exit;
     }
     
-    // Atualizar o hábito
+    // Atualizar a rotina
     $stmt = $pdo->prepare("
         UPDATE rotina_diaria 
-        SET nome = ?, horario = ? 
+        SET nome = ?, horario_sugerido = ?, descricao = ?
         WHERE id = ? AND id_usuario = ?
     ");
     
-    $stmt->execute([$nome, $horario ?: null, $id, $userId]);
+    $stmt->execute([$nome, $horarioSugerido, $descricao, $rotinaId, $userId]);
     
-    echo json_encode([
-        'success' => true, 
-        'message' => 'Hábito atualizado com sucesso!'
-    ]);
+    echo json_encode(['success' => true, 'message' => 'Rotina diária atualizada com sucesso!']);
     
 } catch (PDOException $e) {
-    http_response_code(500);
-    echo json_encode([
-        'success' => false, 
-        'message' => 'Erro ao atualizar hábito: ' . $e->getMessage()
-    ]);
+    echo json_encode(['success' => false, 'message' => 'Erro no banco de dados: ' . $e->getMessage()]);
 }
 ?>
