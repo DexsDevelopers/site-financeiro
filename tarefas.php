@@ -2126,9 +2126,15 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Event listeners para botões usando event delegation
     document.addEventListener('click', function(e) {
+        console.log('Clique detectado em:', e.target.tagName, e.target.className);
+        
+        // Verificar se é um botão de concluir
         if (e.target.closest('.btn-complete')) {
             const btn = e.target.closest('.btn-complete');
+            console.log('✅ Botão de concluir encontrado:', btn.dataset.id);
             completeTask(btn.dataset.id);
+        } else if (e.target.closest('.btn-icon')) {
+            console.log('🔍 Botão .btn-icon clicado, mas não é .btn-complete');
         }
     });
     
