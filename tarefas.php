@@ -821,6 +821,9 @@ body::before {
                             <button class="btn-icon-neuro" onclick="excluirTarefa(<?= $tarefa['id'] ?>)" title="Excluir">
                                 <i class="bi bi-trash"></i>
                             </button>
+                            <button class="btn-icon-neuro" onclick="abrirModalSubtarefa(<?= $tarefa['id'] ?>)" title="Adicionar Subtarefa">
+                                <i class="bi bi-plus-circle"></i>
+                            </button>
                         </div>
                     </div>
                     <?php $tid = (int)$tarefa['id']; $subs = $subtarefasPorTarefa[$tid] ?? []; ?>
