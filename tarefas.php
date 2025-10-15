@@ -712,7 +712,10 @@ body::before {
                 <?php foreach ($rotinasFixas as $rotina): ?>
                     <div class="habit-item <?= $rotina['status_hoje'] === 'concluido' ? 'completed' : '' ?>" 
                          data-id="<?= $rotina['id'] ?>"
-                         onclick="toggleHabito(<?= $rotina['id'] ?>, '<?= $rotina['status_hoje'] ?>')">
+                         data-status="<?= $rotina['status_hoje'] ?>"
+                         data-nome="<?= htmlspecialchars($rotina['nome']) ?>"
+                         data-horario="<?= $rotina['horario_sugerido'] ?? '' ?>"
+                         data-descricao="<?= htmlspecialchars($rotina['descricao']) ?>">
                         <div class="habit-main">
                             <div class="habit-icon">
                                 <i class="bi bi-<?= $rotina['status_hoje'] === 'concluido' ? 'check-circle-fill' : 'circle' ?>"></i>
@@ -733,11 +736,11 @@ body::before {
                                 <?php endif; ?>
                             </div>
                         </div>
-                        <div class="habit-actions" onclick="event.stopPropagation()">
-                            <button class="btn-icon-neuro" onclick="editarHabito(<?= $rotina['id'] ?>, '<?= addslashes($rotina['nome']) ?>', '<?= $rotina['horario_sugerido'] ?>', '<?= addslashes($rotina['descricao']) ?>')" title="Editar">
+                        <div class="habit-actions">
+                            <button class="btn-icon-neuro btn-edit-habit" title="Editar">
                                 <i class="bi bi-pencil"></i>
                             </button>
-                            <button class="btn-icon-neuro" onclick="excluirHabito(<?= $rotina['id'] ?>, '<?= addslashes($rotina['nome']) ?>')" title="Excluir">
+                            <button class="btn-icon-neuro btn-delete-habit" title="Excluir">
                                 <i class="bi bi-trash"></i>
                             </button>
                         </div>
@@ -918,6 +921,40 @@ body::before {
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+// ===== EVENT DELEGATION PARA HÁBITOS =====
+document.addEventListener('click', function(e) {
+    // Toggle hábito (clique no card, exceto nos botões)
+    const habitItem = e.target.closest('.habit-item');
+    if (habitItem && !e.target.closest('.habit-actions')) {
+        const id = habitItem.dataset.id;
+        const statusAtual = habitItem.dataset.status;
+        toggleHabito(parseInt(id), statusAtual);
+        return;
+    }
+    
+    // Botão editar
+    if (e.target.closest('.btn-edit-habit')) {
+        e.stopPropagation();
+        const habitItem = e.target.closest('.habit-item');
+        const id = habitItem.dataset.id;
+        const nome = habitItem.dataset.nome;
+        const horario = habitItem.dataset.horario;
+        const descricao = habitItem.dataset.descricao;
+        editarHabito(parseInt(id), nome, horario, descricao);
+        return;
+    }
+    
+    // Botão excluir
+    if (e.target.closest('.btn-delete-habit')) {
+        e.stopPropagation();
+        const habitItem = e.target.closest('.habit-item');
+        const id = habitItem.dataset.id;
+        const nome = habitItem.dataset.nome;
+        excluirHabito(parseInt(id), nome);
+        return;
+    }
+});
+
 // Toast notification ultra moderno
 function showToast(title, message, type = 'success') {
     const colors = {
@@ -956,14 +993,18 @@ function toggleHabito(id, statusAtual) {
     const novoStatus = statusAtual === 'concluido' ? 'pendente' : 'concluido';
     const habitItem = document.querySelector(`.habit-item[data-id="${id}"]`);
     
+    // Atualização otimista da UI
     if (novoStatus === 'concluido') {
         habitItem.classList.add('completed');
         habitItem.querySelector('.habit-icon i').className = 'bi bi-check-circle-fill';
+        habitItem.dataset.status = 'concluido';
     } else {
         habitItem.classList.remove('completed');
         habitItem.querySelector('.habit-icon i').className = 'bi bi-circle';
+        habitItem.dataset.status = 'pendente';
     }
     
+    // Enviar para servidor
     fetch('processar_rotina_fixa.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -972,15 +1013,32 @@ function toggleHabito(id, statusAtual) {
     .then(r => r.json())
     .then(data => {
         if (!data.success) {
+            // Reverter se erro
             if (novoStatus === 'concluido') {
                 habitItem.classList.remove('completed');
                 habitItem.querySelector('.habit-icon i').className = 'bi bi-circle';
+                habitItem.dataset.status = 'pendente';
             } else {
                 habitItem.classList.add('completed');
                 habitItem.querySelector('.habit-icon i').className = 'bi bi-check-circle-fill';
+                habitItem.dataset.status = 'concluido';
             }
             showToast('Erro', data.message, 'error');
         }
+    })
+    .catch(err => {
+        console.error(err);
+        // Reverter em caso de erro de rede
+        if (novoStatus === 'concluido') {
+            habitItem.classList.remove('completed');
+            habitItem.querySelector('.habit-icon i').className = 'bi bi-circle';
+            habitItem.dataset.status = 'pendente';
+        } else {
+            habitItem.classList.add('completed');
+            habitItem.querySelector('.habit-icon i').className = 'bi bi-check-circle-fill';
+            habitItem.dataset.status = 'concluido';
+        }
+        showToast('Erro', 'Erro de conexão', 'error');
     });
 }
 
