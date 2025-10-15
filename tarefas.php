@@ -2160,24 +2160,36 @@ document.addEventListener('DOMContentLoaded', function() {
                 body: formData
             })
             .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showToast('Sucesso!', data.message);
-                setTimeout(() => {
-                    // Atualizar interface sem reload
-                    atualizarListaTarefas();
-                }, 1000);
-            } else {
-                showToast('Erro!', data.message, true);
-                button.disabled = false;
-                button.innerHTML = '<i class="bi bi-plus-circle me-2"></i>Adicionar Subtarefa';
-            }
-        })
+            .then(data => {
+                if (data.success) {
+                    showToast('Sucesso!', data.message);
+                    // Fechar modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('modalAdicionarSubtarefa'));
+                    modal.hide();
+                    // Limpar formulário
+                    formAdicionarSubtarefa.reset();
+                    setTimeout(() => {
+                        // Atualizar interface sem reload
+                        atualizarListaTarefas();
+                    }, 1000);
+                } else {
+                    showToast('Erro!', data.message, true);
+                    button.disabled = false;
+                    button.innerHTML = '<i class="bi bi-plus-circle me-2"></i>Adicionar Subtarefa';
+                }
+            })
             .catch(error => {
                 console.error('Erro:', error);
                 showToast('Erro de rede!', 'Não foi possível conectar ao servidor.', true);
                 button.disabled = false;
                 button.innerHTML = '<i class="bi bi-plus-circle me-2"></i>Adicionar Subtarefa';
+            })
+            .finally(() => {
+                // Reabilitar botão em caso de erro
+                if (button.disabled) {
+                    button.disabled = false;
+                    button.innerHTML = '<i class="bi bi-plus-circle me-2"></i>Adicionar Subtarefa';
+                }
             });
         });
     }
@@ -2604,6 +2616,11 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 if (data.success) {
                     showToast('Sucesso!', data.message);
+                    // Fechar modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('modalNovaTarefa'));
+                    modal.hide();
+                    // Limpar formulário
+                    formNovaTarefa.reset();
                     setTimeout(() => {
                         // Atualizar interface sem reload
                         atualizarListaTarefas();
@@ -2619,6 +2636,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 showToast('Erro de rede!', 'Não foi possível conectar ao servidor.', true);
                 button.disabled = false;
                 button.innerHTML = '<i class="bi bi-save me-2"></i>Salvar Tarefa';
+            })
+            .finally(() => {
+                // Reabilitar botão em caso de erro
+                if (button.disabled) {
+                    button.disabled = false;
+                    button.innerHTML = '<i class="bi bi-save me-2"></i>Salvar Tarefa';
+                }
             });
         });
     }
