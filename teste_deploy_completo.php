@@ -41,7 +41,7 @@ try {
     require_once 'includes/db_connect.php';
     echo "<div class='success'>";
     echo "<span class='status'>✅ SUCESSO:</span> Conexão com banco de dados estabelecida<br>";
-    echo "<span class='details'>Host: " . DB_HOST . " | Database: " . DB_NAME . "</span>";
+    echo "<span class='details'>Host: " . (defined('DB_HOST') ? DB_HOST : 'N/A') . " | Database: " . (defined('DB_NAME') ? DB_NAME : 'N/A') . "</span>";
     echo "</div>";
 } catch (Exception $e) {
     echo "<div class='error'>";
@@ -106,6 +106,11 @@ echo "<div class='test-section'>";
 echo "<h2>4. 🗄️ Teste de Estrutura do Banco de Dados</h2>";
 
 try {
+    // Verificar se as constantes estão definidas
+    if (!defined('DB_HOST') || !defined('DB_NAME') || !defined('DB_USER') || !defined('DB_PASS')) {
+        throw new Exception("Constantes de banco de dados não definidas");
+    }
+    
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     
