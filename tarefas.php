@@ -1324,12 +1324,53 @@ if (formAdicionarSubtarefa) {
 		})
 		.then(r => r.json())
 		.then(data => {
-			if (data.success) {
+			if (data.success && data.subtarefa) {
 				showToast('Sucesso!', 'Subtarefa adicionada!');
+				const taskId = formData.get('id_tarefa_principal');
+				const taskCard = document.querySelector(`.task-card[data-id="${taskId}"]`);
+				if (taskCard) {
+					let subtasks = taskCard.querySelector('.subtasks');
+					if (!subtasks) {
+						// Criar bloco de subtarefas
+						subtasks = document.createElement('div');
+						subtasks.className = 'subtasks';
+						subtasks.style.marginTop = '0.75rem';
+						subtasks.innerHTML = `
+							<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;color:var(--text-secondary)">
+								<button type="button" class="btn-neuro" onclick="toggleSubtasks(this)" style="padding:0.25rem 0.5rem;font-size:0.85rem;">
+									<i class=\"bi bi-chevron-down\"></i>
+								</button>
+								<span class="subtasks-count">Subtarefas (0)</span>
+							</div>
+							<div class="subtasks-list"></div>
+						`;
+						taskCard.appendChild(subtasks);
+					}
+					const list = subtasks.querySelector('.subtasks-list');
+					const countEl = subtasks.querySelector('.subtasks-count');
+					// Criar item
+					const item = document.createElement('div');
+					item.className = 'subtask-item';
+					item.style.cssText = 'display:flex;align-items:center;gap:8px;margin:6px 0;';
+					item.innerHTML = `
+						<input class="form-check-input subtask-checkbox" type="checkbox" data-id="${data.subtarefa.id}" />
+						<label class="subtask-label" data-id="${data.subtarefa.id}" style="flex:1;">${data.subtarefa.descricao.replace(/</g,'&lt;')}</label>
+						<button type="button" class="btn-icon-neuro btn-delete-subtask" data-id="${data.subtarefa.id}" title="Excluir subtarefa">
+							<i class="bi bi-x"></i>
+						</button>
+					`;
+					list.appendChild(item);
+					// Atualizar contador
+					const total = list.children.length;
+					if (countEl) countEl.textContent = `Subtarefas (${total})`;
+				}
+				// Fechar modal e resetar formulário
 				bootstrap.Modal.getInstance(document.getElementById('modalAdicionarSubtarefa')).hide();
-				setTimeout(() => location.reload(), 800);
+				formAdicionarSubtarefa.reset();
+				btn.disabled = false;
+				btn.innerHTML = '<i class="bi bi-plus-circle me-2"></i>Adicionar Subtarefa';
 			} else {
-				showToast('Erro', data.message, 'error');
+				showToast('Erro', data.message || 'Não foi possível adicionar.', 'error');
 				btn.disabled = false;
 				btn.innerHTML = '<i class="bi bi-plus-circle me-2"></i>Adicionar Subtarefa';
 			}
