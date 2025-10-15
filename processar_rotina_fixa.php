@@ -1,45 +1,43 @@
 <?php
+session_start();
 require_once 'includes/db_connect.php';
 
 header('Content-Type: application/json');
 
-if (!isset($_SESSION['user_id'])) {
+// Verificar autenticação (compatível com ambos os formatos)
+$userId = $_SESSION['user_id'] ?? $_SESSION['user']['id'] ?? null;
+
+if (!$userId) {
     echo json_encode(['success' => false, 'message' => 'Usuário não autenticado']);
     exit;
 }
-
-$userId = $_SESSION['user_id'];
 $acao = $_POST['acao'] ?? '';
 
 try {
     switch ($acao) {
+        case 'adicionar':
         case 'adicionar_rotina_fixa':
             $nome = trim($_POST['nome'] ?? '');
             $descricao = trim($_POST['descricao'] ?? '');
-            $horarioSugerido = $_POST['horario_sugerido'] ?: null;
-            $diasSemana = isset($_POST['dias_semana']) ? implode(',', $_POST['dias_semana']) : null;
-            $cor = $_POST['cor'] ?? '#007bff';
-            $icone = $_POST['icone'] ?? 'bi-check-circle';
+            $horarioSugerido = $_POST['horario'] ?? $_POST['horario_sugerido'] ?? null;
+            
+            // Converter horário vazio para NULL
+            if (empty($horarioSugerido) || $horarioSugerido === '00:00') {
+                $horarioSugerido = null;
+            }
             
             if (empty($nome)) {
-                throw new Exception('Nome da rotina é obrigatório');
+                throw new Exception('Nome do hábito é obrigatório');
             }
             
-            // Verificar se já existe
-            $stmt = $pdo->prepare("SELECT id FROM rotinas_fixas WHERE id_usuario = ? AND nome = ?");
-            $stmt->execute([$userId, $nome]);
-            if ($stmt->fetch()) {
-                throw new Exception('Já existe uma rotina fixa com este nome');
-            }
-            
-            // Inserir rotina fixa
+            // Inserir rotina fixa (sem verificar duplicata para permitir hábitos com mesmo nome)
             $stmt = $pdo->prepare("
-                INSERT INTO rotinas_fixas (id_usuario, nome, descricao, horario_sugerido, dias_semana, cor, icone) 
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO rotinas_fixas (id_usuario, nome, descricao, horario_sugerido, ativo) 
+                VALUES (?, ?, ?, ?, TRUE)
             ");
-            $stmt->execute([$userId, $nome, $descricao, $horarioSugerido, $diasSemana, $cor, $icone]);
+            $stmt->execute([$userId, $nome, $descricao, $horarioSugerido]);
             
-            echo json_encode(['success' => true, 'message' => 'Rotina fixa adicionada com sucesso!']);
+            echo json_encode(['success' => true, 'message' => 'Hábito adicionado com sucesso!']);
             break;
             
         case 'concluir':
