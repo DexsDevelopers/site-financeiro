@@ -1433,7 +1433,20 @@ document.addEventListener('click', function(e) {
 			.then(r => r.json()).then(data => {
 				if (data.success) {
 					item.style.transition = 'all .3s'; item.style.transform = 'translateX(-100%)'; item.style.opacity = '0';
-					setTimeout(() => { item.remove(); }, 300);
+					setTimeout(() => {
+						const subtasks = item.closest('.subtasks');
+						const list = subtasks ? subtasks.querySelector('.subtasks-list') : null;
+						item.remove();
+						if (list) {
+							const total = list.children.length;
+							const countEl = subtasks.querySelector('.subtasks-count');
+							if (countEl) countEl.textContent = `Subtarefas (${total})`;
+							if (total === 0 && subtasks) {
+								// Remove toda a seção quando não houver subtarefas
+								subtasks.parentNode.removeChild(subtasks);
+							}
+						}
+					}, 300);
 					showToast('Sucesso!', 'Subtarefa excluída!');
 				} else { btn.disabled = false; btn.innerHTML = original; showToast('Erro', data.message, 'error'); }
 			}).catch(() => { btn.disabled = false; btn.innerHTML = original; showToast('Erro', 'Erro de conexão', 'error'); });
