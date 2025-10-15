@@ -3004,7 +3004,7 @@ function atualizarListaTarefas() {
                             const taskCard = document.createElement('div');
                             taskCard.className = `task-card prioridade-${tarefa.prioridade} fade-in`;
                             taskCard.setAttribute('data-id', tarefa.id);
-                            taskCard.setAttribute('data-priority', tarefa.prioridade.toLowerCase().replace('é', 'e'));
+                            taskCard.setAttribute('data-priority', tarefa.prioridade.toLowerCase().replace(/é/g, 'e'));
                             
                             taskCard.innerHTML = `
                                 <div class="task-header">
