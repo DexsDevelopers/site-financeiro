@@ -1,154 +1,79 @@
 <?php
-// processar_rotina_fixa.php - Processar ações das rotinas fixas (OTIMIZADO)
-
-session_start();
 require_once 'includes/db_connect.php';
 
 header('Content-Type: application/json');
-header('Cache-Control: no-cache, must-revalidate');
 
-$response = ['success' => false, 'message' => 'Ação inválida'];
-
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    $response['message'] = 'Método não permitido';
-    echo json_encode($response);
+if (!isset($_SESSION['user_id'])) {
+    echo json_encode(['success' => false, 'message' => 'Usuário não autenticado']);
     exit;
 }
 
-$userId = $_SESSION['user_id'] ?? null;
-if (!$userId) {
-    $response['message'] = 'Usuário não logado';
-    echo json_encode($response);
-    exit;
-}
-
+$userId = $_SESSION['user_id'];
 $acao = $_POST['acao'] ?? '';
-$rotinaId = (int)($_POST['rotina_id'] ?? 0);
-$dataHoje = date('Y-m-d');
-
-// Verificar se as tabelas existem
-try {
-    $pdo->query("SELECT 1 FROM rotinas_fixas LIMIT 1");
-    $pdo->query("SELECT 1 FROM rotina_controle_diario LIMIT 1");
-} catch (PDOException $e) {
-    $response['message'] = 'Tabelas não encontradas. Execute o script de criação.';
-    $response['debug'] = $e->getMessage();
-    echo json_encode($response);
-    exit;
-}
-
-// Validar parâmetros
-if (empty($acao)) {
-    $response['message'] = 'Ação não especificada';
-    echo json_encode($response);
-    exit;
-}
-
-if ($rotinaId <= 0 && in_array($acao, ['concluir', 'pendente'])) {
-    $response['message'] = 'ID da rotina inválido';
-    echo json_encode($response);
-    exit;
-}
 
 try {
     switch ($acao) {
+        case 'adicionar_rotina_fixa':
+            $nome = trim($_POST['nome'] ?? '');
+            $descricao = trim($_POST['descricao'] ?? '');
+            $horarioSugerido = $_POST['horario_sugerido'] ?: null;
+            $diasSemana = isset($_POST['dias_semana']) ? implode(',', $_POST['dias_semana']) : null;
+            $cor = $_POST['cor'] ?? '#007bff';
+            $icone = $_POST['icone'] ?? 'bi-check-circle';
+            
+            if (empty($nome)) {
+                throw new Exception('Nome da rotina é obrigatório');
+            }
+            
+            // Verificar se já existe
+            $stmt = $pdo->prepare("SELECT id FROM rotinas_fixas WHERE id_usuario = ? AND nome = ?");
+            $stmt->execute([$userId, $nome]);
+            if ($stmt->fetch()) {
+                throw new Exception('Já existe uma rotina fixa com este nome');
+            }
+            
+            // Inserir rotina fixa
+            $stmt = $pdo->prepare("
+                INSERT INTO rotinas_fixas (id_usuario, nome, descricao, horario_sugerido, dias_semana, cor, icone) 
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ");
+            $stmt->execute([$userId, $nome, $descricao, $horarioSugerido, $diasSemana, $cor, $icone]);
+            
+            echo json_encode(['success' => true, 'message' => 'Rotina fixa adicionada com sucesso!']);
+            break;
+            
         case 'concluir':
         case 'pendente':
+            $rotinaId = $_POST['rotina_id'] ?? 0;
             $novoStatus = $acao === 'concluir' ? 'concluido' : 'pendente';
+            $dataHoje = date('Y-m-d');
             
             // Verificar se a rotina pertence ao usuário
             $stmt = $pdo->prepare("SELECT id FROM rotinas_fixas WHERE id = ? AND id_usuario = ?");
             $stmt->execute([$rotinaId, $userId]);
             if (!$stmt->fetch()) {
-                $response['message'] = 'Rotina não encontrada ou não pertence ao usuário';
-                break;
+                throw new Exception('Rotina não encontrada');
             }
             
-            // Verificar se já existe controle para hoje
+            // Atualizar ou criar controle diário
             $stmt = $pdo->prepare("
-                SELECT id FROM rotina_controle_diario 
-                WHERE id_usuario = ? AND id_rotina_fixa = ? AND data_execucao = ?
+                INSERT INTO rotina_controle_diario (id_usuario, id_rotina_fixa, data_execucao, status, horario_execucao) 
+                VALUES (?, ?, ?, ?, NOW())
+                ON DUPLICATE KEY UPDATE 
+                status = VALUES(status), 
+                horario_execucao = CASE WHEN VALUES(status) = 'concluido' THEN NOW() ELSE horario_execucao END
             ");
-            $stmt->execute([$userId, $rotinaId, $dataHoje]);
-            $controleExiste = $stmt->fetch();
+            $stmt->execute([$userId, $rotinaId, $dataHoje, $novoStatus]);
             
-            if ($controleExiste) {
-                // Atualizar existente
-                $stmt = $pdo->prepare("
-                    UPDATE rotina_controle_diario 
-                    SET status = ?, horario_execucao = NOW() 
-                    WHERE id = ?
-                ");
-                $stmt->execute([$novoStatus, $controleExiste['id']]);
-            } else {
-                // Criar novo controle
-                $stmt = $pdo->prepare("
-                    INSERT INTO rotina_controle_diario (id_usuario, id_rotina_fixa, data_execucao, status, horario_execucao) 
-                    VALUES (?, ?, ?, ?, NOW())
-                ");
-                $stmt->execute([$userId, $rotinaId, $dataHoje, $novoStatus]);
-            }
-            
-            $response['success'] = true;
-            $response['message'] = $novoStatus === 'concluido' ? 'Rotina marcada como concluída' : 'Rotina marcada como pendente';
-            $response['status'] = $novoStatus;
-            break;
-            
-        case 'adicionar':
-            $nome = trim($_POST['nome'] ?? '');
-            $horario = $_POST['horario'] ?? null;
-            $descricao = trim($_POST['descricao'] ?? '') ?: null;
-            $ordem = (int)($_POST['ordem'] ?? 0);
-            
-            if (empty($nome)) {
-                $response['message'] = 'Nome da rotina é obrigatório';
-                break;
-            }
-            
-            // Se horário estiver vazio ou for 00:00, salvar como NULL
-            $horarioFinal = (!empty($horario) && $horario !== '00:00' && $horario !== '00:00:00') ? $horario : null;
-            
-            // Inserir rotina fixa
-            $stmt = $pdo->prepare("
-                INSERT INTO rotinas_fixas (id_usuario, nome, horario_sugerido, descricao, ordem, ativo) 
-                VALUES (?, ?, ?, ?, ?, TRUE)
-            ");
-            
-            if ($stmt->execute([$userId, $nome, $horarioFinal, $descricao, $ordem])) {
-                $idRotina = $pdo->lastInsertId();
-                
-                // Criar controle para hoje
-                $stmt = $pdo->prepare("
-                    INSERT INTO rotina_controle_diario (id_usuario, id_rotina_fixa, data_execucao, status) 
-                    VALUES (?, ?, ?, 'pendente')
-                ");
-                $stmt->execute([$userId, $idRotina, $dataHoje]);
-                
-                $response['success'] = true;
-                $response['message'] = 'Rotina adicionada com sucesso';
-                $response['rotina_id'] = $idRotina;
-            } else {
-                $response['message'] = 'Erro ao adicionar rotina';
-            }
+            $mensagem = $novoStatus === 'concluido' ? 'Rotina marcada como concluída!' : 'Rotina marcada como pendente!';
+            echo json_encode(['success' => true, 'message' => $mensagem]);
             break;
             
         default:
-            $response['message'] = 'Ação não reconhecida';
+            throw new Exception('Ação inválida');
     }
     
-} catch (PDOException $e) {
-    $response['message'] = 'Erro no banco de dados: ' . $e->getMessage();
-    $response['debug'] = [
-        'acao' => $acao,
-        'rotina_id' => $rotinaId,
-        'user_id' => $userId,
-        'data_hoje' => $dataHoje,
-        'error_code' => $e->getCode(),
-        'error_message' => $e->getMessage()
-    ];
-    error_log("Erro ao processar rotina fixa: " . $e->getMessage());
-    error_log("Debug info: " . json_encode($response['debug']));
+} catch (Exception $e) {
+    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }
-
-echo json_encode($response);
 ?>
