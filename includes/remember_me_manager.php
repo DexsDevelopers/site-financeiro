@@ -1,5 +1,5 @@
 <?php
-// includes/remember_me_manager.php - Gerenciador de "Lembrar-me"
+// includes/remember_me_manager.php - Gerenciador de "Lembrar-me" (Versão Melhorada)
 
 class RememberMeManager {
     private $pdo;
@@ -9,6 +9,7 @@ class RememberMeManager {
     
     public function __construct($pdo) {
         $this->pdo = $pdo;
+        error_log("RememberMeManager: Instância criada. Cookie expire: " . $this->cookie_expire . " dias");
     }
     
     /**
@@ -26,12 +27,15 @@ class RememberMeManager {
             $stmt = $this->pdo->prepare("INSERT INTO remember_tokens (user_id, token, expires_at, user_agent, ip_address) VALUES (?, ?, ?, ?, ?)");
             $stmt->execute([$userId, $token, $expiresAt, $userAgent, $ipAddress]);
             
+            error_log("RememberMeManager: Token inserido no banco para user_id: $userId. Expira: $expiresAt");
+            
             // Definir cookie seguro
             $this->setRememberCookie($token, $expiresAt);
             
             return $token;
             
         } catch (PDOException $e) {
+            error_log("RememberMeManager: Erro ao inserir token - " . $e->getMessage());
             return false;
         }
     }
@@ -41,6 +45,7 @@ class RememberMeManager {
      */
     public function verifyRememberToken($token) {
         if (empty($token)) {
+            error_log("RememberMeManager: Token vazio");
             return false;
         }
         
@@ -57,14 +62,17 @@ class RememberMeManager {
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
             
             if ($result) {
+                error_log("RememberMeManager: Token válido para usuário: " . $result['nome']);
                 // Atualizar último uso
                 $this->updateLastUsed($token);
                 return $result;
             }
             
+            error_log("RememberMeManager: Token não encontrado ou expirado: " . substr($token, 0, 10) . "...");
             return false;
             
         } catch (PDOException $e) {
+            error_log("RememberMeManager: Erro ao verificar token - " . $e->getMessage());
             return false;
         }
     }
@@ -73,6 +81,8 @@ class RememberMeManager {
      * Fazer login automático com token
      */
     public function autoLogin($token) {
+        error_log("RememberMeManager: Iniciando autoLogin com token: " . substr($token, 0, 10) . "...");
+        
         $userData = $this->verifyRememberToken($token);
         
         if ($userData) {
@@ -91,15 +101,19 @@ class RememberMeManager {
                 'email' => $userData['email']
             ];
             
+            error_log("RememberMeManager: Sessão criada para usuário ID: " . $userData['id']);
+            
             // Renovar token se necessário (últimos 7 dias)
-            $lastUsed = strtotime($userData['last_used_at']);
+            $lastUsed = strtotime($userData['last_used_at'] ?? $userData['created_at']);
             if ((time() - $lastUsed) > (7 * 24 * 60 * 60)) {
+                error_log("RememberMeManager: Renovando token (últimos 7 dias)");
                 $this->renewToken($token);
             }
             
             return true;
         }
         
+        error_log("RememberMeManager: autoLogin falhou - dados de usuário não encontrados");
         return false;
     }
     
@@ -110,6 +124,8 @@ class RememberMeManager {
         $userData = $this->verifyRememberToken($oldToken);
         
         if ($userData) {
+            error_log("RememberMeManager: Renovando token para user_id: " . $userData['user_id']);
+            
             // Criar novo token
             $newToken = $this->createRememberToken(
                 $userData['user_id'], 
@@ -134,12 +150,15 @@ class RememberMeManager {
             $stmt = $this->pdo->prepare("UPDATE remember_tokens SET is_active = 0 WHERE token = ?");
             $stmt->execute([$token]);
             
+            error_log("RememberMeManager: Token revogado");
+            
             // Remover cookie
             $this->clearRememberCookie();
             
             return true;
             
         } catch (PDOException $e) {
+            error_log("RememberMeManager: Erro ao revogar token - " . $e->getMessage());
             return false;
         }
     }
@@ -152,12 +171,16 @@ class RememberMeManager {
             $stmt = $this->pdo->prepare("UPDATE remember_tokens SET is_active = 0 WHERE user_id = ?");
             $stmt->execute([$userId]);
             
+            $count = $stmt->rowCount();
+            error_log("RememberMeManager: " . $count . " token(s) revogados para user_id: $userId");
+            
             // Remover cookie
             $this->clearRememberCookie();
             
             return true;
             
         } catch (PDOException $e) {
+            error_log("RememberMeManager: Erro ao revogar todos os tokens - " . $e->getMessage());
             return false;
         }
     }
@@ -170,9 +193,13 @@ class RememberMeManager {
             $stmt = $this->pdo->prepare("DELETE FROM remember_tokens WHERE expires_at < NOW() OR is_active = 0");
             $stmt->execute();
             
-            return $stmt->rowCount();
+            $count = $stmt->rowCount();
+            error_log("RememberMeManager: " . $count . " token(s) expirado(s) removido(s)");
+            
+            return $count;
             
         } catch (PDOException $e) {
+            error_log("RememberMeManager: Erro ao limpar tokens - " . $e->getMessage());
             return false;
         }
     }
@@ -186,7 +213,7 @@ class RememberMeManager {
             $stmt->execute([$token]);
             
         } catch (PDOException $e) {
-            // Ignorar erro
+            error_log("RememberMeManager: Erro ao atualizar last_used_at - " . $e->getMessage());
         }
     }
     
@@ -195,28 +222,36 @@ class RememberMeManager {
      */
     private function setRememberCookie($token, $expiresAt) {
         $expires = strtotime($expiresAt);
-        
-        // Verificar se estamos em HTTPS
         $secure = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';
         
-        // Definir cookie com configurações apropriadas
-        $result = setcookie(
-            $this->cookie_name,
-            $token,
-            [
-                'expires' => $expires,
-                'path' => '/',
-                'domain' => '',
-                'secure' => $secure,
-                'httponly' => true,
-                'samesite' => 'Lax'
-            ]
-        );
+        error_log("RememberMeManager: Configurando cookie. Expires timestamp: $expires, Secure: " . ($secure ? 'true' : 'false'));
         
-        // Log para debugging
-        error_log("Remember Me Cookie - Token: " . substr($token, 0, 10) . "... Expires: " . $expiresAt . " Secure: " . ($secure ? 'Yes' : 'No') . " Result: " . ($result ? 'Success' : 'Failed'));
-        
-        return $result;
+        // Tentar definir cookie
+        try {
+            $result = setcookie(
+                $this->cookie_name,
+                $token,
+                [
+                    'expires' => $expires,
+                    'path' => '/',
+                    'domain' => '',
+                    'secure' => $secure,
+                    'httponly' => true,
+                    'samesite' => 'Lax'
+                ]
+            );
+            
+            if ($result) {
+                error_log("RememberMeManager: Cookie definido com sucesso! Token: " . substr($token, 0, 10) . "... Expira em: $expiresAt");
+            } else {
+                error_log("RememberMeManager: FALHA ao definir cookie! Verifique se headers já foram enviados.");
+            }
+            
+            return $result;
+        } catch (Exception $e) {
+            error_log("RememberMeManager: Exceção ao definir cookie - " . $e->getMessage());
+            return false;
+        }
     }
     
     /**
@@ -224,6 +259,8 @@ class RememberMeManager {
      */
     private function clearRememberCookie() {
         $secure = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';
+        
+        error_log("RememberMeManager: Limpando cookie remember_token");
         
         setcookie(
             $this->cookie_name,
@@ -243,7 +280,11 @@ class RememberMeManager {
      * Obter token do cookie
      */
     public function getTokenFromCookie() {
-        return $_COOKIE[$this->cookie_name] ?? null;
+        $token = $_COOKIE[$this->cookie_name] ?? null;
+        if ($token) {
+            error_log("RememberMeManager: Token obtido do cookie: " . substr($token, 0, 10) . "...");
+        }
+        return $token;
     }
     
     /**
@@ -264,6 +305,7 @@ class RememberMeManager {
             return $result['count'] > 0;
             
         } catch (PDOException $e) {
+            error_log("RememberMeManager: Erro ao verificar token ativo - " . $e->getMessage());
             return false;
         }
     }
@@ -287,6 +329,7 @@ class RememberMeManager {
             return $stmt->fetch(PDO::FETCH_ASSOC);
             
         } catch (PDOException $e) {
+            error_log("RememberMeManager: Erro ao obter estatísticas - " . $e->getMessage());
             return false;
         }
     }
