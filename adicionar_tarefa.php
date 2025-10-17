@@ -46,20 +46,8 @@ if ($descricao === '') {
 try {
     $sqls = [
         [
-            "INSERT INTO tarefas (id_usuario, descricao, prioridade, data_limite, tempo_estimado, ordem, status, data_criacao) VALUES (?, ?, ?, ?, ?, 0, 'pendente', NOW())",
+            "INSERT INTO tarefas (id_usuario, descricao, prioridade, data_limite, tempo_estimado, status) VALUES (?, ?, ?, ?, ?, 'pendente')",
             [$userId, $descricao, $prioridade, $data_limite, $tempo_estimado_total]
-        ],
-        [
-            "INSERT INTO tarefas (id_usuario, descricao, prioridade, data_limite, tempo_estimado, status, data_criacao) VALUES (?, ?, ?, ?, ?, 'pendente', NOW())",
-            [$userId, $descricao, $prioridade, $data_limite, $tempo_estimado_total]
-        ],
-        [
-            "INSERT INTO tarefas (id_usuario, descricao, prioridade, data_limite, status) VALUES (?, ?, ?, ?, 'pendente')",
-            [$userId, $descricao, $prioridade, $data_limite]
-        ],
-        [
-            "INSERT INTO tarefas (id_usuario, descricao, prioridade, data_limite) VALUES (?, ?, ?, ?)",
-            [$userId, $descricao, $prioridade, $data_limite]
         ],
     ];
 
@@ -71,13 +59,13 @@ try {
             $insertOk = true;
             break;
         } catch (PDOException $e) {
-            // tenta próximo formato
+            error_log('[ERRO][adicionar_tarefa.php] Insert failed: ' . $e->getMessage());
             continue;
         }
     }
 
     if (!$insertOk) {
-        throw new PDOException('Falha ao inserir tarefa em todos os formatos conhecidos.');
+        throw new PDOException('Falha ao inserir tarefa.');
     }
 
     $newTaskId = $pdo->lastInsertId();
@@ -96,7 +84,6 @@ try {
 } catch (PDOException $e) {
     http_response_code(500);
     $response['message'] = 'Erro no banco de dados ao salvar a tarefa.';
-    // Log seguro
     error_log('[ERRO][adicionar_tarefa.php] ' . $e->getMessage());
     echo json_encode($response);
 }

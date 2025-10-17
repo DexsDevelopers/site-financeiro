@@ -43,7 +43,13 @@ try {
 
 // Buscar tarefas pendentes
 try {
-    $stmt = $pdo->prepare("\n        SELECT id, titulo, prioridade, data_limite, descricao, status \n        FROM tarefas \n        WHERE id_usuario = ? AND (\n            status = 'pendente' OR status IS NULL OR status = '' OR status IN ('Em andamento','em_andamento','em andamento')\n        )\n        ORDER BY FIELD(prioridade, 'Alta', 'Média', 'Baixa'), COALESCE(ordem, 9999), data_limite\n        LIMIT 100\n    ");
+    $stmt = $pdo->prepare("
+        SELECT id, descricao, prioridade, data_limite, status 
+        FROM tarefas 
+        WHERE id_usuario = ? AND status = 'pendente'
+        ORDER BY FIELD(prioridade, 'Alta', 'Média', 'Baixa'), COALESCE(ordem, 9999), data_limite
+        LIMIT 100
+    ");
     $stmt->execute([$userId]);
     $tarefas = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
@@ -708,19 +714,8 @@ body {
                         <div class="form-group">
                             <label>Data Limite (opcional)</label>
                             <input type="date" name="data_limite" class="form-input">
-    </div>
-</div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Tempo estimado (horas)</label>
-                            <input type="number" name="tempo_horas" class="form-input" min="0" value="0">
-			</div>
-                        <div class="form-group">
-                            <label>Tempo estimado (minutos)</label>
-                            <input type="number" name="tempo_minutos" class="form-input" min="0" max="59" value="0">
                         </div>
-					</div>
+                    </div>
 				</div>
 				<div class="modal-footer">
                     <button type="button" class="btn-cancel" onclick="fecharModalTarefa()">Cancelar</button>
