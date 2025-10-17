@@ -400,58 +400,118 @@ $rotinas_total = count($rotinas);
 
         /* Subtarefas */
         .subtasks {
-            margin-top: 12px;
-            padding-top: 12px;
-            border-top: 1px solid var(--border);
+            margin-top: 0;
+            padding: 12px 0 0 0;
+            margin-left: 0;
+            border-top: none;
+            padding-left: 32px;
+            position: relative;
+        }
+
+        .subtasks::before {
+            content: '';
+            position: absolute;
+            left: 16px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(to bottom, var(--primary), transparent);
+            border-radius: 2px;
         }
 
         .subtasks-header {
             display: flex;
             align-items: center;
             gap: 8px;
-            margin-bottom: 10px;
-            color: var(--text-muted);
+            margin-bottom: 12px;
+            color: #6bcf7f;
             font-size: 12px;
             cursor: pointer;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.2s;
         }
 
         .subtasks-header:hover {
-            color: var(--text);
+            color: #7dd88f;
+            transform: translateX(2px);
+        }
+
+        .subtasks-header i {
+            transition: transform 0.2s;
+            font-size: 14px;
+        }
+
+        .subtasks-header .btn-icon {
+            opacity: 0;
+            transition: opacity 0.2s;
+            padding: 4px 8px;
+            color: #6bcf7f;
+            margin-left: auto !important;
+        }
+
+        .subtasks-header:hover .btn-icon {
+            opacity: 1;
+        }
+
+        .subtasks-header .btn-icon:hover {
+            color: #7dd88f;
+            transform: scale(1.15);
         }
 
         .subtasks-list {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 6px;
         }
 
         .subtask-item {
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 8px;
-            background: rgba(255, 255, 255, 0.02);
-            border-radius: 6px;
+            gap: 10px;
+            padding: 10px 12px;
+            background: linear-gradient(135deg, rgba(107, 207, 127, 0.05), rgba(107, 207, 127, 0.02));
+            border-left: 3px solid var(--primary);
+            border-radius: 4px;
             font-size: 13px;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .subtask-item:hover {
+            background: linear-gradient(135deg, rgba(107, 207, 127, 0.1), rgba(107, 207, 127, 0.05));
+            border-left-color: #7dd88f;
+            transform: translateX(4px);
         }
 
         .subtask-checkbox {
-            width: 16px;
-            height: 16px;
-            min-width: 16px;
+            width: 18px;
+            height: 18px;
+            min-width: 18px;
             cursor: pointer;
-            accent-color: var(--primary);
+            accent-color: #6bcf7f;
+            border-radius: 3px;
+            transition: all 0.2s;
+        }
+
+        .subtask-checkbox:hover {
+            transform: scale(1.1);
         }
 
         .subtask-label {
             flex: 1;
             cursor: pointer;
             user-select: none;
+            color: var(--text);
+            transition: color 0.2s;
+            font-weight: 500;
         }
 
         .subtask-label.completed {
             text-decoration: line-through;
-            color: var(--text-muted);
+            color: #6bcf7f;
+            opacity: 0.7;
         }
 
         .btn-delete-subtask {
@@ -459,13 +519,22 @@ $rotinas_total = count($rotinas);
             border: none;
             color: var(--text-muted);
             cursor: pointer;
-            padding: 2px 4px;
-            font-size: 12px;
-            transition: color 0.2s;
+            padding: 4px 6px;
+            font-size: 14px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+        }
+
+        .subtask-item:hover .btn-delete-subtask {
+            opacity: 1;
         }
 
         .btn-delete-subtask:hover {
             color: #ff6b6b;
+            transform: scale(1.2) rotate(90deg);
         }
 
         /* Modal */
@@ -771,7 +840,7 @@ $rotinas_total = count($rotinas);
                         <!-- Subtarefas -->
                         <?php $subs = $subtarefasPorTarefa[$task['id']] ?? []; ?>
                         <?php if (!empty($subs) || true): ?>
-                            <div class="subtasks" style="margin-left: 20px;">
+                            <div class="subtasks">
                                 <div class="subtasks-header" onclick="toggleSubtasks(this)">
                                     <i class="bi bi-chevron-down"></i>
                                     <span>Subtarefas (<?php echo count($subs); ?>)</span>
