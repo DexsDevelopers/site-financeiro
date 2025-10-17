@@ -911,7 +911,112 @@ body {
         }
 
         function editarTarefa(id) {
-            window.location.href = `editar_tarefa.php?id=${id}`;
+            // Buscar dados da tarefa
+            fetch(`obter_tarefa.php?id=${id}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        const tarefa = data.tarefa;
+                        // Criar modal de edição
+                        const modalEdit = document.createElement('div');
+                        modalEdit.id = 'modalEdit_' + id;
+                        modalEdit.className = 'modal-overlay';
+                        modalEdit.classList.add('active');
+                        modalEdit.innerHTML = `
+                            <div class="modal-box">
+                                <div class="modal-header">
+                                    <h2><i class="bi bi-pencil"></i> Editar Tarefa</h2>
+                                    <button class="modal-close" onclick="document.getElementById('modalEdit_${id}').remove()">
+                                        <i class="bi bi-x"></i>
+                                    </button>
+                                </div>
+                                <form id="formEditarTarefa_${id}">
+                                    <div class="modal-body">
+                                        <div class="form-group">
+                                            <label>Descrição</label>
+                                            <input type="text" class="form-input" name="descricao" value="${htmlEscape(tarefa.descricao)}" required>
+                                        </div>
+
+                                        <div class="form-row">
+                                            <div class="form-group">
+                                                <label>Prioridade</label>
+                                                <select class="form-input" name="prioridade">
+                                                    <option value="Baixa" ${tarefa.prioridade === 'Baixa' ? 'selected' : ''}>Baixa</option>
+                                                    <option value="Média" ${tarefa.prioridade === 'Média' ? 'selected' : ''}>Média</option>
+                                                    <option value="Alta" ${tarefa.prioridade === 'Alta' ? 'selected' : ''}>Alta</option>
+                                                </select>
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Data Limite</label>
+                                                <input type="date" class="form-input" name="data_limite" value="${tarefa.data_limite || ''}">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn-cancel" onclick="document.getElementById('modalEdit_${id}').remove()">Cancelar</button>
+                                        <button type="submit" class="btn-submit">
+                                            <i class="bi bi-save"></i> Salvar Alterações
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        `;
+                        document.body.appendChild(modalEdit);
+
+                        // Submit do formulário
+                        document.getElementById('formEditarTarefa_' + id).addEventListener('submit', function(e) {
+                            e.preventDefault();
+                            const formData = new FormData(this);
+                            const btn = this.querySelector('button[type="submit"]');
+                            btn.disabled = true;
+                            btn.textContent = 'Salvando...';
+
+                            fetch('atualizar_tarefa.php', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    id: id,
+                                    descricao: formData.get('descricao'),
+                                    prioridade: formData.get('prioridade'),
+                                    data_limite: formData.get('data_limite')
+                                })
+                            })
+                            .then(r => r.json())
+                            .then(data => {
+                                if (data.success) {
+                                    alert('Tarefa atualizada!');
+                                    location.reload();
+                                } else {
+                                    alert('Erro: ' + data.message);
+                                    btn.disabled = false;
+                                    btn.innerHTML = '<i class="bi bi-save"></i> Salvar Alterações';
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Erro:', error);
+                                alert('Erro ao salvar');
+                                btn.disabled = false;
+                                btn.innerHTML = '<i class="bi bi-save"></i> Salvar Alterações';
+                            });
+                        });
+                    } else {
+                        alert('Erro ao carregar tarefa: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro:', error);
+                    alert('Erro ao carregar tarefa');
+                });
+        }
+
+        // Função auxiliar para escapar HTML
+        function htmlEscape(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
         }
 
         function editarRotina(id) {
