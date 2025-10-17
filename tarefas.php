@@ -651,7 +651,7 @@ body {
                                     onchange="completarTarefa(<?php echo $task['id']; ?>)">
                              
                              <div class="item-content">
-                                 <div class="item-title"><?php echo htmlspecialchars($task['titulo']); ?></div>
+                                 <div class="item-title"><?php echo htmlspecialchars($task['descricao'] ?? $task['titulo'] ?? ''); ?></div>
                                  <div class="item-meta">
                                      <span class="item-priority priority-<?php echo strtolower($task['prioridade']); ?>">
                                          <i class="bi bi-exclamation-circle-fill"></i> 
@@ -698,14 +698,9 @@ body {
             <form id="formNovaTarefa">
                 <div class="modal-body">
                     <div class="form-group">
-                        <label>Título da Tarefa</label>
-                        <input type="text" name="titulo" class="form-input" placeholder="Ex: Revisar relatório" required>
-</div>
-
-                    <div class="form-group">
-                        <label>Descrição (opcional)</label>
-                        <textarea name="descricao" class="form-input" placeholder="Detalhes da tarefa..." rows="3"></textarea>
-            </div>
+                        <label>Descrição da Tarefa</label>
+                        <input type="text" name="descricao" class="form-input" placeholder="Ex: Revisar relatório" required>
+                    </div>
 
                     <div class="form-row">
                         <div class="form-group">
@@ -719,6 +714,17 @@ body {
                         <div class="form-group">
                             <label>Data Limite (opcional)</label>
                             <input type="date" name="data_limite" class="form-input">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Tempo estimado (horas)</label>
+                            <input type="number" name="tempo_horas" class="form-input" min="0" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Tempo estimado (minutos)</label>
+                            <input type="number" name="tempo_minutos" class="form-input" min="0" max="59" value="0">
                         </div>
                     </div>
                 </div>
@@ -825,10 +831,10 @@ body {
 		btn.disabled = true;
                 btn.textContent = 'Salvando...';
 		
-                fetch('adicionar_tarefa_formulario.php', {
-			method: 'POST',
-			body: formData
-		})
+                fetch('adicionar_tarefa.php', {
+                    method: 'POST',
+                    body: formData
+                })
 		.then(r => r.json())
 		.then(data => {
                     console.log('Resposta:', data);

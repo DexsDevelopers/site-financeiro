@@ -23,12 +23,15 @@ try {
 
     $titulo = trim($_POST['titulo'] ?? '');
     $descricao = trim($_POST['descricao'] ?? '');
+    // Escolhe o texto principal da tarefa
+    $textoTarefa = $titulo !== '' ? $titulo : $descricao;
+
     $prioridade = trim($_POST['prioridade'] ?? 'Média');
     $data_limite = trim($_POST['data_limite'] ?? '');
 
-    if ($titulo === '') {
+    if ($textoTarefa === '') {
         http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Título é obrigatório']);
+        echo json_encode(['success' => false, 'message' => 'Descrição/título é obrigatório']);
         exit;
     }
 
@@ -36,11 +39,11 @@ try {
         $prioridade = 'Média';
     }
 
-    $stmt = $pdo->prepare("INSERT INTO tarefas (id_usuario, titulo, descricao, prioridade, data_limite, status, data_criacao) VALUES (?, ?, ?, ?, ?, 'pendente', NOW())");
+    // Inserir somente na coluna 'descricao' (compatível com o schema existente)
+    $stmt = $pdo->prepare("INSERT INTO tarefas (id_usuario, descricao, prioridade, data_limite, status, data_criacao) VALUES (?, ?, ?, ?, 'pendente', NOW())");
     $stmt->execute([
         $userId,
-        $titulo,
-        $descricao !== '' ? $descricao : null,
+        $textoTarefa,
         $prioridade,
         $data_limite !== '' ? $data_limite : null,
     ]);
