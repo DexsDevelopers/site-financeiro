@@ -797,28 +797,58 @@ body {
         }
 
         function deletarTarefa(id) {
-            if (confirm('Tem certeza?')) {
-                fetch('excluir_tarefa.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id })
-                })
-                .then(r => r.json())
-                .then(data => {
-                    if (data.success) {
-                        const item = document.querySelector(`[data-task-id="${id}"]`);
-                        item.style.opacity = '0.6';
-                        setTimeout(() => item.remove(), 300);
-                        alert('Tarefa excluída com sucesso!');
-                    } else {
-                        alert('Erro: ' + data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Erro:', error);
-                    alert('Erro ao excluir tarefa');
-                });
-            }
+            // Criar modal de confirmação customizado
+            const modalConfirm = document.createElement('div');
+            modalConfirm.id = 'modalConfirm_' + id;
+            modalConfirm.className = 'modal-overlay';
+            modalConfirm.classList.add('active');
+            modalConfirm.innerHTML = `
+                <div class="modal-box">
+                    <div class="modal-header">
+                        <h2><i class="bi bi-exclamation-triangle"></i> Confirmar Exclusão</h2>
+                        <button class="modal-close" onclick="document.getElementById('modalConfirm_${id}').remove()">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <p style="color: var(--text); font-size: 14px;">Tem certeza que deseja excluir esta tarefa? Esta ação não pode ser desfeita.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-cancel" onclick="document.getElementById('modalConfirm_${id}').remove()">Cancelar</button>
+                        <button type="button" class="btn-submit" onclick="confirmarDeletarTarefa(${id})">
+                            <i class="bi bi-trash"></i> Deletar
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modalConfirm);
+        }
+
+        function confirmarDeletarTarefa(id) {
+            fetch('excluir_tarefa.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    const item = document.querySelector(`[data-task-id="${id}"]`);
+                    item.style.opacity = '0.6';
+                    setTimeout(() => item.remove(), 300);
+                    alert('Tarefa excluída com sucesso!');
+                } else {
+                    alert('Erro: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                alert('Erro ao excluir tarefa');
+            })
+            .finally(() => {
+                const modal = document.getElementById('modalConfirm_' + id);
+                if (modal) modal.remove();
+            });
         }
 
         function deletarRotina(id) {
