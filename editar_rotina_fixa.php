@@ -86,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
                 $stmt = $pdo->prepare("
                     UPDATE rotinas_fixas 
-                    SET nome = ?, horario_sugerido = ?, descricao = ?, data_atualizacao = NOW()
+                    SET nome = ?, horario_sugerido = ?, descricao = ?
                     WHERE id = ? AND id_usuario = ?
                 ");
                 $stmt->execute([$nome, $horario ?: null, $descricao, $rotinaId, $userId]);
