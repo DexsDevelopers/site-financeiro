@@ -1409,7 +1409,14 @@ $rotinas_total = count($rotinas);
                         document.getElementById('modalEditarRotina').classList.add('active');
                         document.getElementById('formEditarRotina').reset();
                         document.querySelector('#formEditarRotina input[name="nome"]').value = rotina.nome;
-                        document.querySelector('#formEditarRotina input[name="horario"]').value = rotina.horario_sugerido || '';
+                        
+                        // Converter 06:00:00 para 06:00 (remover segundos)
+                        let horarioFormatado = '';
+                        if (rotina.horario_sugerido) {
+                            horarioFormatado = rotina.horario_sugerido.substring(0, 5); // Pega apenas HH:mm
+                        }
+                        document.querySelector('#formEditarRotina input[name="horario"]').value = horarioFormatado;
+                        
                         document.querySelector('#formEditarRotina textarea[name="descricao"]').value = rotina.descricao || '';
                         document.getElementById('formEditarRotina').dataset.rotinaId = rotinaId;
                     } else {

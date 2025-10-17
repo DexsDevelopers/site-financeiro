@@ -38,34 +38,15 @@ try {
         $horario = null;
     }
 
-    // Debug logging
-    error_log("=== ATUALIZAR ROTINA FIXA ===");
-    error_log("ID: $rotinaId, Usuário: $userId");
-    error_log("Horário recebido: " . var_export($input['horario'], true));
-    error_log("Horário a salvar: " . var_export($horario, true));
-    
     $stmt = $pdo->prepare("
         UPDATE rotinas_fixas 
         SET nome = ?, horario_sugerido = ?, descricao = ?
         WHERE id = ? AND id_usuario = ?
     ");
-    
-    error_log("SQL: UPDATE rotinas_fixas SET nome = ?, horario_sugerido = ?, descricao = ? WHERE id = $rotinaId AND id_usuario = $userId");
-    error_log("Parâmetros: " . json_encode([$nome, $horario, $descricao, $rotinaId, $userId]));
-    
-    $result = $stmt->execute([$nome, $horario, $descricao, $rotinaId, $userId]);
-    $rowsAffected = $stmt->rowCount();
-    
-    error_log("Rows affected: $rowsAffected");
-    
-    // Verificar o que foi salvo
-    $stmtVerify = $pdo->prepare("SELECT id, nome, horario_sugerido, descricao FROM rotinas_fixas WHERE id = ? AND id_usuario = ?");
-    $stmtVerify->execute([$rotinaId, $userId]);
-    $rotinaVerify = $stmtVerify->fetch(PDO::FETCH_ASSOC);
-    error_log("Dados após UPDATE: " . json_encode($rotinaVerify));
-    
+    $stmt->execute([$nome, $horario, $descricao, $rotinaId, $userId]);
+
     http_response_code(200);
-    echo json_encode(['success' => true, 'message' => 'Rotina atualizada com sucesso', 'debug' => $rotinaVerify]);
+    echo json_encode(['success' => true, 'message' => 'Rotina atualizada com sucesso']);
 
 } catch (PDOException $e) {
     error_log("Erro ao atualizar rotina fixa: " . $e->getMessage());
