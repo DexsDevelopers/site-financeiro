@@ -574,9 +574,9 @@ body {
         <div class="section">
             <div class="section-title">
                 <i class="bi bi-calendar-check"></i>
-                Rotinas de Hoje
+                Rotinas Fixas
                 <span class="progress-bar-mini">
-                    <?php echo $rotinas_concluidas; ?>/<?php echo $rotinas_total; ?> concluídas
+                    <?php echo $rotinas_concluidas; ?>/<?php echo $rotinas_total; ?> concluídas hoje
                 </span>
         </div>
         
