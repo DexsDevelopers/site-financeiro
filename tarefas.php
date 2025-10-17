@@ -728,6 +728,9 @@ $rotinas_total = count($rotinas);
                 <button class="btn-action" onclick="abrirModalTarefa()">
                     <i class="bi bi-plus"></i> Nova Tarefa
                 </button>
+                <button class="btn-action" style="background: #6bcf7f;" onclick="abrirModalRotina()">
+                    <i class="bi bi-plus"></i> Nova Rotina
+                </button>
             </div>
         </div>
 
@@ -933,6 +936,44 @@ $rotinas_total = count($rotinas);
                     <button type="button" class="btn-cancel" onclick="fecharModalSubtarefa()">Cancelar</button>
                     <button type="submit" class="btn-submit">
                         <i class="bi bi-save"></i> Salvar Subtarefa
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Nova Rotina Fixa -->
+    <div id="modalRotina" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h2><i class="bi bi-calendar-plus"></i> Nova Rotina Fixa</h2>
+                <button class="modal-close" onclick="fecharModalRotina()">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
+            <form id="formNovaRotina">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Nome da Rotina</label>
+                        <input type="text" name="nome" class="form-input" placeholder="Ex: Exercício matinal" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Horário Sugerido (opcional)</label>
+                            <input type="time" name="horario" class="form-input">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Descrição (opcional)</label>
+                        <textarea name="descricao" class="form-input" rows="3" placeholder="Ex: 30 minutos de musculação no ginásio"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancel" onclick="fecharModalRotina()">Cancelar</button>
+                    <button type="submit" class="btn-submit">
+                        <i class="bi bi-save"></i> Criar Rotina
                     </button>
                 </div>
             </form>
@@ -1274,6 +1315,49 @@ $rotinas_total = count($rotinas);
                 alert('Erro ao salvar');
                 btn.disabled = false;
                 btn.textContent = 'Salvar Subtarefa';
+            });
+        });
+
+        // Rotina Fixa Modal
+        function abrirModalRotina() {
+            document.getElementById('modalRotina').classList.add('active');
+        }
+
+        function fecharModalRotina() {
+            document.getElementById('modalRotina').classList.remove('active');
+            document.getElementById('formNovaRotina').reset();
+        }
+
+        document.getElementById('modalRotina').addEventListener('click', function(e) {
+            if (e.target === this) fecharModalRotina();
+        });
+
+        document.getElementById('formNovaRotina').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const btn = this.querySelector('button[type="submit"]');
+            btn.disabled = true;
+            btn.textContent = 'Salvando...';
+
+            fetch('adicionar_rotina_fixa.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Rotina criada com sucesso!');
+                    location.reload();
+                } else {
+                    alert('Erro: ' + data.message);
+                    btn.disabled = false;
+                    btn.textContent = 'Criar Rotina';
+                }
+            })
+            .catch(error => {
+                alert('Erro ao salvar');
+                btn.disabled = false;
+                btn.textContent = 'Criar Rotina';
             });
         });
 

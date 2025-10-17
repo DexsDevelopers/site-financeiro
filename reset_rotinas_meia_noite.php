@@ -1,6 +1,27 @@
 <?php
 // reset_rotinas_meia_noite.php - Script para reset automático das rotinas fixas
 // Este script deve ser executado via cron job diariamente à meia-noite
+//
+// ==============================================================================
+// INSTRUÇÕES DE CONFIGURAÇÃO DO CRON JOB:
+// ==============================================================================
+// 
+// 1. Acessar o painel de controle do seu servidor (Hostinger, Bluehost, etc)
+// 2. Procurar por "Cron Jobs" ou "Agendador de Tarefas"
+// 3. Adicionar um novo cron job com:
+//    - Tempo: 00:00 (meia-noite)
+//    - Frequência: Diária
+//    - Comando: php /caminho/absoluto/seu/dominio/public_html/reset_rotinas_meia_noite.php
+//
+// 4. Alternativa via terminal (SSH):
+//    $ crontab -e
+//    Adicionar a linha:
+//    0 0 * * * /usr/bin/php /home/usuario/dominio.com.br/public_html/reset_rotinas_meia_noite.php
+//
+// 5. Verificar execução no arquivo de log:
+//    /logs/reset_rotinas_YYYY-MM.log
+//
+// ==============================================================================
 
 require_once 'includes/db_connect.php';
 
