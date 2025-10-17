@@ -43,13 +43,7 @@ try {
 
 // Buscar tarefas pendentes
 try {
-    $stmt = $pdo->prepare("
-        SELECT id, titulo, prioridade, data_limite, descricao 
-        FROM tarefas 
-        WHERE id_usuario = ? AND status = 'pendente' 
-        ORDER BY FIELD(prioridade, 'Alta', 'Média', 'Baixa'), COALESCE(ordem, 9999), data_limite
-        LIMIT 100
-    ");
+    $stmt = $pdo->prepare("\n        SELECT id, titulo, prioridade, data_limite, descricao, status \n        FROM tarefas \n        WHERE id_usuario = ? AND (\n            status = 'pendente' OR status IS NULL OR status = '' OR status IN ('Em andamento','em_andamento','em andamento')\n        )\n        ORDER BY FIELD(prioridade, 'Alta', 'Média', 'Baixa'), COALESCE(ordem, 9999), data_limite\n        LIMIT 100\n    ");
     $stmt->execute([$userId]);
     $tarefas = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
@@ -700,7 +694,7 @@ body {
                     <div class="form-group">
                         <label>Descrição da Tarefa</label>
                         <input type="text" name="descricao" class="form-input" placeholder="Ex: Revisar relatório" required>
-                    </div>
+</div>
 
                     <div class="form-row">
                         <div class="form-group">
@@ -714,28 +708,28 @@ body {
                         <div class="form-group">
                             <label>Data Limite (opcional)</label>
                             <input type="date" name="data_limite" class="form-input">
-                        </div>
-                    </div>
+    </div>
+</div>
 
                     <div class="form-row">
                         <div class="form-group">
                             <label>Tempo estimado (horas)</label>
                             <input type="number" name="tempo_horas" class="form-input" min="0" value="0">
-                        </div>
+			</div>
                         <div class="form-group">
                             <label>Tempo estimado (minutos)</label>
                             <input type="number" name="tempo_minutos" class="form-input" min="0" max="59" value="0">
                         </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
+					</div>
+				</div>
+				<div class="modal-footer">
                     <button type="button" class="btn-cancel" onclick="fecharModalTarefa()">Cancelar</button>
                     <button type="submit" class="btn-submit">
                         <i class="bi bi-save"></i> Salvar Tarefa
                     </button>
-                </div>
-            </form>
-    </div>
+				</div>
+			</form>
+	</div>
 </div>
 
 <script>
@@ -832,9 +826,9 @@ body {
                 btn.textContent = 'Salvando...';
 		
                 fetch('adicionar_tarefa.php', {
-                    method: 'POST',
-                    body: formData
-                })
+			method: 'POST',
+			body: formData
+		})
 		.then(r => r.json())
 		.then(data => {
                     console.log('Resposta:', data);
