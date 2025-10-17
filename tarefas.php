@@ -683,6 +683,25 @@ $rotinas_total = count($rotinas);
             background: #c4080f;
         }
 
+        /* Barra de Busca e Filtros */
+        .search-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .search-input {
+            flex: 1;
+            min-width: 200px;
+            max-width: 400px;
+        }
+
+        .filter-select {
+            min-width: 150px;
+            max-width: 200px;
+        }
+
         @media (max-width: 768px) {
             .header {
                 flex-direction: column;
@@ -731,7 +750,21 @@ $rotinas_total = count($rotinas);
                 <button class="btn-action" style="background: #6bcf7f;" onclick="abrirModalRotina()">
                     <i class="bi bi-plus"></i> Nova Rotina
                 </button>
+                <button class="btn-action" style="background: #6c63ff;" onclick="TarefasApp.utils.toggleModoCompacto();" title="Alt+M">
+                    <i class="bi bi-arrow-left-right"></i>
+                </button>
             </div>
+        </div>
+
+        <!-- Barra de Busca e Filtros -->
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="🔍 Buscar tarefas..." class="form-input search-input">
+            <select id="filterPriority" class="form-input filter-select">
+                <option value="">Todas as prioridades</option>
+                <option value="Alta">🔴 Alta</option>
+                <option value="Média">🟡 Média</option>
+                <option value="Baixa">🟢 Baixa</option>
+            </select>
         </div>
 
         <!-- Rotinas Fixas -->
@@ -846,7 +879,10 @@ $rotinas_total = count($rotinas);
                             <div class="subtasks">
                                 <div class="subtasks-header" onclick="toggleSubtasks(this)">
                                     <i class="bi bi-chevron-down"></i>
-                                    <span>Subtarefas (<?php echo count($subs); ?>)</span>
+                                    <span>Subtarefas (<?php
+                                        $concluidas = count(array_filter($subs, fn($s) => $s['status'] === 'concluida'));
+                                        echo $concluidas . '/' . count($subs);
+                                    ?>)</span>
                                     <button type="button" class="btn-icon" onclick="abrirModalSubtarefa(<?php echo $task['id']; ?>)" title="Adicionar subtarefa" style="margin-left: auto; margin-top: 0;">
                                         <i class="bi bi-plus-circle"></i>
                                     </button>

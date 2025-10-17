@@ -77,10 +77,14 @@ const TarefasApp = {
             event.preventDefault();
             const form = event.target;
             const formData = new FormData(form);
+            
+            // ===== VALIDAÇÃO =====
+            if (!TarefasApp.utils.validarTarefa(formData)) {
+                return;
+            }
+            
             const btn = form.querySelector('button[type="submit"]');
-            btn.disabled = true;
-            const btnOriginal = btn.textContent;
-            btn.textContent = 'Salvando...';
+            TarefasApp.utils.mostrarLoading(btn);
 
             try {
                 const response = await fetch('adicionar_tarefa.php', {
@@ -90,17 +94,15 @@ const TarefasApp = {
 
                 const data = await response.json();
                 if (data.success) {
-                    alert('Tarefa adicionada!');
+                    alert('✅ Tarefa adicionada!');
                     location.reload();
                 } else {
-                    alert('Erro: ' + data.message);
-                    btn.disabled = false;
-                    btn.textContent = btnOriginal;
+                    alert('❌ Erro: ' + data.message);
+                    TarefasApp.utils.esconderLoading(btn);
                 }
             } catch (error) {
-                alert('Erro ao salvar');
-                btn.disabled = false;
-                btn.textContent = btnOriginal;
+                alert('❌ Erro ao salvar: ' + error.message);
+                TarefasApp.utils.esconderLoading(btn);
             }
         },
 
@@ -324,10 +326,14 @@ const TarefasApp = {
             event.preventDefault();
             const form = event.target;
             const formData = new FormData(form);
+            
+            // ===== VALIDAÇÃO =====
+            if (!TarefasApp.utils.validarRotina(formData)) {
+                return;
+            }
+            
             const btn = form.querySelector('button[type="submit"]');
-            btn.disabled = true;
-            const btnOriginal = btn.textContent;
-            btn.textContent = 'Salvando...';
+            TarefasApp.utils.mostrarLoading(btn);
 
             try {
                 const response = await fetch('adicionar_rotina_fixa.php', {
@@ -337,17 +343,15 @@ const TarefasApp = {
 
                 const data = await response.json();
                 if (data.success) {
-                    alert('Rotina criada com sucesso!');
+                    alert('✅ Rotina criada com sucesso!');
                     location.reload();
                 } else {
-                    alert('Erro: ' + data.message);
-                    btn.disabled = false;
-                    btn.textContent = btnOriginal;
+                    alert('❌ Erro: ' + data.message);
+                    TarefasApp.utils.esconderLoading(btn);
                 }
             } catch (error) {
-                alert('Erro ao salvar');
-                btn.disabled = false;
-                btn.textContent = btnOriginal;
+                alert('❌ Erro ao salvar: ' + error.message);
+                TarefasApp.utils.esconderLoading(btn);
             }
         }
     },
@@ -426,15 +430,17 @@ const TarefasApp = {
             }
 
             const form = event.target;
-            const descricao = form.querySelector('input[name="descricao"]').value;
+            const formData = new FormData(form);
+            
+            // ===== VALIDAÇÃO =====
+            if (!TarefasApp.utils.validarSubtarefa(formData)) {
+                return;
+            }
+            
             const btn = form.querySelector('button[type="submit"]');
-            btn.disabled = true;
-            const btnOriginal = btn.textContent;
-            btn.textContent = 'Salvando...';
+            TarefasApp.utils.mostrarLoading(btn);
 
-            const formData = new FormData();
-            formData.append('id_tarefa_principal', window.tarefaIdAtual);
-            formData.append('descricao', descricao);
+            formData.set('id_tarefa_principal', window.tarefaIdAtual);
 
             try {
                 const response = await fetch('adicionar_subtarefa.php', {
@@ -444,17 +450,15 @@ const TarefasApp = {
 
                 const data = await response.json();
                 if (data.success) {
-                    alert('Subtarefa adicionada!');
+                    alert('✅ Subtarefa adicionada!');
                     location.reload();
                 } else {
-                    alert('Erro: ' + data.message);
-                    btn.disabled = false;
-                    btn.textContent = btnOriginal;
+                    alert('❌ Erro: ' + data.message);
+                    TarefasApp.utils.esconderLoading(btn);
                 }
             } catch (error) {
-                alert('Erro ao salvar');
-                btn.disabled = false;
-                btn.textContent = btnOriginal;
+                alert('❌ Erro ao salvar: ' + error.message);
+                TarefasApp.utils.esconderLoading(btn);
             }
         }
     },
@@ -468,12 +472,171 @@ const TarefasApp = {
                 .replace(/>/g, '&gt;')
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#039;');
+        },
+
+        // ===== 1. BUSCA E FILTROS =====
+        inicializarBuscaFiltros() {
+            const searchInput = document.getElementById('searchInput');
+            const filterPriority = document.getElementById('filterPriority');
+            
+            if (!searchInput || !filterPriority) return;
+
+            const aplicarFiltros = () => {
+                const termo = searchInput.value.toLowerCase();
+                const prioridade = filterPriority.value;
+                
+                document.querySelectorAll('[data-task-id]').forEach(item => {
+                    if (item.classList.contains('rotina')) return;
+                    
+                    const texto = item.textContent.toLowerCase();
+                    const prioridadeItem = item.querySelector('.item-priority')?.textContent.trim();
+                    
+                    const mostra = texto.includes(termo) && (!prioridade || prioridadeItem === prioridade);
+                    item.style.display = mostra ? 'flex' : 'none';
+                });
+            };
+
+            searchInput.addEventListener('input', aplicarFiltros);
+            filterPriority.addEventListener('change', aplicarFiltros);
+        },
+
+        // ===== 2. VALIDAÇÃO DE CAMPOS =====
+        validarTarefa(formData) {
+            const descricao = formData.get('descricao')?.trim();
+            
+            if (!descricao) {
+                alert('⚠️ A descrição da tarefa não pode estar vazia');
+                return false;
+            }
+            
+            if (descricao.length > 500) {
+                alert('⚠️ A descrição não pode ter mais de 500 caracteres');
+                return false;
+            }
+            
+            return true;
+        },
+
+        validarRotina(formData) {
+            const nome = formData.get('nome')?.trim();
+            
+            if (!nome) {
+                alert('⚠️ O nome da rotina não pode estar vazio');
+                return false;
+            }
+            
+            if (nome.length > 100) {
+                alert('⚠️ O nome não pode ter mais de 100 caracteres');
+                return false;
+            }
+            
+            return true;
+        },
+
+        validarSubtarefa(formData) {
+            const descricao = formData.get('descricao')?.trim();
+            
+            if (!descricao) {
+                alert('⚠️ A descrição da subtarefa não pode estar vazia');
+                return false;
+            }
+            
+            if (descricao.length > 300) {
+                alert('⚠️ A descrição não pode ter mais de 300 caracteres');
+                return false;
+            }
+            
+            return true;
+        },
+
+        // ===== 3. SPINNER/LOADING VISUAL =====
+        criarSpinner() {
+            const spinner = document.createElement('span');
+            spinner.className = 'loading';
+            spinner.innerHTML = '<span></span><span></span><span></span>';
+            return spinner;
+        },
+
+        mostrarLoading(btn) {
+            if (!btn) return;
+            btn.disabled = true;
+            const textoBak = btn.textContent;
+            btn.textContent = '';
+            btn.appendChild(this.criarSpinner());
+            btn.dataset.textoBak = textoBak;
+        },
+
+        esconderLoading(btn) {
+            if (!btn || !btn.dataset.textoBak) return;
+            btn.disabled = false;
+            btn.textContent = btn.dataset.textoBak;
+            delete btn.dataset.textoBak;
+        },
+
+        // ===== 6. ATALHOS DE TECLADO =====
+        inicializarAtalhos() {
+            document.addEventListener('keydown', (e) => {
+                // Ignorar se está em input
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                    return;
+                }
+                
+                // Alt + N = Nova Tarefa
+                if (e.altKey && e.key === 'n') {
+                    e.preventDefault();
+                    TarefasApp.modal.abrirTarefa();
+                    document.querySelector('#formNovaTarefa input[name="descricao"]')?.focus();
+                }
+                
+                // Alt + R = Nova Rotina
+                if (e.altKey && e.key === 'r') {
+                    e.preventDefault();
+                    TarefasApp.modal.abrirRotina();
+                    document.querySelector('#formNovaRotina input[name="nome"]')?.focus();
+                }
+                
+                // Esc = Fechar modais
+                if (e.key === 'Escape') {
+                    TarefasApp.modal.fecharTarefa();
+                    TarefasApp.modal.fecharRotina();
+                    TarefasApp.modal.fecharSubtarefa();
+                }
+            });
+        },
+
+        // ===== 12. MODO COMPACTO =====
+        inicializarModoCompacto() {
+            const modoSalvo = localStorage.getItem('tarefas-modo-compacto') === 'true';
+            if (modoSalvo) {
+                this.ativarModoCompacto();
+            }
+        },
+
+        ativarModoCompacto() {
+            document.body.classList.add('modo-compacto');
+            localStorage.setItem('tarefas-modo-compacto', 'true');
+        },
+
+        desativarModoCompacto() {
+            document.body.classList.remove('modo-compacto');
+            localStorage.setItem('tarefas-modo-compacto', 'false');
+        },
+
+        toggleModoCompacto() {
+            if (document.body.classList.contains('modo-compacto')) {
+                this.desativarModoCompacto();
+            } else {
+                this.ativarModoCompacto();
+            }
         }
     },
 
     // ========== INICIALIZAÇÃO ==========
     init() {
         this.inicializarEventos();
+        this.utils.inicializarBuscaFiltros();
+        this.utils.inicializarAtalhos();
+        this.utils.inicializarModoCompacto();
     }
 };
 
