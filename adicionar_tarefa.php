@@ -1,24 +1,23 @@
 <?php
-// /adicionar_tarefa.php (Versão AJAX Completa e Final)
-
-
+// /adicionar_tarefa.php (Versão AJAX Compatível)
 
 session_start();
 header('Content-Type: application/json');
 
-// Resposta padrão de erro
 $response = ['success' => false, 'message' => 'Ocorreu um erro desconhecido.'];
 
-// --- Validações Iniciais ---
-if (!isset($_SESSION['user_id'])) {
-    http_response_code(403); // Proibido
+// Autenticação (aceita chaves alternativas)
+$userId = $_SESSION['user_id'] ?? ($_SESSION['user']['id'] ?? null);
+if (!$userId) {
+    http_response_code(403);
     $response['message'] = 'Acesso negado. Faça o login novamente.';
     echo json_encode($response);
     exit();
 }
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405); // Método não permitido
+// Método
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+    http_response_code(405);
     $response['message'] = 'Método de requisição inválido.';
     echo json_encode($response);
     exit();
@@ -26,41 +25,63 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 require_once 'includes/db_connect.php';
 
-// --- Coleta e Validação Completa dos Dados do Formulário ---
-$userId = $_SESSION['user_id'];
+// Dados
 $descricao = trim($_POST['descricao'] ?? '');
-$prioridade = $_POST['prioridade'] ?? 'Média'; // Valor padrão caso não seja enviado
+$prioridade = $_POST['prioridade'] ?? 'Média';
 $data_limite = !empty($_POST['data_limite']) ? $_POST['data_limite'] : null;
 
-// Lógica completa para calcular o tempo total em minutos a partir dos campos de horas e minutos
-$horas = !empty($_POST['tempo_horas']) ? (int)$_POST['tempo_horas'] : 0;
-$minutos = !empty($_POST['tempo_minutos']) ? (int)$_POST['tempo_minutos'] : 0;
+$horas = isset($_POST['tempo_horas']) ? (int)$_POST['tempo_horas'] : 0;
+$minutos = isset($_POST['tempo_minutos']) ? (int)$_POST['tempo_minutos'] : 0;
 $tempo_estimado_total = ($horas * 60) + $minutos;
+if ($tempo_estimado_total <= 0) { $tempo_estimado_total = null; }
 
-// Se o tempo total for 0, salvamos NULL (nulo) no banco de dados
-if ($tempo_estimado_total <= 0) {
-    $tempo_estimado_total = null;
-}
-
-if (empty($descricao)) {
-    http_response_code(400); // Requisição Inválida
+if ($descricao === '') {
+    http_response_code(400);
     $response['message'] = 'A descrição da tarefa é obrigatória.';
     echo json_encode($response);
     exit();
 }
 
-// --- Inserção no Banco de Dados ---
+// Inserção robusta com fallback de colunas
 try {
-    // A query agora inclui status 'pendente' e data_criacao para compatibilidade com listagem
-    $sql = "INSERT INTO tarefas (id_usuario, descricao, prioridade, data_limite, tempo_estimado, ordem, status, data_criacao) VALUES (?, ?, ?, ?, ?, 0, 'pendente', NOW())";
-    $stmt = $pdo->prepare($sql);
-    
-    // Executa a query com todos os valores coletados
-    $stmt->execute([$userId, $descricao, $prioridade, $data_limite, $tempo_estimado_total]);
-    
+    $sqls = [
+        [
+            "INSERT INTO tarefas (id_usuario, descricao, prioridade, data_limite, tempo_estimado, ordem, status, data_criacao) VALUES (?, ?, ?, ?, ?, 0, 'pendente', NOW())",
+            [$userId, $descricao, $prioridade, $data_limite, $tempo_estimado_total]
+        ],
+        [
+            "INSERT INTO tarefas (id_usuario, descricao, prioridade, data_limite, tempo_estimado, status, data_criacao) VALUES (?, ?, ?, ?, ?, 'pendente', NOW())",
+            [$userId, $descricao, $prioridade, $data_limite, $tempo_estimado_total]
+        ],
+        [
+            "INSERT INTO tarefas (id_usuario, descricao, prioridade, data_limite, status) VALUES (?, ?, ?, ?, 'pendente')",
+            [$userId, $descricao, $prioridade, $data_limite]
+        ],
+        [
+            "INSERT INTO tarefas (id_usuario, descricao, prioridade, data_limite) VALUES (?, ?, ?, ?)",
+            [$userId, $descricao, $prioridade, $data_limite]
+        ],
+    ];
+
+    $insertOk = false;
+    foreach ($sqls as [$sql, $params]) {
+        try {
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute($params);
+            $insertOk = true;
+            break;
+        } catch (PDOException $e) {
+            // tenta próximo formato
+            continue;
+        }
+    }
+
+    if (!$insertOk) {
+        throw new PDOException('Falha ao inserir tarefa em todos os formatos conhecidos.');
+    }
+
     $newTaskId = $pdo->lastInsertId();
 
-    // Resposta de sucesso com os dados da nova tarefa
     $response['success'] = true;
     $response['message'] = 'Tarefa adicionada com sucesso!';
     $response['tarefa'] = [
@@ -72,11 +93,11 @@ try {
         'status'         => 'pendente'
     ];
     echo json_encode($response);
-
 } catch (PDOException $e) {
-    http_response_code(500); // Erro Interno do Servidor
+    http_response_code(500);
     $response['message'] = 'Erro no banco de dados ao salvar a tarefa.';
-    // Em produção, você logaria o erro em um arquivo: error_log($e->getMessage());
+    // Log seguro
+    error_log('[ERRO][adicionar_tarefa.php] ' . $e->getMessage());
     echo json_encode($response);
 }
 ?>
