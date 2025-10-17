@@ -1377,6 +1377,13 @@ $rotinas_total = count($rotinas);
             btn.disabled = true;
             btn.textContent = 'Salvando...';
 
+            // Debug logging
+            console.log('=== SUBMISSÃO NOVA ROTINA ===');
+            console.log('Nome:', formData.get('nome'));
+            console.log('Horário:', formData.get('horario'));
+            console.log('Descrição:', formData.get('descricao'));
+            console.log('FormData completo:', Object.fromEntries(formData));
+
             fetch('adicionar_rotina_fixa.php', {
                 method: 'POST',
                 body: formData
