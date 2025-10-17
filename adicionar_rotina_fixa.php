@@ -29,6 +29,13 @@ $nome = trim($_POST['nome'] ?? '');
 $horario = !empty($_POST['horario']) ? $_POST['horario'] : null;
 $descricao = trim($_POST['descricao'] ?? '');
 
+// Debug logging
+error_log("=== ADICIONAR ROTINA FIXA ===");
+error_log("POST data: " . json_encode($_POST));
+error_log("Nome recebido: '$nome'");
+error_log("Horário recebido: '$horario'");
+error_log("Descrição recebida: '$descricao'");
+
 if (empty($nome)) {
     http_response_code(400);
     $response['message'] = 'O nome da rotina é obrigatório.';
