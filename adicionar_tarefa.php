@@ -51,8 +51,8 @@ if (empty($descricao)) {
 
 // --- Inserção no Banco de Dados ---
 try {
-    // A query agora inclui todos os campos, incluindo a 'ordem' para o drag-and-drop
-    $sql = "INSERT INTO tarefas (id_usuario, descricao, prioridade, data_limite, tempo_estimado, ordem) VALUES (?, ?, ?, ?, ?, 0)";
+    // A query agora inclui status 'pendente' e data_criacao para compatibilidade com listagem
+    $sql = "INSERT INTO tarefas (id_usuario, descricao, prioridade, data_limite, tempo_estimado, ordem, status, data_criacao) VALUES (?, ?, ?, ?, ?, 0, 'pendente', NOW())";
     $stmt = $pdo->prepare($sql);
     
     // Executa a query com todos os valores coletados
