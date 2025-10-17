@@ -9,7 +9,13 @@ if (!$userId) {
 
 $dataHoje = date('Y-m-d');
 
-// Buscar rotinas fixas de hoje
+// ===== BUSCAR TODAS AS INFORMAÇÕES =====
+$rotinas = [];
+$tarefas = [];
+$subtarefasPorTarefa = [];
+$stats = ['Alta' => 0, 'Média' => 0, 'Baixa' => 0, 'total' => 0];
+
+// 1. Buscar Rotinas Fixas
 try {
     $stmt = $pdo->prepare("
         SELECT rf.id, rf.nome, rf.horario_sugerido, rf.descricao,
@@ -37,14 +43,13 @@ try {
         }
     }
 } catch (PDOException $e) {
-    $rotinas = [];
     error_log("Erro ao buscar rotinas: " . $e->getMessage());
 }
 
-// Buscar tarefas pendentes
+// 2. Buscar Tarefas Pendentes
 try {
     $stmt = $pdo->prepare("
-        SELECT id, descricao, prioridade, data_limite, status 
+        SELECT id, descricao, prioridade, data_limite, status, tempo_estimado, data_criacao
         FROM tarefas 
         WHERE id_usuario = ? AND status = 'pendente'
         ORDER BY FIELD(prioridade, 'Alta', 'Média', 'Baixa'), COALESCE(ordem, 9999), data_limite
@@ -53,18 +58,16 @@ try {
     $stmt->execute([$userId]);
     $tarefas = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
-    $tarefas = [];
     error_log("Erro ao buscar tarefas: " . $e->getMessage());
 }
 
-// Contar tarefas por prioridade
-$stats = ['Alta' => 0, 'Média' => 0, 'Baixa' => 0, 'total' => count($tarefas)];
+// 3. Contar tarefas por prioridade
+$stats['total'] = count($tarefas);
 foreach ($tarefas as $t) {
     $stats[$t['prioridade']]++;
 }
 
-// Buscar subtarefas
-$subtarefasPorTarefa = [];
+// 4. Buscar Subtarefas
 try {
     $stmt = $pdo->prepare("
         SELECT id, id_tarefa_principal, descricao, status 
@@ -72,7 +75,7 @@ try {
         WHERE id_tarefa_principal IN (
             SELECT id FROM tarefas WHERE id_usuario = ? AND status = 'pendente'
         )
-        ORDER BY id ASC
+        ORDER BY id_tarefa_principal, id ASC
     ");
     $stmt->execute([$userId]);
     $subtarefas = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -88,7 +91,7 @@ try {
     error_log("Erro ao buscar subtarefas: " . $e->getMessage());
 }
 
-// Contar rotinas
+// 5. Contar rotinas
 $rotinas_concluidas = count(array_filter($rotinas, fn($r) => $r['status_hoje'] === 'concluido'));
 $rotinas_total = count($rotinas);
 ?>
@@ -101,23 +104,23 @@ $rotinas_total = count($rotinas);
     <title>Tarefas - Painel Financeiro</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-<style>
-:root {
-    --primary: #dc3545;
+    <style>
+        :root {
+            --primary: #dc3545;
             --bg-dark: #0a0a0a;
             --bg-card: #141414;
             --border: rgba(255, 255, 255, 0.08);
             --text: #ffffff;
             --text-muted: #b0b0b0;
-}
+        }
 
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-body {
+        body {
             background: var(--bg-dark);
             color: var(--text);
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -125,7 +128,7 @@ body {
         }
 
         .container-main {
-            max-width: 900px;
+            max-width: 1000px;
             margin: 0 auto;
             padding: 20px;
         }
@@ -186,8 +189,8 @@ body {
             font-size: 13px;
             font-weight: 600;
             transition: all 0.2s;
-    display: flex;
-    align-items: center;
+            display: flex;
+            align-items: center;
             gap: 6px;
         }
 
@@ -198,22 +201,22 @@ body {
 
         .section {
             margin-bottom: 35px;
-}
+        }
 
-.section-title {
-    display: flex;
-    align-items: center;
+        .section-title {
+            display: flex;
+            align-items: center;
             gap: 10px;
             font-size: 16px;
-    font-weight: 700;
+            font-weight: 700;
             margin-bottom: 15px;
             padding-bottom: 10px;
             border-bottom: 2px solid var(--border);
             color: var(--text);
-}
+        }
 
-.section-title i {
-    color: var(--primary);
+        .section-title i {
+            color: var(--primary);
         }
 
         .items-container {
@@ -259,7 +262,7 @@ body {
             height: 20px;
             min-width: 20px;
             margin-top: 2px;
-    cursor: pointer;
+            cursor: pointer;
             accent-color: var(--primary);
         }
 
@@ -280,11 +283,11 @@ body {
         }
 
         .item-meta {
-    display: flex;
+            display: flex;
             gap: 12px;
             align-items: center;
             font-size: 12px;
-    color: var(--text-muted);
+            color: var(--text-muted);
             flex-wrap: wrap;
         }
 
@@ -314,13 +317,13 @@ body {
         }
 
         .item-date {
-    display: flex;
-    align-items: center;
+            display: flex;
+            align-items: center;
             gap: 4px;
         }
 
         .item-time {
-    display: flex;
+            display: flex;
             align-items: center;
             gap: 4px;
             background: rgba(255, 255, 255, 0.05);
@@ -330,7 +333,7 @@ body {
 
         .item-status {
             display: inline-flex;
-    align-items: center;
+            align-items: center;
             gap: 4px;
             padding: 2px 8px;
             border-radius: 4px;
@@ -392,7 +395,7 @@ body {
             background: rgba(107, 207, 127, 0.15);
             border-radius: 4px;
             color: #6bcf7f;
-    font-weight: 600;
+            font-weight: 600;
         }
 
         /* Subtarefas */
@@ -403,8 +406,8 @@ body {
         }
 
         .subtasks-header {
-    display: flex;
-    align-items: center;
+            display: flex;
+            align-items: center;
             gap: 8px;
             margin-bottom: 10px;
             color: var(--text-muted);
@@ -454,7 +457,7 @@ body {
         .btn-delete-subtask {
             background: none;
             border: none;
-    color: var(--text-muted);
+            color: var(--text-muted);
             cursor: pointer;
             padding: 2px 4px;
             font-size: 12px;
@@ -465,7 +468,7 @@ body {
             color: #ff6b6b;
         }
 
-        /* Modal Minimalista */
+        /* Modal */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -473,7 +476,7 @@ body {
             width: 100%;
             height: 100%;
             background: rgba(0, 0, 0, 0.7);
-    display: flex;
+            display: flex;
             justify-content: center;
             align-items: center;
             z-index: 1000;
@@ -495,16 +498,16 @@ body {
             width: 90%;
             max-width: 500px;
             position: relative;
-    display: flex;
+            display: flex;
             flex-direction: column;
             max-height: 90vh;
             overflow-y: auto;
-}
+        }
 
-.modal-header {
-    display: flex;
+        .modal-header {
+            display: flex;
             justify-content: space-between;
-    align-items: center;
+            align-items: center;
             padding: 15px 20px;
             border-bottom: 1px solid var(--border);
             background: var(--bg-dark);
@@ -534,12 +537,6 @@ body {
             color: var(--primary);
         }
 
-        .modal-header i {
-            color: var(--primary);
-            font-size: 24px;
-            cursor: pointer;
-        }
-
         .modal-body {
             padding: 20px;
             display: flex;
@@ -554,7 +551,7 @@ body {
 
         .form-group label {
             font-size: 13px;
-    color: var(--text-muted);
+            color: var(--text-muted);
             margin-bottom: 5px;
             font-weight: 600;
         }
@@ -575,11 +572,11 @@ body {
         }
 
         .form-row {
-    display: flex;
+            display: flex;
             gap: 15px;
-}
+        }
 
-.modal-footer {
+        .modal-footer {
             padding: 15px 20px;
             border-top: 1px solid var(--border);
             background: var(--bg-dark);
@@ -592,7 +589,7 @@ body {
             padding: 8px 16px;
             border-radius: 6px;
             font-size: 13px;
-    font-weight: 600;
+            font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;
         }
@@ -617,29 +614,29 @@ body {
             background: #c4080f;
         }
 
-@media (max-width: 768px) {
+        @media (max-width: 768px) {
             .header {
-        flex-direction: column;
+                flex-direction: column;
                 align-items: flex-start;
-    }
-    
+            }
+
             .item-meta {
                 flex-wrap: wrap;
-    }
-    
+            }
+
             .stats {
-        width: 100%;
+                width: 100%;
             }
 
             .item-actions {
                 opacity: 1;
             }
-}
-</style>
+        }
+    </style>
 </head>
 <body>
     <div class="container-main">
-    <!-- Header -->
+        <!-- Header -->
         <div class="header">
             <div>
                 <h1><i class="bi bi-check2-all"></i> Tarefas & Rotinas</h1>
@@ -663,9 +660,9 @@ body {
                     <i class="bi bi-plus"></i> Nova Tarefa
                 </button>
             </div>
-    </div>
+        </div>
 
-        <!-- Rotinas Fixas Diárias -->
+        <!-- Rotinas Fixas -->
         <div class="section">
             <div class="section-title">
                 <i class="bi bi-calendar-check"></i>
@@ -673,140 +670,135 @@ body {
                 <span class="progress-bar-mini">
                     <?php echo $rotinas_concluidas; ?>/<?php echo $rotinas_total; ?> concluídas hoje
                 </span>
-        </div>
-        
+            </div>
+
             <div class="items-container">
                 <?php if (empty($rotinas)): ?>
-            <div class="empty-state">
+                    <div class="empty-state">
                         <div class="empty-state-icon">📅</div>
                         <h3>Nenhuma rotina configurada</h3>
                         <p>Crie rotinas diárias para não esquecer tarefas importantes.</p>
-            </div>
-        <?php else: ?>
+                    </div>
+                <?php else: ?>
                     <?php foreach ($rotinas as $rotina): ?>
                         <div class="item rotina <?php echo $rotina['status_hoje'] === 'concluido' ? 'concluido' : ''; ?>" 
                              data-rotina-id="<?php echo $rotina['id']; ?>">
-                             <input type="checkbox" class="item-checkbox" 
-                                    <?php echo $rotina['status_hoje'] === 'concluido' ? 'checked' : ''; ?>
-                                    onchange="completarRotina(<?php echo $rotina['controle_id']; ?>)">
-                             
-                             <div class="item-content">
-                                 <div class="item-title"><?php echo htmlspecialchars($rotina['nome']); ?></div>
-                                 <div class="item-meta">
-                                     <?php if ($rotina['horario_sugerido']): ?>
-                                         <span class="item-time">
-                                        <i class="bi bi-clock"></i>
-                                             <?php echo date('H:i', strtotime($rotina['horario_sugerido'])); ?>
-                                         </span>
-                                <?php endif; ?>
-                                <?php if ($rotina['descricao']): ?>
-                                         <span title="<?php echo htmlspecialchars($rotina['descricao']); ?>">
-                                             <i class="bi bi-file-text"></i>
-                                         </span>
-                                <?php endif; ?>
-                                     <span class="item-status">
-                                         <i class="bi bi-check-circle"></i>
-                                         <?php echo ucfirst($rotina['status_hoje']); ?>
-                                     </span>
-                            </div>
-                        </div>
-
-                             <div class="item-actions">
-                                 <button class="btn-icon" onclick="editarRotina(<?php echo $rotina['id']; ?>)" title="Editar">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                                 <button class="btn-icon" onclick="deletarRotina(<?php echo $rotina['id']; ?>)" title="Deletar">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </div>
-                    </div>
-                <?php endforeach; ?>
-        <?php endif; ?>
-             </div>
-    </div>
-
-         <!-- Tarefas Pendentes -->
-         <div class="section">
-            <div class="section-title">
-                 <i class="bi bi-list-check"></i>
-                 Tarefas Pendentes
-        </div>
-        
-             <div class="items-container">
-                 <?php if (empty($tarefas)): ?>
-            <div class="empty-state">
-                         <div class="empty-state-icon">✅</div>
-                         <h3>Nenhuma tarefa pendente</h3>
-                         <p>Você está em dia! Crie uma nova tarefa para começar.</p>
-            </div>
-        <?php else: ?>
-                     <?php foreach ($tarefas as $task): ?>
-                         <div class="item" data-task-id="<?php echo $task['id']; ?>">
-                             <input type="checkbox" class="item-checkbox" 
-                                    onchange="completarTarefa(<?php echo $task['id']; ?>)">
-                             
-                             <div class="item-content">
-                                 <div class="item-title"><?php echo htmlspecialchars($task['descricao'] ?? $task['titulo'] ?? ''); ?></div>
-                                 <div class="item-meta">
-                                     <span class="item-priority priority-<?php echo strtolower($task['prioridade']); ?>">
-                                         <i class="bi bi-exclamation-circle-fill"></i> 
-                                         <?php echo $task['prioridade']; ?>
-                                </span>
-                                     <?php if ($task['data_limite']): ?>
-                                         <span class="item-date">
-                                             <i class="bi bi-calendar"></i>
-                                             <?php echo date('d/m', strtotime($task['data_limite'])); ?>
-                                         </span>
-                                     <?php endif; ?>
-                                     <?php if ($task['descricao']): ?>
-                                         <span title="<?php echo htmlspecialchars($task['descricao']); ?>">
-                                             <i class="bi bi-file-text"></i>
+                            <input type="checkbox" class="item-checkbox" 
+                                   <?php echo $rotina['status_hoje'] === 'concluido' ? 'checked' : ''; ?>
+                                   onchange="completarRotina(<?php echo $rotina['controle_id']; ?>)">
+                            
+                            <div class="item-content">
+                                <div class="item-title"><?php echo htmlspecialchars($rotina['nome']); ?></div>
+                                <div class="item-meta">
+                                    <?php if ($rotina['horario_sugerido']): ?>
+                                        <span class="item-time">
+                                            <i class="bi bi-clock"></i>
+                                            <?php echo date('H:i', strtotime($rotina['horario_sugerido'])); ?>
+                                        </span>
+                                    <?php endif; ?>
+                                    <?php if ($rotina['descricao']): ?>
+                                        <span title="<?php echo htmlspecialchars($rotina['descricao']); ?>">
+                                            <i class="bi bi-file-text"></i>
+                                        </span>
+                                    <?php endif; ?>
+                                    <span class="item-status">
+                                        <i class="bi bi-check-circle"></i>
+                                        <?php echo ucfirst($rotina['status_hoje']); ?>
                                     </span>
-                                <?php endif; ?>
+                                </div>
+                            </div>
+
+                            <div class="item-actions">
+                                <button class="btn-icon" onclick="editarRotina(<?php echo $rotina['id']; ?>)" title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn-icon" onclick="deletarRotina(<?php echo $rotina['id']; ?>)" title="Deletar">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- Tarefas -->
+        <div class="section">
+            <div class="section-title">
+                <i class="bi bi-list-check"></i>
+                Tarefas Pendentes
+            </div>
+
+            <div class="items-container">
+                <?php if (empty($tarefas)): ?>
+                    <div class="empty-state">
+                        <div class="empty-state-icon">✅</div>
+                        <h3>Nenhuma tarefa pendente</h3>
+                        <p>Você está em dia! Crie uma nova tarefa para começar.</p>
+                    </div>
+                <?php else: ?>
+                    <?php foreach ($tarefas as $task): ?>
+                        <div class="item" data-task-id="<?php echo $task['id']; ?>">
+                            <input type="checkbox" class="item-checkbox" 
+                                   onchange="completarTarefa(<?php echo $task['id']; ?>)">
+                            
+                            <div class="item-content">
+                                <div class="item-title"><?php echo htmlspecialchars($task['descricao']); ?></div>
+                                <div class="item-meta">
+                                    <span class="item-priority priority-<?php echo strtolower($task['prioridade']); ?>">
+                                        <i class="bi bi-exclamation-circle-fill"></i> 
+                                        <?php echo $task['prioridade']; ?>
+                                    </span>
+                                    <?php if ($task['data_limite']): ?>
+                                        <span class="item-date">
+                                            <i class="bi bi-calendar"></i>
+                                            <?php echo date('d/m', strtotime($task['data_limite'])); ?>
+                                        </span>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+
+                            <div class="item-actions">
+                                <button class="btn-icon" onclick="editarTarefa(<?php echo $task['id']; ?>)" title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn-icon" onclick="deletarTarefa(<?php echo $task['id']; ?>)" title="Deletar">
+                                    <i class="bi bi-trash"></i>
+                                </button>
                             </div>
                         </div>
 
-                             <div class="item-actions">
-                                 <button class="btn-icon" onclick="editarTarefa(<?php echo $task['id']; ?>)" title="Editar">
-                                     <i class="bi bi-pencil"></i>
-                                 </button>
-                                 <button class="btn-icon" onclick="deletarTarefa(<?php echo $task['id']; ?>)" title="Deletar">
-                                     <i class="bi bi-trash"></i>
-                                 </button>
-                             </div>
-                         </div>
-
-                         <!-- Subtarefas -->
-                         <?php $subs = $subtarefasPorTarefa[$task['id']] ?? []; ?>
-                         <?php if (!empty($subs)): ?>
-                             <div class="subtasks">
-                                 <div class="subtasks-header" onclick="toggleSubtasks(this)">
-                                     <i class="bi bi-chevron-down"></i>
-                                     <span>Subtarefas (<?php echo count($subs); ?>)</span>
-                                 </div>
-                                 <div class="subtasks-list">
-                                     <?php foreach ($subs as $sub): ?>
-                                         <div class="subtask-item">
-                                             <input type="checkbox" class="subtask-checkbox" 
-                                                    data-id="<?php echo $sub['id']; ?>"
-                                                    <?php echo $sub['status'] === 'concluida' ? 'checked' : ''; ?>
-                                                    onchange="toggleSubtarefa(<?php echo $sub['id']; ?>)">
-                                             <label class="subtask-label <?php echo $sub['status'] === 'concluida' ? 'completed' : ''; ?>">
-                                                 <?php echo htmlspecialchars($sub['descricao']); ?>
-                                             </label>
-                                             <button type="button" class="btn-delete-subtask" onclick="deletarSubtarefa(<?php echo $sub['id']; ?>, <?php echo $task['id']; ?>)">
-                                                 <i class="bi bi-x"></i>
-                                             </button>
-                                         </div>
-                                     <?php endforeach; ?>
-                                 </div>
-                             </div>
-                         <?php endif; ?>
-                     <?php endforeach; ?>
-                    <?php endif; ?>
-                </div>
+                        <!-- Subtarefas -->
+                        <?php $subs = $subtarefasPorTarefa[$task['id']] ?? []; ?>
+                        <?php if (!empty($subs)): ?>
+                            <div class="subtasks" style="margin-left: 20px;">
+                                <div class="subtasks-header" onclick="toggleSubtasks(this)">
+                                    <i class="bi bi-chevron-down"></i>
+                                    <span>Subtarefas (<?php echo count($subs); ?>)</span>
+                                </div>
+                                <div class="subtasks-list">
+                                    <?php foreach ($subs as $sub): ?>
+                                        <div class="subtask-item">
+                                            <input type="checkbox" class="subtask-checkbox" 
+                                                   data-id="<?php echo $sub['id']; ?>"
+                                                   <?php echo $sub['status'] === 'concluida' ? 'checked' : ''; ?>
+                                                   onchange="toggleSubtarefa(<?php echo $sub['id']; ?>)">
+                                            <label class="subtask-label <?php echo $sub['status'] === 'concluida' ? 'completed' : ''; ?>">
+                                                <?php echo htmlspecialchars($sub['descricao']); ?>
+                                            </label>
+                                            <button type="button" class="btn-delete-subtask" onclick="deletarSubtarefa(<?php echo $sub['id']; ?>, <?php echo $task['id']; ?>)">
+                                                <i class="bi bi-x"></i>
+                                            </button>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+        </div>
     </div>
-</div>
 
     <!-- Modal Nova Tarefa -->
     <div id="modalTarefa" class="modal-overlay">
@@ -815,14 +807,14 @@ body {
                 <h2><i class="bi bi-plus-circle"></i> Nova Tarefa</h2>
                 <button class="modal-close" onclick="fecharModalTarefa()">
                     <i class="bi bi-x"></i>
-                    </button>
-                </div>
+                </button>
+            </div>
             <form id="formNovaTarefa">
                 <div class="modal-body">
                     <div class="form-group">
                         <label>Descrição da Tarefa</label>
                         <input type="text" name="descricao" class="form-input" placeholder="Ex: Revisar relatório" required>
-</div>
+                    </div>
 
                     <div class="form-row">
                         <div class="form-group">
@@ -846,63 +838,65 @@ body {
                     </button>
                 </div>
             </form>
+        </div>
     </div>
-</div>
 
-<script>
-        // Debug
-        console.log('Script iniciado');
-
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Modal Tarefa
         function abrirModalTarefa() {
-            console.log('abrirModalTarefa chamado');
-            const modal = document.getElementById('modalTarefa');
-            if (modal) {
-                modal.classList.add('active');
-                console.log('Modal exibido');
-            } else {
-                console.log('Modal não encontrado');
-            }
+            document.getElementById('modalTarefa').classList.add('active');
         }
 
         function fecharModalTarefa() {
-            console.log('fecharModalTarefa chamado');
-            const modal = document.getElementById('modalTarefa');
-            if (modal) {
-                modal.classList.remove('active');
-            }
+            document.getElementById('modalTarefa').classList.remove('active');
+            document.getElementById('formNovaTarefa').reset();
         }
 
-        // Fechar modal ao clicar fora
-        document.addEventListener('click', function(event) {
-            const modal = document.getElementById('modalTarefa');
-            if (modal && event.target === modal) {
-                fecharModalTarefa();
-            }
+        document.getElementById('modalTarefa').addEventListener('click', function(e) {
+            if (e.target === this) fecharModalTarefa();
         });
 
-        function completarRotina(controleId) {
-            fetch('processar_rotina_diaria.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `controle_id=${controleId}&status=concluido`
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) {
-                    location.reload();
-                }
-            });
-        }
+        // Submissão de Tarefa
+        document.getElementById('formNovaTarefa').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const btn = this.querySelector('button[type="submit"]');
+            btn.disabled = true;
+            btn.textContent = 'Salvando...';
 
+            fetch('adicionar_tarefa.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Tarefa adicionada!');
+                    location.reload();
+                } else {
+                    alert('Erro: ' + data.message);
+                    btn.disabled = false;
+                    btn.textContent = 'Salvar Tarefa';
+                }
+            })
+            .catch(error => {
+                alert('Erro ao salvar');
+                btn.disabled = false;
+                btn.textContent = 'Salvar Tarefa';
+            });
+        });
+
+        // Tarefas
         function completarTarefa(id) {
             fetch('concluir_tarefa_ajax.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: `id=${id}`
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) {
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
                     const item = document.querySelector(`[data-task-id="${id}"]`);
                     item.style.opacity = '0.6';
                     setTimeout(() => item.remove(), 300);
@@ -911,13 +905,11 @@ body {
         }
 
         function editarTarefa(id) {
-            // Buscar dados da tarefa
             fetch(`obter_tarefa.php?id=${id}`)
                 .then(r => r.json())
                 .then(data => {
                     if (data.success) {
                         const tarefa = data.tarefa;
-                        // Criar modal de edição
                         const modalEdit = document.createElement('div');
                         modalEdit.id = 'modalEdit_' + id;
                         modalEdit.className = 'modal-overlay';
@@ -963,7 +955,6 @@ body {
                         `;
                         document.body.appendChild(modalEdit);
 
-                        // Submit do formulário
                         document.getElementById('formEditarTarefa_' + id).addEventListener('submit', function(e) {
                             e.preventDefault();
                             const formData = new FormData(this);
@@ -989,42 +980,15 @@ body {
                                 } else {
                                     alert('Erro: ' + data.message);
                                     btn.disabled = false;
-                                    btn.innerHTML = '<i class="bi bi-save"></i> Salvar Alterações';
+                                    btn.textContent = 'Salvar Alterações';
                                 }
-                            })
-                            .catch(error => {
-                                console.error('Erro:', error);
-                                alert('Erro ao salvar');
-                                btn.disabled = false;
-                                btn.innerHTML = '<i class="bi bi-save"></i> Salvar Alterações';
                             });
                         });
-                    } else {
-                        alert('Erro ao carregar tarefa: ' + data.message);
                     }
-                })
-                .catch(error => {
-                    console.error('Erro:', error);
-                    alert('Erro ao carregar tarefa');
                 });
         }
 
-        // Função auxiliar para escapar HTML
-        function htmlEscape(str) {
-            return String(str)
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#039;');
-        }
-
-        function editarRotina(id) {
-            window.location.href = `editar_rotina_fixa.php?id=${id}`;
-        }
-
         function deletarTarefa(id) {
-            // Criar modal de confirmação customizado
             const modalConfirm = document.createElement('div');
             modalConfirm.id = 'modalConfirm_' + id;
             modalConfirm.className = 'modal-overlay';
@@ -1068,14 +1032,35 @@ body {
                     alert('Erro: ' + data.message);
                 }
             })
-            .catch(error => {
-                console.error('Erro:', error);
-                alert('Erro ao excluir tarefa');
-            })
             .finally(() => {
                 const modal = document.getElementById('modalConfirm_' + id);
                 if (modal) modal.remove();
             });
+        }
+
+        // Rotinas
+        function completarRotina(controleId) {
+            fetch('processar_rotina_diaria.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `controle_id=${controleId}&status=concluido`
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                }
+            });
+        }
+
+        function editarRotina(id) {
+            window.location.href = `editar_rotina_fixa.php?id=${id}`;
+        }
+
+        function deletarRotina(id) {
+            if (confirm('Deletar esta rotina?')) {
+                window.location.href = `excluir_rotina_fixa.php?id=${id}`;
+            }
         }
 
         // Subtarefas
@@ -1113,11 +1098,6 @@ body {
                     checkbox.checked = !checkbox.checked;
                     alert('Erro: ' + data.message);
                 }
-            })
-            .catch(error => {
-                console.error('Erro:', error);
-                checkbox.checked = !checkbox.checked;
-                alert('Erro ao atualizar subtarefa');
             });
         }
 
@@ -1137,58 +1117,18 @@ body {
                     } else {
                         alert('Erro: ' + data.message);
                     }
-                })
-                .catch(error => {
-                    console.error('Erro:', error);
-                    alert('Erro ao deletar subtarefa');
                 });
             }
         }
 
-        function deletarRotina(id) {
-            if (confirm('Tem certeza?')) {
-                window.location.href = `excluir_rotina_fixa.php?id=${id}`;
-            }
+        function htmlEscape(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
         }
-
-        // Form submit
-        const form = document.getElementById('formNovaTarefa');
-        if (form) {
-            form.addEventListener('submit', function(event) {
-                event.preventDefault();
-                console.log('Form submit chamado');
-                
-		const formData = new FormData(this);
-		const btn = this.querySelector('button[type="submit"]');
-		btn.disabled = true;
-                btn.textContent = 'Salvando...';
-		
-                fetch('adicionar_tarefa.php', {
-			method: 'POST',
-			body: formData
-		})
-		.then(r => r.json())
-		.then(data => {
-                    console.log('Resposta:', data);
-                    if (data.success) {
-                        alert('Tarefa adicionada com sucesso!');
-                        location.reload();
-			} else {
-                        alert('Erro: ' + (data.message || 'Erro desconhecido'));
-				btn.disabled = false;
-                        btn.textContent = 'Salvar Tarefa';
-			}
-		})
-                .catch(error => {
-                    console.error('Erro:', error);
-                    alert('Erro ao adicionar tarefa: ' + error);
-			btn.disabled = false;
-                    btn.textContent = 'Salvar Tarefa';
-		});
-	});
-			} else {
-            console.log('Formulário não encontrado');
-        }
-</script>
+    </script>
 </body>
 </html>
