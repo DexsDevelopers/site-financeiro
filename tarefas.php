@@ -95,7 +95,7 @@ $rotinas_total = count($rotinas);
 ?>
 
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" id="htmlRoot">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -680,6 +680,9 @@ $rotinas_total = count($rotinas);
                 <button class="btn secondary" onclick="abrirModalRotina()">
                     <i class="bi bi-plus"></i> Nova Rotina
                 </button>
+                <button class="btn-theme" onclick="toggleTheme()" title="Dark/Light">
+                    <i class="bi bi-moon-fill"></i>
+                </button>
             </div>
         </div>
 
@@ -752,7 +755,7 @@ $rotinas_total = count($rotinas);
                     </div>
                 <?php else: ?>
                     <?php foreach ($tarefas as $task): ?>
-                        <div class="item" data-task-id="<?php echo $task['id']; ?>">
+                        <div class="item" data-task-id="<?php echo $task['id']; ?>" draggable="true">
                             <input type="checkbox" class="item-checkbox" onchange="completarTarefa(<?php echo $task['id']; ?>)">
                             
                             <div class="item-content">
@@ -951,5 +954,6 @@ $rotinas_total = count($rotinas);
     </div>
 
     <script src="assets/js/tarefas-novo.js"></script>
+    <script src="assets/js/melhorias-v2.js"></script>
 </body>
 </html>
