@@ -421,6 +421,24 @@ $rotinas_total = count($rotinas);
             color: var(--text);
         }
 
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            transition: all 0.2s;
+        }
+
+        .modal-close:hover {
+            color: var(--primary);
+        }
+
         .modal-header i {
             color: var(--primary);
             font-size: 24px;
@@ -677,7 +695,7 @@ $rotinas_total = count($rotinas);
                     <i class="bi bi-x"></i>
                 </button>
             </div>
-            <form id="formNovaTarefa" onsubmit="submitTarefa(event)">
+            <form id="formNovaTarefa">
                 <div class="modal-body">
                     <div class="form-group">
                         <label>Título da Tarefa</label>
@@ -715,6 +733,36 @@ $rotinas_total = count($rotinas);
     </div>
 
     <script>
+        // Debug
+        console.log('Script iniciado');
+
+        function abrirModalTarefa() {
+            console.log('abrirModalTarefa chamado');
+            const modal = document.getElementById('modalTarefa');
+            if (modal) {
+                modal.style.display = 'block';
+                console.log('Modal exibido');
+            } else {
+                console.log('Modal não encontrado');
+            }
+        }
+
+        function fecharModalTarefa() {
+            console.log('fecharModalTarefa chamado');
+            const modal = document.getElementById('modalTarefa');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        // Fechar modal ao clicar fora
+        document.addEventListener('click', function(event) {
+            const modal = document.getElementById('modalTarefa');
+            if (modal && event.target === modal) {
+                fecharModalTarefa();
+            }
+        });
+
         function completarRotina(controleId) {
             fetch('processar_rotina_diaria.php', {
                 method: 'POST',
@@ -765,38 +813,44 @@ $rotinas_total = count($rotinas);
             }
         }
 
-        function abrirModalTarefa() {
-            document.getElementById('modalTarefa').style.display = 'block';
-        }
-
-        function fecharModalTarefa() {
-            document.getElementById('modalTarefa').style.display = 'none';
-        }
-
-        document.getElementById('formNovaTarefa').addEventListener('submit', function(event) {
-            event.preventDefault();
-            const formData = new FormData(this);
-            fetch('adicionar_tarefa_formulario.php', {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest' // Indica que é uma requisição AJAX
-                },
-                body: formData
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) {
-                    location.reload();
-                    fecharModalTarefa();
-                } else {
-                    alert('Erro ao adicionar tarefa: ' + data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Erro na requisição AJAX:', error);
-                alert('Erro ao adicionar tarefa.');
+        // Form submit
+        const form = document.getElementById('formNovaTarefa');
+        if (form) {
+            form.addEventListener('submit', function(event) {
+                event.preventDefault();
+                console.log('Form submit chamado');
+                
+                const formData = new FormData(this);
+                const btn = this.querySelector('button[type="submit"]');
+                btn.disabled = true;
+                btn.textContent = 'Salvando...';
+                
+                fetch('adicionar_tarefa_formulario.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(r => r.json())
+                .then(data => {
+                    console.log('Resposta:', data);
+                    if (data.success) {
+                        alert('Tarefa adicionada com sucesso!');
+                        location.reload();
+                    } else {
+                        alert('Erro: ' + (data.message || 'Erro desconhecido'));
+                        btn.disabled = false;
+                        btn.textContent = 'Salvar Tarefa';
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro:', error);
+                    alert('Erro ao adicionar tarefa: ' + error);
+                    btn.disabled = false;
+                    btn.textContent = 'Salvar Tarefa';
+                });
             });
-        });
+        } else {
+            console.log('Formulário não encontrado');
+        }
     </script>
 </body>
 </html>
