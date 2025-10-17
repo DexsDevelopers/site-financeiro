@@ -33,12 +33,17 @@ try {
         exit;
     }
 
+    // Converter horário vazio ou 00:00 para NULL
+    if (empty($horario) || $horario === '00:00') {
+        $horario = null;
+    }
+
     $stmt = $pdo->prepare("
         UPDATE rotinas_fixas 
         SET nome = ?, horario_sugerido = ?, descricao = ?
         WHERE id = ? AND id_usuario = ?
     ");
-    $stmt->execute([$nome, $horario ?: null, $descricao, $rotinaId, $userId]);
+    $stmt->execute([$nome, $horario, $descricao, $rotinaId, $userId]);
 
     http_response_code(200);
     echo json_encode(['success' => true, 'message' => 'Rotina atualizada com sucesso']);
