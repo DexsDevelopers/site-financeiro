@@ -781,7 +781,7 @@ $rotinas_total = count($rotinas);
                             </div>
 
                             <div class="item-actions">
-                                <button class="btn-icon" onclick="editarRotina(<?php echo $rotina['id']; ?>)" title="Editar">
+                                <button class="btn-icon" onclick="abrirModalEditarRotina(<?php echo $rotina['id']; ?>)" title="Editar">
                                     <i class="bi bi-pencil"></i>
                                 </button>
                                 <button class="btn-icon" onclick="deletarRotina(<?php echo $rotina['id']; ?>)" title="Deletar">
@@ -974,6 +974,44 @@ $rotinas_total = count($rotinas);
                     <button type="button" class="btn-cancel" onclick="fecharModalRotina()">Cancelar</button>
                     <button type="submit" class="btn-submit">
                         <i class="bi bi-save"></i> Criar Rotina
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Editar Rotina Fixa -->
+    <div id="modalEditarRotina" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h2><i class="bi bi-pencil"></i> Editar Rotina Fixa</h2>
+                <button class="modal-close" onclick="fecharModalEditarRotina()">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
+            <form id="formEditarRotina">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Nome da Rotina</label>
+                        <input type="text" name="nome" class="form-input" placeholder="Ex: Exercício matinal" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Horário Sugerido (opcional)</label>
+                            <input type="time" name="horario" class="form-input">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Descrição (opcional)</label>
+                        <textarea name="descricao" class="form-input" rows="3" placeholder="Ex: 30 minutos de musculação no ginásio"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancel" onclick="fecharModalEditarRotina()">Cancelar</button>
+                    <button type="submit" class="btn-submit">
+                        <i class="bi bi-save"></i> Salvar Alterações
                     </button>
                 </div>
             </form>
@@ -1358,6 +1396,79 @@ $rotinas_total = count($rotinas);
                 alert('Erro ao salvar');
                 btn.disabled = false;
                 btn.textContent = 'Criar Rotina';
+            });
+        });
+
+        // Modal Editar Rotina Fixa
+        function abrirModalEditarRotina(rotinaId) {
+            fetch(`obter_rotina_fixa.php?id=${rotinaId}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        const rotina = data.rotina;
+                        document.getElementById('modalEditarRotina').classList.add('active');
+                        document.getElementById('formEditarRotina').reset();
+                        document.querySelector('#formEditarRotina input[name="nome"]').value = rotina.nome;
+                        document.querySelector('#formEditarRotina input[name="horario"]').value = rotina.horario_sugerido || '';
+                        document.querySelector('#formEditarRotina textarea[name="descricao"]').value = rotina.descricao || '';
+                        document.getElementById('formEditarRotina').dataset.rotinaId = rotinaId;
+                    } else {
+                        alert('Erro ao carregar dados da rotina: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    alert('Erro ao carregar dados da rotina: ' + error.message);
+                });
+        }
+
+        function fecharModalEditarRotina() {
+            document.getElementById('modalEditarRotina').classList.remove('active');
+            document.getElementById('formEditarRotina').reset();
+            document.getElementById('formEditarRotina').dataset.rotinaId = null;
+        }
+
+        document.getElementById('modalEditarRotina').addEventListener('click', function(e) {
+            if (e.target === this) fecharModalEditarRotina();
+        });
+
+        document.getElementById('formEditarRotina').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const rotinaId = this.dataset.rotinaId;
+            if (!rotinaId) {
+                alert('Erro: ID da rotina não identificado.');
+                return;
+            }
+
+            const formData = new FormData(this);
+            const btn = this.querySelector('button[type="submit"]');
+            btn.disabled = true;
+            btn.textContent = 'Salvando...';
+
+            fetch('atualizar_rotina_fixa.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: rotinaId,
+                    nome: formData.get('nome'),
+                    horario: formData.get('horario'),
+                    descricao: formData.get('descricao')
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Rotina atualizada com sucesso!');
+                    location.reload();
+                } else {
+                    alert('Erro ao salvar alterações: ' + data.message);
+                    btn.disabled = false;
+                    btn.textContent = 'Salvar Alterações';
+                }
+            })
+            .catch(error => {
+                alert('Erro ao salvar alterações: ' + error.message);
+                btn.disabled = false;
+                btn.textContent = 'Salvar Alterações';
             });
         });
 
