@@ -63,6 +63,31 @@ foreach ($tarefas as $t) {
     $stats[$t['prioridade']]++;
 }
 
+// Buscar subtarefas
+$subtarefasPorTarefa = [];
+try {
+    $stmt = $pdo->prepare("
+        SELECT id, id_tarefa_principal, descricao, status 
+        FROM subtarefas 
+        WHERE id_tarefa_principal IN (
+            SELECT id FROM tarefas WHERE id_usuario = ? AND status = 'pendente'
+        )
+        ORDER BY id ASC
+    ");
+    $stmt->execute([$userId]);
+    $subtarefas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    foreach ($subtarefas as $sub) {
+        $tid = (int)$sub['id_tarefa_principal'];
+        if (!isset($subtarefasPorTarefa[$tid])) {
+            $subtarefasPorTarefa[$tid] = [];
+        }
+        $subtarefasPorTarefa[$tid][] = $sub;
+    }
+} catch (PDOException $e) {
+    error_log("Erro ao buscar subtarefas: " . $e->getMessage());
+}
+
 // Contar rotinas
 $rotinas_concluidas = count(array_filter($rotinas, fn($r) => $r['status_hoje'] === 'concluido'));
 $rotinas_total = count($rotinas);
@@ -370,6 +395,76 @@ body {
     font-weight: 600;
         }
 
+        /* Subtarefas */
+        .subtasks {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+        }
+
+        .subtasks-header {
+    display: flex;
+    align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+            color: var(--text-muted);
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .subtasks-header:hover {
+            color: var(--text);
+        }
+
+        .subtasks-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .subtask-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 6px;
+            font-size: 13px;
+        }
+
+        .subtask-checkbox {
+            width: 16px;
+            height: 16px;
+            min-width: 16px;
+            cursor: pointer;
+            accent-color: var(--primary);
+        }
+
+        .subtask-label {
+            flex: 1;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .subtask-label.completed {
+            text-decoration: line-through;
+            color: var(--text-muted);
+        }
+
+        .btn-delete-subtask {
+            background: none;
+            border: none;
+    color: var(--text-muted);
+            cursor: pointer;
+            padding: 2px 4px;
+            font-size: 12px;
+            transition: color 0.2s;
+        }
+
+        .btn-delete-subtask:hover {
+            color: #ff6b6b;
+        }
+
         /* Modal Minimalista */
         .modal-overlay {
             position: fixed;
@@ -404,12 +499,12 @@ body {
             flex-direction: column;
             max-height: 90vh;
             overflow-y: auto;
-        }
+}
 
-        .modal-header {
-            display: flex;
+.modal-header {
+    display: flex;
             justify-content: space-between;
-            align-items: center;
+    align-items: center;
             padding: 15px 20px;
             border-bottom: 1px solid var(--border);
             background: var(--bg-dark);
@@ -539,7 +634,7 @@ body {
             .item-actions {
                 opacity: 1;
             }
-        }
+}
 </style>
 </head>
 <body>
@@ -674,13 +769,40 @@ body {
                              <div class="item-actions">
                                  <button class="btn-icon" onclick="editarTarefa(<?php echo $task['id']; ?>)" title="Editar">
                                      <i class="bi bi-pencil"></i>
-                            </button>
+                                 </button>
                                  <button class="btn-icon" onclick="deletarTarefa(<?php echo $task['id']; ?>)" title="Deletar">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </div>
-                            </div>
-                            <?php endforeach; ?>
+                                     <i class="bi bi-trash"></i>
+                                 </button>
+                             </div>
+                         </div>
+
+                         <!-- Subtarefas -->
+                         <?php $subs = $subtarefasPorTarefa[$task['id']] ?? []; ?>
+                         <?php if (!empty($subs)): ?>
+                             <div class="subtasks">
+                                 <div class="subtasks-header" onclick="toggleSubtasks(this)">
+                                     <i class="bi bi-chevron-down"></i>
+                                     <span>Subtarefas (<?php echo count($subs); ?>)</span>
+                                 </div>
+                                 <div class="subtasks-list">
+                                     <?php foreach ($subs as $sub): ?>
+                                         <div class="subtask-item">
+                                             <input type="checkbox" class="subtask-checkbox" 
+                                                    data-id="<?php echo $sub['id']; ?>"
+                                                    <?php echo $sub['status'] === 'concluida' ? 'checked' : ''; ?>
+                                                    onchange="toggleSubtarefa(<?php echo $sub['id']; ?>)">
+                                             <label class="subtask-label <?php echo $sub['status'] === 'concluida' ? 'completed' : ''; ?>">
+                                                 <?php echo htmlspecialchars($sub['descricao']); ?>
+                                             </label>
+                                             <button type="button" class="btn-delete-subtask" onclick="deletarSubtarefa(<?php echo $sub['id']; ?>, <?php echo $task['id']; ?>)">
+                                                 <i class="bi bi-x"></i>
+                                             </button>
+                                         </div>
+                                     <?php endforeach; ?>
+                                 </div>
+                             </div>
+                         <?php endif; ?>
+                     <?php endforeach; ?>
                     <?php endif; ?>
                 </div>
     </div>
@@ -716,15 +838,15 @@ body {
                             <input type="date" name="data_limite" class="form-input">
                         </div>
                     </div>
-				</div>
-				<div class="modal-footer">
+                </div>
+                <div class="modal-footer">
                     <button type="button" class="btn-cancel" onclick="fecharModalTarefa()">Cancelar</button>
                     <button type="submit" class="btn-submit">
                         <i class="bi bi-save"></i> Salvar Tarefa
                     </button>
-				</div>
-			</form>
-	</div>
+                </div>
+            </form>
+    </div>
 </div>
 
 <script>
@@ -775,7 +897,7 @@ body {
         function completarTarefa(id) {
             fetch('concluir_tarefa_ajax.php', {
         method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: `id=${id}`
     })
     .then(r => r.json())
@@ -849,6 +971,73 @@ body {
                 const modal = document.getElementById('modalConfirm_' + id);
                 if (modal) modal.remove();
             });
+        }
+
+        // Subtarefas
+        function toggleSubtasks(header) {
+            const list = header.closest('.subtasks').querySelector('.subtasks-list');
+            const icon = header.querySelector('i');
+            if (list.style.display === 'none') {
+                list.style.display = 'flex';
+                icon.className = 'bi bi-chevron-down';
+            } else {
+                list.style.display = 'none';
+                icon.className = 'bi bi-chevron-right';
+            }
+        }
+
+        function toggleSubtarefa(id) {
+            const checkbox = document.querySelector(`[data-id="${id}"]`);
+            const status = checkbox.checked ? 'concluida' : 'pendente';
+            const label = checkbox.closest('.subtask-item').querySelector('.subtask-label');
+
+            fetch('atualizar_subtarefa_status.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, status })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    if (status === 'concluida') {
+                        label.classList.add('completed');
+                    } else {
+                        label.classList.remove('completed');
+                    }
+                } else {
+                    checkbox.checked = !checkbox.checked;
+                    alert('Erro: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                checkbox.checked = !checkbox.checked;
+                alert('Erro ao atualizar subtarefa');
+            });
+        }
+
+        function deletarSubtarefa(subId, taskId) {
+            if (confirm('Deletar esta subtarefa?')) {
+                fetch('deletar_subtarefa.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: subId })
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        const item = document.querySelector(`[data-id="${subId}"]`).closest('.subtask-item');
+                        item.style.opacity = '0.5';
+                        setTimeout(() => item.remove(), 200);
+                    } else {
+                        alert('Erro: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro:', error);
+                    alert('Erro ao deletar subtarefa');
+                });
+            }
         }
 
         function deletarRotina(id) {
