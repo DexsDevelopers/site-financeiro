@@ -21,114 +21,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['criar'])) {
             120 // 2 horas
         ]);
 
-        $tarefaId = $pdo->lastInsertId();
-        
-        ?>
-        <!DOCTYPE html>
-        <html lang="pt-BR">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>✅ Tarefa Criada</title>
-            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-            <style>
-                body {
-                    background: linear-gradient(135deg, #0a0a0a 0%, #1a0505 100%);
-                    color: white;
-                    min-height: 100vh;
-                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                }
-                .card {
-                    background: rgba(20, 20, 20, 0.9);
-                    border: 1px solid rgba(40, 167, 69, 0.5);
-                    border-radius: 15px;
-                    padding: 40px;
-                    text-align: center;
-                    max-width: 500px;
-                }
-                .icon {
-                    font-size: 60px;
-                    margin-bottom: 20px;
-                    animation: bounce 0.6s;
-                }
-                @keyframes bounce {
-                    0%, 100% { transform: translateY(0); }
-                    50% { transform: translateY(-10px); }
-                }
-                .btn-group {
-                    display: flex;
-                    gap: 10px;
-                    margin-top: 30px;
-                }
-                .btn {
-                    flex: 1;
-                    padding: 12px;
-                    border: none;
-                    border-radius: 8px;
-                    font-weight: 600;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                }
-                .btn-primary {
-                    background: #28a745;
-                    color: white;
-                }
-                .btn-primary:hover {
-                    background: #20c997;
-                    transform: translateY(-2px);
-                }
-                .btn-secondary {
-                    background: transparent;
-                    border: 1px solid rgba(255, 255, 255, 0.2);
-                    color: rgba(255, 255, 255, 0.8);
-                }
-                .btn-secondary:hover {
-                    background: rgba(255, 255, 255, 0.05);
-                }
-                .info-text {
-                    background: rgba(40, 167, 69, 0.1);
-                    border: 1px solid rgba(40, 167, 69, 0.2);
-                    padding: 15px;
-                    border-radius: 8px;
-                    margin-top: 20px;
-                    font-size: 14px;
-                }
-            </style>
-        </head>
-        <body>
-            <div class="card">
-                <div class="icon">✅</div>
-                <h2>Tarefa Criada com Sucesso!</h2>
-                <p style="color: rgba(255, 255, 255, 0.7); margin: 15px 0;">
-                    ID: <strong>#<?php echo $tarefaId; ?></strong>
-                </p>
-                <div class="info-text">
-                    📋 <strong>Tarefa de Teste</strong><br>
-                    Prioridade: <strong style="color: #ff6b6b;">Alta</strong><br>
-                    Data: <strong><?php echo date('d/m', strtotime('+3 days')); ?></strong><br>
-                    Tempo: <strong>2 horas</strong>
-                </div>
-                <div class="btn-group">
-                    <button onclick="window.location.href='tarefas_otimizado.php'" class="btn btn-primary">
-                        <i class="bi bi-eye"></i> Ver Tarefas
-                    </button>
-                    <button onclick="window.location.href='criar_tarefas_teste_web.php'" class="btn btn-secondary">
-                        <i class="bi bi-plus"></i> Criar Mais
-                    </button>
-                </div>
-            </div>
-        </body>
-        </html>
-        <?php
+        // Redirecionar direto para tarefas_otimizado.php
+        header('Location: tarefas_otimizado.php?novo=1');
         exit;
+        
     } catch (PDOException $e) {
         $erro = $e->getMessage();
     }
 }
+
+// Se acessar com novo=1, mostrar mensagem de sucesso
+$mostrar_sucesso = isset($_GET['novo']);
 ?>
 
 <!DOCTYPE html>
@@ -183,6 +86,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['criar'])) {
             cursor: pointer;
             transition: all 0.2s;
             margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
         .btn-criar:hover {
             background: #c4080f;
@@ -199,15 +106,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['criar'])) {
             font-size: 15px;
             cursor: pointer;
             transition: all 0.2s;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
         .btn-voltar:hover {
             background: rgba(255, 255, 255, 0.05);
+            color: white;
+        }
+        .alert {
+            background: rgba(40, 167, 69, 0.2);
+            border: 1px solid rgba(40, 167, 69, 0.5);
+            color: #6bcf7f;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
         }
     </style>
 </head>
 <body>
     <div class="card">
         <h1><i class="bi bi-plus-circle"></i> Inserir Tarefa de Teste</h1>
+        
+        <?php if ($mostrar_sucesso): ?>
+            <div class="alert">
+                ✅ <strong>Tarefa criada com sucesso!</strong><br>
+                A tarefa apareceu na página de tarefas otimizada.
+            </div>
+        <?php endif; ?>
         
         <div class="description">
             ℹ️ Vai ser criada uma tarefa de teste com:<br>
@@ -216,7 +145,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['criar'])) {
             • <strong>Data:</strong> +3 dias<br>
             • <strong>Tempo:</strong> 2 horas<br>
             <br>
-            Você poderá ver na página de tarefas otimizada.
+            Você será redirecionado para a página de tarefas otimizada automaticamente.
         </div>
 
         <a href="?criar=1" class="btn-criar">
@@ -224,7 +153,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['criar'])) {
         </a>
         
         <a href="tarefas_otimizado.php" class="btn-voltar">
-            ← Voltar para Tarefas
+            <i class="bi bi-arrow-right"></i> Ir para Tarefas
         </a>
     </div>
 </body>
