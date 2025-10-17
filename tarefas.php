@@ -76,23 +76,23 @@ $rotinas_total = count($rotinas);
     <title>Tarefas - Painel Financeiro</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <style>
-        :root {
-            --primary: #dc3545;
+<style>
+:root {
+    --primary: #dc3545;
             --bg-dark: #0a0a0a;
             --bg-card: #141414;
             --border: rgba(255, 255, 255, 0.08);
             --text: #ffffff;
             --text-muted: #b0b0b0;
-        }
+}
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
 
-        body {
+body {
             background: var(--bg-dark);
             color: var(--text);
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -161,8 +161,8 @@ $rotinas_total = count($rotinas);
             font-size: 13px;
             font-weight: 600;
             transition: all 0.2s;
-            display: flex;
-            align-items: center;
+    display: flex;
+    align-items: center;
             gap: 6px;
         }
 
@@ -173,22 +173,22 @@ $rotinas_total = count($rotinas);
 
         .section {
             margin-bottom: 35px;
-        }
+}
 
-        .section-title {
-            display: flex;
-            align-items: center;
+.section-title {
+    display: flex;
+    align-items: center;
             gap: 10px;
             font-size: 16px;
-            font-weight: 700;
+    font-weight: 700;
             margin-bottom: 15px;
             padding-bottom: 10px;
             border-bottom: 2px solid var(--border);
             color: var(--text);
-        }
+}
 
-        .section-title i {
-            color: var(--primary);
+.section-title i {
+    color: var(--primary);
         }
 
         .items-container {
@@ -234,7 +234,7 @@ $rotinas_total = count($rotinas);
             height: 20px;
             min-width: 20px;
             margin-top: 2px;
-            cursor: pointer;
+    cursor: pointer;
             accent-color: var(--primary);
         }
 
@@ -255,11 +255,11 @@ $rotinas_total = count($rotinas);
         }
 
         .item-meta {
-            display: flex;
+    display: flex;
             gap: 12px;
             align-items: center;
             font-size: 12px;
-            color: var(--text-muted);
+    color: var(--text-muted);
             flex-wrap: wrap;
         }
 
@@ -289,13 +289,13 @@ $rotinas_total = count($rotinas);
         }
 
         .item-date {
-            display: flex;
-            align-items: center;
+    display: flex;
+    align-items: center;
             gap: 4px;
         }
 
         .item-time {
-            display: flex;
+    display: flex;
             align-items: center;
             gap: 4px;
             background: rgba(255, 255, 255, 0.05);
@@ -305,7 +305,7 @@ $rotinas_total = count($rotinas);
 
         .item-status {
             display: inline-flex;
-            align-items: center;
+    align-items: center;
             gap: 4px;
             padding: 2px 8px;
             border-radius: 4px;
@@ -367,7 +367,7 @@ $rotinas_total = count($rotinas);
             background: rgba(107, 207, 127, 0.15);
             border-radius: 4px;
             color: #6bcf7f;
-            font-weight: 600;
+    font-weight: 600;
         }
 
         /* Modal Minimalista */
@@ -378,7 +378,7 @@ $rotinas_total = count($rotinas);
             width: 100%;
             height: 100%;
             background: rgba(0, 0, 0, 0.7);
-            display: flex;
+    display: flex;
             justify-content: center;
             align-items: center;
             z-index: 1000;
@@ -400,7 +400,7 @@ $rotinas_total = count($rotinas);
             width: 90%;
             max-width: 500px;
             position: relative;
-            display: flex;
+    display: flex;
             flex-direction: column;
             max-height: 90vh;
             overflow-y: auto;
@@ -459,7 +459,7 @@ $rotinas_total = count($rotinas);
 
         .form-group label {
             font-size: 13px;
-            color: var(--text-muted);
+    color: var(--text-muted);
             margin-bottom: 5px;
             font-weight: 600;
         }
@@ -480,11 +480,11 @@ $rotinas_total = count($rotinas);
         }
 
         .form-row {
-            display: flex;
+    display: flex;
             gap: 15px;
-        }
+}
 
-        .modal-footer {
+.modal-footer {
             padding: 15px 20px;
             border-top: 1px solid var(--border);
             background: var(--bg-dark);
@@ -497,7 +497,7 @@ $rotinas_total = count($rotinas);
             padding: 8px 16px;
             border-radius: 6px;
             font-size: 13px;
-            font-weight: 600;
+    font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;
         }
@@ -522,29 +522,29 @@ $rotinas_total = count($rotinas);
             background: #c4080f;
         }
 
-        @media (max-width: 768px) {
+@media (max-width: 768px) {
             .header {
-                flex-direction: column;
+        flex-direction: column;
                 align-items: flex-start;
-            }
-
+    }
+    
             .item-meta {
                 flex-wrap: wrap;
-            }
-
+    }
+    
             .stats {
-                width: 100%;
+        width: 100%;
             }
 
             .item-actions {
                 opacity: 1;
             }
         }
-    </style>
+</style>
 </head>
 <body>
     <div class="container-main">
-        <!-- Header -->
+    <!-- Header -->
         <div class="header">
             <div>
                 <h1><i class="bi bi-check2-all"></i> Tarefas & Rotinas</h1>
@@ -568,7 +568,7 @@ $rotinas_total = count($rotinas);
                     <i class="bi bi-plus"></i> Nova Tarefa
                 </button>
             </div>
-        </div>
+    </div>
 
         <!-- Rotinas Fixas Diárias -->
         <div class="section">
@@ -578,16 +578,16 @@ $rotinas_total = count($rotinas);
                 <span class="progress-bar-mini">
                     <?php echo $rotinas_concluidas; ?>/<?php echo $rotinas_total; ?> concluídas
                 </span>
-            </div>
-
+        </div>
+        
             <div class="items-container">
                 <?php if (empty($rotinas)): ?>
-                    <div class="empty-state">
+            <div class="empty-state">
                         <div class="empty-state-icon">📅</div>
                         <h3>Nenhuma rotina configurada</h3>
                         <p>Crie rotinas diárias para não esquecer tarefas importantes.</p>
-                    </div>
-                <?php else: ?>
+            </div>
+        <?php else: ?>
                     <?php foreach ($rotinas as $rotina): ?>
                         <div class="item rotina <?php echo $rotina['status_hoje'] === 'concluido' ? 'concluido' : ''; ?>" 
                              data-rotina-id="<?php echo $rotina['id']; ?>">
@@ -600,51 +600,51 @@ $rotinas_total = count($rotinas);
                                  <div class="item-meta">
                                      <?php if ($rotina['horario_sugerido']): ?>
                                          <span class="item-time">
-                                             <i class="bi bi-clock"></i>
+                                        <i class="bi bi-clock"></i>
                                              <?php echo date('H:i', strtotime($rotina['horario_sugerido'])); ?>
                                          </span>
-                                     <?php endif; ?>
-                                     <?php if ($rotina['descricao']): ?>
+                                <?php endif; ?>
+                                <?php if ($rotina['descricao']): ?>
                                          <span title="<?php echo htmlspecialchars($rotina['descricao']); ?>">
                                              <i class="bi bi-file-text"></i>
                                          </span>
-                                     <?php endif; ?>
+                                <?php endif; ?>
                                      <span class="item-status">
                                          <i class="bi bi-check-circle"></i>
                                          <?php echo ucfirst($rotina['status_hoje']); ?>
                                      </span>
-                                 </div>
-                             </div>
+                            </div>
+                        </div>
 
                              <div class="item-actions">
                                  <button class="btn-icon" onclick="editarRotina(<?php echo $rotina['id']; ?>)" title="Editar">
-                                     <i class="bi bi-pencil"></i>
-                                 </button>
+                                <i class="bi bi-pencil"></i>
+                            </button>
                                  <button class="btn-icon" onclick="deletarRotina(<?php echo $rotina['id']; ?>)" title="Deletar">
-                                     <i class="bi bi-trash"></i>
-                                 </button>
-                             </div>
-                         </div>
-                     <?php endforeach; ?>
-                 <?php endif; ?>
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+        <?php endif; ?>
              </div>
-         </div>
+    </div>
 
          <!-- Tarefas Pendentes -->
          <div class="section">
-             <div class="section-title">
+            <div class="section-title">
                  <i class="bi bi-list-check"></i>
                  Tarefas Pendentes
-             </div>
-
+        </div>
+        
              <div class="items-container">
                  <?php if (empty($tarefas)): ?>
-                     <div class="empty-state">
+            <div class="empty-state">
                          <div class="empty-state-icon">✅</div>
                          <h3>Nenhuma tarefa pendente</h3>
                          <p>Você está em dia! Crie uma nova tarefa para começar.</p>
-                     </div>
-                 <?php else: ?>
+            </div>
+        <?php else: ?>
                      <?php foreach ($tarefas as $task): ?>
                          <div class="item" data-task-id="<?php echo $task['id']; ?>">
                              <input type="checkbox" class="item-checkbox" 
@@ -656,7 +656,7 @@ $rotinas_total = count($rotinas);
                                      <span class="item-priority priority-<?php echo strtolower($task['prioridade']); ?>">
                                          <i class="bi bi-exclamation-circle-fill"></i> 
                                          <?php echo $task['prioridade']; ?>
-                                     </span>
+                                </span>
                                      <?php if ($task['data_limite']): ?>
                                          <span class="item-date">
                                              <i class="bi bi-calendar"></i>
@@ -666,46 +666,46 @@ $rotinas_total = count($rotinas);
                                      <?php if ($task['descricao']): ?>
                                          <span title="<?php echo htmlspecialchars($task['descricao']); ?>">
                                              <i class="bi bi-file-text"></i>
-                                         </span>
-                                     <?php endif; ?>
-                                 </div>
-                             </div>
+                                    </span>
+                                <?php endif; ?>
+                            </div>
+                        </div>
 
                              <div class="item-actions">
                                  <button class="btn-icon" onclick="editarTarefa(<?php echo $task['id']; ?>)" title="Editar">
                                      <i class="bi bi-pencil"></i>
-                                 </button>
+                            </button>
                                  <button class="btn-icon" onclick="deletarTarefa(<?php echo $task['id']; ?>)" title="Deletar">
-                                     <i class="bi bi-trash"></i>
-                                 </button>
-                             </div>
-                         </div>
-                     <?php endforeach; ?>
-                 <?php endif; ?>
-             </div>
-         </div>
-     </div>
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                            </div>
+                            <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+    </div>
+</div>
 
     <!-- Modal Nova Tarefa -->
-    <div id="modalTarefa" class="modal-overlay" style="display: none;">
+    <div id="modalTarefa" class="modal-overlay">
         <div class="modal-box">
             <div class="modal-header">
                 <h2><i class="bi bi-plus-circle"></i> Nova Tarefa</h2>
                 <button class="modal-close" onclick="fecharModalTarefa()">
                     <i class="bi bi-x"></i>
-                </button>
-            </div>
+                    </button>
+                </div>
             <form id="formNovaTarefa">
                 <div class="modal-body">
                     <div class="form-group">
                         <label>Título da Tarefa</label>
                         <input type="text" name="titulo" class="form-input" placeholder="Ex: Revisar relatório" required>
-                    </div>
+</div>
 
                     <div class="form-group">
                         <label>Descrição (opcional)</label>
                         <textarea name="descricao" class="form-input" placeholder="Detalhes da tarefa..." rows="3"></textarea>
-                    </div>
+            </div>
 
                     <div class="form-row">
                         <div class="form-group">
@@ -729,10 +729,10 @@ $rotinas_total = count($rotinas);
                     </button>
                 </div>
             </form>
-        </div>
     </div>
+</div>
 
-    <script>
+<script>
         // Debug
         console.log('Script iniciado');
 
@@ -740,7 +740,7 @@ $rotinas_total = count($rotinas);
             console.log('abrirModalTarefa chamado');
             const modal = document.getElementById('modalTarefa');
             if (modal) {
-                modal.style.display = 'block';
+                modal.classList.add('active');
                 console.log('Modal exibido');
             } else {
                 console.log('Modal não encontrado');
@@ -751,7 +751,7 @@ $rotinas_total = count($rotinas);
             console.log('fecharModalTarefa chamado');
             const modal = document.getElementById('modalTarefa');
             if (modal) {
-                modal.style.display = 'none';
+                modal.classList.remove('active');
             }
         }
 
@@ -765,13 +765,13 @@ $rotinas_total = count($rotinas);
 
         function completarRotina(controleId) {
             fetch('processar_rotina_diaria.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: `controle_id=${controleId}&status=concluido`
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) {
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
                     location.reload();
                 }
             });
@@ -779,13 +779,13 @@ $rotinas_total = count($rotinas);
 
         function completarTarefa(id) {
             fetch('concluir_tarefa_ajax.php', {
-                method: 'POST',
+        method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: `id=${id}`
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) {
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
                     const item = document.querySelector(`[data-task-id="${id}"]`);
                     item.style.opacity = '0.6';
                     setTimeout(() => item.remove(), 300);
@@ -820,37 +820,37 @@ $rotinas_total = count($rotinas);
                 event.preventDefault();
                 console.log('Form submit chamado');
                 
-                const formData = new FormData(this);
-                const btn = this.querySelector('button[type="submit"]');
-                btn.disabled = true;
+		const formData = new FormData(this);
+		const btn = this.querySelector('button[type="submit"]');
+		btn.disabled = true;
                 btn.textContent = 'Salvando...';
-                
+		
                 fetch('adicionar_tarefa_formulario.php', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(r => r.json())
-                .then(data => {
+			method: 'POST',
+			body: formData
+		})
+		.then(r => r.json())
+		.then(data => {
                     console.log('Resposta:', data);
                     if (data.success) {
                         alert('Tarefa adicionada com sucesso!');
                         location.reload();
-                    } else {
+			} else {
                         alert('Erro: ' + (data.message || 'Erro desconhecido'));
-                        btn.disabled = false;
+				btn.disabled = false;
                         btn.textContent = 'Salvar Tarefa';
-                    }
-                })
+			}
+		})
                 .catch(error => {
                     console.error('Erro:', error);
                     alert('Erro ao adicionar tarefa: ' + error);
-                    btn.disabled = false;
+			btn.disabled = false;
                     btn.textContent = 'Salvar Tarefa';
-                });
-            });
-        } else {
+		});
+	});
+			} else {
             console.log('Formulário não encontrado');
         }
-    </script>
+</script>
 </body>
 </html>
