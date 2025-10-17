@@ -1400,7 +1400,11 @@ $rotinas_total = count($rotinas);
         });
 
         // Modal Editar Rotina Fixa
+        let rotinaEmEdicao = null; // Variável global para rastrear qual rotina está sendo editada
+        
         function abrirModalEditarRotina(rotinaId) {
+            rotinaEmEdicao = rotinaId; // Guardar ID da rotina que está sendo editada
+            
             fetch(`obter_rotina_fixa.php?id=${rotinaId}`)
                 .then(r => r.json())
                 .then(data => {
@@ -1408,7 +1412,7 @@ $rotinas_total = count($rotinas);
                         const rotina = data.rotina;
                         document.getElementById('modalEditarRotina').classList.add('active');
                         
-                        // Preencher campos ANTES de fazer reset
+                        // Preencher campos com dados da rotina
                         document.querySelector('#formEditarRotina input[name="nome"]').value = rotina.nome;
                         
                         // Converter 06:00:00 para 06:00 (remover segundos)
@@ -1419,7 +1423,7 @@ $rotinas_total = count($rotinas);
                         document.querySelector('#formEditarRotina input[name="horario"]').value = horarioFormatado;
                         
                         document.querySelector('#formEditarRotina textarea[name="descricao"]').value = rotina.descricao || '';
-                        document.getElementById('formEditarRotina').dataset.rotinaId = rotinaId;
+                        console.log('Carregando rotina ID:', rotinaId); // Debug
                     } else {
                         alert('Erro ao carregar dados da rotina: ' + data.message);
                     }
@@ -1432,7 +1436,7 @@ $rotinas_total = count($rotinas);
         function fecharModalEditarRotina() {
             document.getElementById('modalEditarRotina').classList.remove('active');
             document.getElementById('formEditarRotina').reset();
-            document.getElementById('formEditarRotina').dataset.rotinaId = null;
+            rotinaEmEdicao = null; // Limpar ID da rotina
         }
 
         document.getElementById('modalEditarRotina').addEventListener('click', function(e) {
@@ -1441,8 +1445,8 @@ $rotinas_total = count($rotinas);
 
         document.getElementById('formEditarRotina').addEventListener('submit', function(e) {
             e.preventDefault();
-            const rotinaId = this.dataset.rotinaId;
-            if (!rotinaId) {
+            
+            if (!rotinaEmEdicao) {
                 alert('Erro: ID da rotina não identificado.');
                 return;
             }
@@ -1452,11 +1456,13 @@ $rotinas_total = count($rotinas);
             btn.disabled = true;
             btn.textContent = 'Salvando...';
 
+            console.log('Salvando rotina ID:', rotinaEmEdicao); // Debug
+
             fetch('atualizar_rotina_fixa.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    id: rotinaId,
+                    id: rotinaEmEdicao,
                     nome: formData.get('nome'),
                     horario: formData.get('horario'),
                     descricao: formData.get('descricao')
