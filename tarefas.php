@@ -770,11 +770,14 @@ $rotinas_total = count($rotinas);
 
                         <!-- Subtarefas -->
                         <?php $subs = $subtarefasPorTarefa[$task['id']] ?? []; ?>
-                        <?php if (!empty($subs)): ?>
+                        <?php if (!empty($subs) || true): ?>
                             <div class="subtasks" style="margin-left: 20px;">
                                 <div class="subtasks-header" onclick="toggleSubtasks(this)">
                                     <i class="bi bi-chevron-down"></i>
                                     <span>Subtarefas (<?php echo count($subs); ?>)</span>
+                                    <button type="button" class="btn-icon" onclick="abrirModalSubtarefa(<?php echo $task['id']; ?>)" title="Adicionar subtarefa" style="margin-left: auto; margin-top: 0;">
+                                        <i class="bi bi-plus-circle"></i>
+                                    </button>
                                 </div>
                                 <div class="subtasks-list">
                                     <?php foreach ($subs as $sub): ?>
@@ -835,6 +838,32 @@ $rotinas_total = count($rotinas);
                     <button type="button" class="btn-cancel" onclick="fecharModalTarefa()">Cancelar</button>
                     <button type="submit" class="btn-submit">
                         <i class="bi bi-save"></i> Salvar Tarefa
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Nova Subtarefa -->
+    <div id="modalSubtarefa" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h2><i class="bi bi-plus-circle"></i> Nova Subtarefa</h2>
+                <button class="modal-close" onclick="fecharModalSubtarefa()">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
+            <form id="formNovaSubtarefa">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Descrição da Subtarefa</label>
+                        <input type="text" name="descricao" class="form-input" placeholder="Ex: Passo 1 - Preparar dados" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancel" onclick="fecharModalSubtarefa()">Cancelar</button>
+                    <button type="submit" class="btn-submit">
+                        <i class="bi bi-save"></i> Salvar Subtarefa
                     </button>
                 </div>
             </form>
@@ -1120,6 +1149,64 @@ $rotinas_total = count($rotinas);
                 });
             }
         }
+
+        // Subtarefa Modal
+        let tarefaIdAtual = null;
+
+        function abrirModalSubtarefa(tarefaId) {
+            tarefaIdAtual = tarefaId;
+            document.getElementById('modalSubtarefa').classList.add('active');
+        }
+
+        function fecharModalSubtarefa() {
+            document.getElementById('modalSubtarefa').classList.remove('active');
+            document.getElementById('formNovaSubtarefa').reset();
+            tarefaIdAtual = null;
+        }
+
+        document.getElementById('modalSubtarefa').addEventListener('click', function(e) {
+            if (e.target === this) fecharModalSubtarefa();
+        });
+
+        // Submissão de Subtarefa
+        document.getElementById('formNovaSubtarefa').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (!tarefaIdAtual) {
+                alert('Erro: ID da tarefa não identificado');
+                return;
+            }
+
+            const descricao = this.querySelector('input[name="descricao"]').value;
+            const btn = this.querySelector('button[type="submit"]');
+            btn.disabled = true;
+            btn.textContent = 'Salvando...';
+
+            const formData = new FormData();
+            formData.append('id_tarefa_principal', tarefaIdAtual);
+            formData.append('descricao', descricao);
+
+            fetch('adicionar_subtarefa.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Subtarefa adicionada!');
+                    location.reload();
+                } else {
+                    alert('Erro: ' + data.message);
+                    btn.disabled = false;
+                    btn.textContent = 'Salvar Subtarefa';
+                }
+            })
+            .catch(error => {
+                alert('Erro ao salvar');
+                btn.disabled = false;
+                btn.textContent = 'Salvar Subtarefa';
+            });
+        });
 
         function htmlEscape(str) {
             return String(str)
