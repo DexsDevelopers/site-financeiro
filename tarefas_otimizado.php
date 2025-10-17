@@ -414,7 +414,7 @@ $rotinas_total = count($rotinas);
                 </div>
             </div>
             <div class="actions">
-                <button class="btn-action" onclick="window.location.href='adicionar_tarefa.php'">
+                <button class="btn-action" onclick="window.location.href='adicionar_tarefa_formulario.php'">
                     <i class="bi bi-plus"></i> Nova Tarefa
                 </button>
             </div>
