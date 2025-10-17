@@ -1407,7 +1407,8 @@ $rotinas_total = count($rotinas);
                     if (data.success) {
                         const rotina = data.rotina;
                         document.getElementById('modalEditarRotina').classList.add('active');
-                        document.getElementById('formEditarRotina').reset();
+                        
+                        // Preencher campos ANTES de fazer reset
                         document.querySelector('#formEditarRotina input[name="nome"]').value = rotina.nome;
                         
                         // Converter 06:00:00 para 06:00 (remover segundos)
