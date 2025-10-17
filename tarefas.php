@@ -9,14 +9,14 @@ if (!$userId) {
 
 $dataHoje = date('Y-m-d');
 
-// ===== BUSCAR TODAS AS INFORMAÇÕES =====
+// ===== BUSCAR DADOS =====
 $rotinas = [];
 $tarefas = [];
 $subtarefasPorTarefa = [];
 $stats = ['Alta' => 0, 'Média' => 0, 'Baixa' => 0, 'total' => 0];
 
-// 1. Buscar Rotinas Fixas
 try {
+    // 1. Rotinas Fixas
     $stmt = $pdo->prepare("
         SELECT rf.id, rf.nome, rf.horario_sugerido, rf.descricao,
                rcd.status as status_hoje, rcd.id as controle_id
@@ -42,33 +42,32 @@ try {
             $rotina['controle_id'] = $pdo->lastInsertId();
         }
     }
-} catch (PDOException $e) {
+} catch (Exception $e) {
     error_log("Erro ao buscar rotinas: " . $e->getMessage());
 }
 
-// 2. Buscar Tarefas Pendentes
 try {
+    // 2. Tarefas Pendentes
     $stmt = $pdo->prepare("
-        SELECT id, descricao, prioridade, data_limite, status, tempo_estimado, data_criacao
+        SELECT id, descricao, prioridade, data_limite, status, data_criacao
         FROM tarefas 
         WHERE id_usuario = ? AND status = 'pendente'
-        ORDER BY FIELD(prioridade, 'Alta', 'Média', 'Baixa'), COALESCE(ordem, 9999), data_limite
+        ORDER BY FIELD(prioridade, 'Alta', 'Média', 'Baixa'), data_limite, data_criacao DESC
         LIMIT 100
     ");
     $stmt->execute([$userId]);
     $tarefas = $stmt->fetchAll(PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
+    
+    $stats['total'] = count($tarefas);
+    foreach ($tarefas as $t) {
+        $stats[$t['prioridade']]++;
+    }
+} catch (Exception $e) {
     error_log("Erro ao buscar tarefas: " . $e->getMessage());
 }
 
-// 3. Contar tarefas por prioridade
-$stats['total'] = count($tarefas);
-foreach ($tarefas as $t) {
-    $stats[$t['prioridade']]++;
-}
-
-// 4. Buscar Subtarefas
 try {
+    // 3. Subtarefas
     $stmt = $pdo->prepare("
         SELECT id, id_tarefa_principal, descricao, status 
         FROM subtarefas 
@@ -87,11 +86,10 @@ try {
         }
         $subtarefasPorTarefa[$tid][] = $sub;
     }
-} catch (PDOException $e) {
+} catch (Exception $e) {
     error_log("Erro ao buscar subtarefas: " . $e->getMessage());
 }
 
-// 5. Contar rotinas
 $rotinas_concluidas = count(array_filter($rotinas, fn($r) => $r['status_hoje'] === 'concluido'));
 $rotinas_total = count($rotinas);
 ?>
@@ -101,19 +99,9 @@ $rotinas_total = count($rotinas);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tarefas - Painel Financeiro</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <title>Tarefas - Painel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <style>
-        :root {
-            --primary: #dc3545;
-            --bg-dark: #0a0a0a;
-            --bg-card: #141414;
-            --border: rgba(255, 255, 255, 0.08);
-            --text: #ffffff;
-            --text-muted: #b0b0b0;
-        }
-
         * {
             margin: 0;
             padding: 0;
@@ -121,31 +109,31 @@ $rotinas_total = count($rotinas);
         }
 
         body {
-            background: var(--bg-dark);
-            color: var(--text);
+            background: #0a0a0a;
+            color: #ffffff;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             font-size: 14px;
         }
 
-        .container-main {
+        .container {
             max-width: 1000px;
             margin: 0 auto;
             padding: 20px;
         }
 
+        /* HEADER */
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 30px;
+            gap: 20px;
             flex-wrap: wrap;
-            gap: 15px;
         }
 
         .header h1 {
             font-size: 28px;
             font-weight: 700;
-            margin: 0;
         }
 
         .stats {
@@ -155,14 +143,14 @@ $rotinas_total = count($rotinas);
         }
 
         .stat {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            padding: 10px 16px;
-            border-radius: 8px;
-            font-size: 13px;
+            background: #141414;
+            border: 1px solid rgba(255,255,255,0.08);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
             display: flex;
+            gap: 6px;
             align-items: center;
-            gap: 8px;
         }
 
         .stat-value {
@@ -170,17 +158,13 @@ $rotinas_total = count($rotinas);
             font-size: 16px;
         }
 
-        .stat-alta { color: #ff6b6b; }
-        .stat-media { color: #ffd93d; }
-        .stat-baixa { color: #6bcf7f; }
-
         .actions {
             display: flex;
             gap: 8px;
         }
 
-        .btn-action {
-            background: var(--primary);
+        .btn {
+            background: #dc3545;
             border: none;
             color: white;
             padding: 10px 16px;
@@ -194,67 +178,99 @@ $rotinas_total = count($rotinas);
             gap: 6px;
         }
 
-        .btn-action:hover {
+        .btn:hover {
             background: #c4080f;
             transform: translateY(-2px);
         }
 
+        .btn.secondary {
+            background: #6bcf7f;
+        }
+
+        .btn.secondary:hover {
+            background: #5ab86b;
+        }
+
+        /* SEARCH BAR */
+        .search-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .search-input, .filter-select {
+            background: #141414;
+            border: 1px solid rgba(255,255,255,0.08);
+            color: #ffffff;
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+
+        .search-input {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .filter-select {
+            min-width: 150px;
+        }
+
+        .search-input::placeholder {
+            color: #666;
+        }
+
+        /* SECTIONS */
         .section {
-            margin-bottom: 35px;
+            margin-bottom: 30px;
         }
 
         .section-title {
-            display: flex;
-            align-items: center;
-            gap: 10px;
             font-size: 16px;
             font-weight: 700;
             margin-bottom: 15px;
             padding-bottom: 10px;
-            border-bottom: 2px solid var(--border);
-            color: var(--text);
+            border-bottom: 2px solid rgba(255,255,255,0.08);
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .section-title i {
-            color: var(--primary);
+            color: #dc3545;
         }
 
-        .items-container {
+        .items-list {
             display: flex;
             flex-direction: column;
             gap: 10px;
         }
 
+        /* ITEMS */
         .item {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            padding: 14px;
-            border-radius: 8px;
+            background: #141414;
+            border: 1px solid rgba(255,255,255,0.08);
+            padding: 12px;
+            border-radius: 6px;
             display: flex;
-            gap: 12px;
+            gap: 10px;
             align-items: flex-start;
             transition: all 0.2s;
         }
 
         .item:hover {
-            background: rgba(20, 20, 20, 0.8);
-            border-color: rgba(255, 255, 255, 0.15);
-            transform: translateX(4px);
+            background: rgba(20,20,20,0.8);
+            border-color: rgba(255,255,255,0.12);
         }
 
         .item.rotina {
-            background: rgba(102, 187, 106, 0.05);
-            border-color: rgba(107, 207, 127, 0.2);
-        }
-
-        .item.rotina:hover {
-            background: rgba(102, 187, 106, 0.1);
-            border-color: rgba(107, 207, 127, 0.3);
+            background: rgba(107,207,127,0.05);
+            border-color: rgba(107,207,127,0.2);
         }
 
         .item.concluido {
-            opacity: 0.6;
-            background: rgba(20, 20, 20, 0.5);
+            opacity: 0.5;
         }
 
         .item-checkbox {
@@ -263,7 +279,7 @@ $rotinas_total = count($rotinas);
             min-width: 20px;
             margin-top: 2px;
             cursor: pointer;
-            accent-color: var(--primary);
+            accent-color: #dc3545;
         }
 
         .item.rotina .item-checkbox {
@@ -277,21 +293,19 @@ $rotinas_total = count($rotinas);
 
         .item-title {
             font-weight: 600;
-            font-size: 14px;
             margin-bottom: 4px;
             word-break: break-word;
         }
 
         .item-meta {
             display: flex;
-            gap: 12px;
-            align-items: center;
+            gap: 10px;
             font-size: 12px;
-            color: var(--text-muted);
+            color: #b0b0b0;
             flex-wrap: wrap;
         }
 
-        .item-priority {
+        .badge {
             display: inline-flex;
             align-items: center;
             gap: 4px;
@@ -301,45 +315,18 @@ $rotinas_total = count($rotinas);
             font-size: 11px;
         }
 
-        .priority-alta {
-            background: rgba(255, 107, 107, 0.2);
+        .badge-alta {
+            background: rgba(255,107,107,0.2);
             color: #ff6b6b;
         }
 
-        .priority-media {
-            background: rgba(255, 217, 61, 0.2);
+        .badge-media {
+            background: rgba(255,217,61,0.2);
             color: #ffd93d;
         }
 
-        .priority-baixa {
-            background: rgba(107, 207, 127, 0.2);
-            color: #6bcf7f;
-        }
-
-        .item-date {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .item-time {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            background: rgba(255, 255, 255, 0.05);
-            padding: 2px 8px;
-            border-radius: 4px;
-        }
-
-        .item-status {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-weight: 600;
-            font-size: 11px;
-            background: rgba(107, 207, 127, 0.2);
+        .badge-baixa {
+            background: rgba(107,207,127,0.2);
             color: #6bcf7f;
         }
 
@@ -357,7 +344,7 @@ $rotinas_total = count($rotinas);
         .btn-icon {
             background: none;
             border: none;
-            color: var(--text-muted);
+            color: #b0b0b0;
             cursor: pointer;
             padding: 4px 8px;
             font-size: 14px;
@@ -365,99 +352,25 @@ $rotinas_total = count($rotinas);
         }
 
         .btn-icon:hover {
-            color: var(--text);
+            color: #ffffff;
         }
 
-        .empty-state {
-            text-align: center;
-            padding: 40px 20px;
-            color: var(--text-muted);
-        }
-
-        .empty-state-icon {
-            font-size: 48px;
-            margin-bottom: 15px;
-            opacity: 0.5;
-        }
-
-        .empty-state h3 {
-            font-size: 18px;
-            margin-bottom: 8px;
-            color: var(--text);
-        }
-
-        .progress-bar-mini {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 12px;
-            padding: 4px 10px;
-            background: rgba(107, 207, 127, 0.15);
-            border-radius: 4px;
-            color: #6bcf7f;
-            font-weight: 600;
-        }
-
-        /* Subtarefas */
+        /* SUBTASKS */
         .subtasks {
-            margin-top: 0;
-            padding: 12px 0 0 0;
-            margin-left: 0;
-            border-top: none;
+            margin-top: 10px;
             padding-left: 32px;
-            position: relative;
-        }
-
-        .subtasks::before {
-            content: '';
-            position: absolute;
-            left: 16px;
-            top: 0;
-            bottom: 0;
-            width: 2px;
-            background: linear-gradient(to bottom, var(--primary), transparent);
-            border-radius: 2px;
+            border-left: 2px solid rgba(107,207,127,0.3);
         }
 
         .subtasks-header {
             display: flex;
             align-items: center;
             gap: 8px;
-            margin-bottom: 12px;
+            margin-bottom: 8px;
             color: #6bcf7f;
             font-size: 12px;
             cursor: pointer;
             font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            transition: all 0.2s;
-        }
-
-        .subtasks-header:hover {
-            color: #7dd88f;
-            transform: translateX(2px);
-        }
-
-        .subtasks-header i {
-            transition: transform 0.2s;
-            font-size: 14px;
-        }
-
-        .subtasks-header .btn-icon {
-            opacity: 0;
-            transition: opacity 0.2s;
-            padding: 4px 8px;
-            color: #6bcf7f;
-            margin-left: auto !important;
-        }
-
-        .subtasks-header:hover .btn-icon {
-            opacity: 1;
-        }
-
-        .subtasks-header .btn-icon:hover {
-            color: #7dd88f;
-            transform: scale(1.15);
         }
 
         .subtasks-list {
@@ -469,43 +382,32 @@ $rotinas_total = count($rotinas);
         .subtask-item {
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 10px 12px;
-            background: linear-gradient(135deg, rgba(107, 207, 127, 0.05), rgba(107, 207, 127, 0.02));
-            border-left: 3px solid var(--primary);
+            gap: 8px;
+            padding: 8px 10px;
+            background: rgba(107,207,127,0.05);
+            border-left: 3px solid #dc3545;
             border-radius: 4px;
-            font-size: 13px;
+            font-size: 12px;
             transition: all 0.2s;
-            position: relative;
         }
 
         .subtask-item:hover {
-            background: linear-gradient(135deg, rgba(107, 207, 127, 0.1), rgba(107, 207, 127, 0.05));
-            border-left-color: #7dd88f;
-            transform: translateX(4px);
+            background: rgba(107,207,127,0.1);
         }
 
         .subtask-checkbox {
-            width: 18px;
-            height: 18px;
-            min-width: 18px;
+            width: 16px;
+            height: 16px;
+            min-width: 16px;
             cursor: pointer;
             accent-color: #6bcf7f;
-            border-radius: 3px;
-            transition: all 0.2s;
-        }
-
-        .subtask-checkbox:hover {
-            transform: scale(1.1);
         }
 
         .subtask-label {
             flex: 1;
             cursor: pointer;
             user-select: none;
-            color: var(--text);
-            transition: color 0.2s;
-            font-weight: 500;
+            color: #ffffff;
         }
 
         .subtask-label.completed {
@@ -514,44 +416,33 @@ $rotinas_total = count($rotinas);
             opacity: 0.7;
         }
 
-        .btn-delete-subtask {
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            cursor: pointer;
-            padding: 4px 6px;
-            font-size: 14px;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #b0b0b0;
         }
 
-        .subtask-item:hover .btn-delete-subtask {
-            opacity: 1;
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            opacity: 0.5;
         }
 
-        .btn-delete-subtask:hover {
-            color: #ff6b6b;
-            transform: scale(1.2) rotate(90deg);
-        }
-
-        /* Modal */
+        /* MODAL */
         .modal-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0,0,0,0.7);
             display: flex;
             justify-content: center;
             align-items: center;
             z-index: 1000;
             opacity: 0;
             visibility: hidden;
-            transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+            transition: all 0.3s;
         }
 
         .modal-overlay.active {
@@ -560,17 +451,15 @@ $rotinas_total = count($rotinas);
         }
 
         .modal-box {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
+            background: #141414;
+            border: 1px solid rgba(255,255,255,0.08);
             border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
             width: 90%;
             max-width: 500px;
-            position: relative;
-            display: flex;
-            flex-direction: column;
             max-height: 90vh;
             overflow-y: auto;
+            display: flex;
+            flex-direction: column;
         }
 
         .modal-header {
@@ -578,32 +467,31 @@ $rotinas_total = count($rotinas);
             justify-content: space-between;
             align-items: center;
             padding: 15px 20px;
-            border-bottom: 1px solid var(--border);
-            background: var(--bg-dark);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            background: #0a0a0a;
         }
 
         .modal-header h2 {
             margin: 0;
-            font-size: 20px;
-            color: var(--text);
+            font-size: 18px;
         }
 
         .modal-close {
             background: none;
             border: none;
-            color: var(--text-muted);
+            color: #b0b0b0;
             cursor: pointer;
             padding: 0;
+            width: 32px;
+            height: 32px;
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 32px;
-            height: 32px;
-            transition: all 0.2s;
+            transition: color 0.2s;
         }
 
         .modal-close:hover {
-            color: var(--primary);
+            color: #dc3545;
         }
 
         .modal-body {
@@ -619,24 +507,24 @@ $rotinas_total = count($rotinas);
         }
 
         .form-group label {
-            font-size: 13px;
-            color: var(--text-muted);
+            font-size: 12px;
+            color: #b0b0b0;
             margin-bottom: 5px;
             font-weight: 600;
         }
 
         .form-input {
-            background: var(--bg-dark);
-            border: 1px solid var(--border);
+            background: #0a0a0a;
+            border: 1px solid rgba(255,255,255,0.08);
             border-radius: 6px;
             padding: 10px 12px;
-            color: var(--text);
-            font-size: 14px;
+            color: #ffffff;
+            font-size: 13px;
             transition: border-color 0.2s;
         }
 
         .form-input:focus {
-            border-color: var(--primary);
+            border-color: #dc3545;
             outline: none;
         }
 
@@ -645,16 +533,23 @@ $rotinas_total = count($rotinas);
             gap: 15px;
         }
 
+        .form-row .form-group {
+            flex: 1;
+        }
+
         .modal-footer {
             padding: 15px 20px;
-            border-top: 1px solid var(--border);
-            background: var(--bg-dark);
+            border-top: 1px solid rgba(255,255,255,0.08);
+            background: #0a0a0a;
             display: flex;
             justify-content: flex-end;
             gap: 10px;
         }
 
-        .btn-cancel, .btn-submit {
+        .btn-cancel {
+            background: none;
+            border: 1px solid rgba(255,255,255,0.08);
+            color: #b0b0b0;
             padding: 8px 16px;
             border-radius: 6px;
             font-size: 13px;
@@ -663,75 +558,109 @@ $rotinas_total = count($rotinas);
             transition: all 0.2s;
         }
 
-        .btn-cancel {
-            background: none;
-            border: 1px solid var(--border);
-            color: var(--text-muted);
-        }
-
         .btn-cancel:hover {
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(255,255,255,0.05);
+            color: #ffffff;
         }
 
         .btn-submit {
-            background: var(--primary);
+            background: #dc3545;
             border: none;
             color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
         .btn-submit:hover {
             background: #c4080f;
         }
 
-        /* Barra de Busca e Filtros */
-        .search-bar {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
+        .btn-submit:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
-        .search-input {
-            flex: 1;
-            min-width: 200px;
-            max-width: 400px;
+        /* SPINNER */
+        .spinner {
+            display: inline-flex;
+            gap: 4px;
         }
 
-        .filter-select {
-            min-width: 150px;
-            max-width: 200px;
+        .spinner span {
+            width: 4px;
+            height: 4px;
+            background: white;
+            border-radius: 50%;
+            animation: pulse 1s infinite;
         }
 
+        .spinner span:nth-child(2) { animation-delay: 0.2s; }
+        .spinner span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        /* RESPONSIVE */
         @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
             .header {
                 flex-direction: column;
                 align-items: flex-start;
             }
 
-            .item-meta {
-                flex-wrap: wrap;
+            .actions {
+                width: 100%;
             }
 
-            .stats {
+            .actions .btn {
+                flex: 1;
+                justify-content: center;
+            }
+
+            .search-bar {
+                flex-direction: column;
+            }
+
+            .search-input, .filter-select {
                 width: 100%;
             }
 
             .item-actions {
                 opacity: 1;
             }
+
+            .form-row {
+                flex-direction: column;
+                gap: 0;
+            }
+
+            .modal-box {
+                width: 95%;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container-main">
-        <!-- Header -->
+    <div class="container">
+        <!-- HEADER -->
         <div class="header">
-            <div>
-                <h1><i class="bi bi-check2-all"></i> Tarefas & Rotinas</h1>
-            </div>
+            <h1><i class="bi bi-check2-all"></i> Tarefas</h1>
+            
             <div class="stats">
                 <div class="stat">
-                    <span class="stat-value stat-alta"><?php echo $stats['Alta']; ?></span>
+                    <span class="stat-value" style="color: #ff6b6b;"><?php echo $stats['Alta']; ?></span>
                     <span>Alta</span>
                 </div>
                 <div class="stat">
@@ -743,51 +672,44 @@ $rotinas_total = count($rotinas);
                     <span>Tarefas</span>
                 </div>
             </div>
+
             <div class="actions">
-                <button class="btn-action" onclick="abrirModalTarefa()">
+                <button class="btn" onclick="abrirModalTarefa()">
                     <i class="bi bi-plus"></i> Nova Tarefa
                 </button>
-                <button class="btn-action" style="background: #6bcf7f;" onclick="abrirModalRotina()">
+                <button class="btn secondary" onclick="abrirModalRotina()">
                     <i class="bi bi-plus"></i> Nova Rotina
-                </button>
-                <button class="btn-action" style="background: #6c63ff;" onclick="TarefasApp.utils.toggleModoCompacto();" title="Alt+M">
-                    <i class="bi bi-arrow-left-right"></i>
                 </button>
             </div>
         </div>
 
-        <!-- Barra de Busca e Filtros -->
+        <!-- SEARCH -->
         <div class="search-bar">
-            <input type="text" id="searchInput" placeholder="🔍 Buscar tarefas..." class="form-input search-input">
-            <select id="filterPriority" class="form-input filter-select">
+            <input type="text" id="searchInput" class="search-input" placeholder="🔍 Buscar tarefas...">
+            <select id="filterPriority" class="filter-select">
                 <option value="">Todas as prioridades</option>
-                <option value="Alta">🔴 Alta</option>
-                <option value="Média">🟡 Média</option>
-                <option value="Baixa">🟢 Baixa</option>
+                <option value="Alta">Alta</option>
+                <option value="Média">Média</option>
+                <option value="Baixa">Baixa</option>
             </select>
         </div>
 
-        <!-- Rotinas Fixas -->
+        <!-- ROTINAS -->
         <div class="section">
             <div class="section-title">
                 <i class="bi bi-calendar-check"></i>
-                Rotinas Fixas
-                <span class="progress-bar-mini">
-                    <?php echo $rotinas_concluidas; ?>/<?php echo $rotinas_total; ?> concluídas hoje
-                </span>
+                Rotinas Fixas (<?php echo $rotinas_concluidas; ?>/<?php echo $rotinas_total; ?>)
             </div>
 
-            <div class="items-container">
+            <div class="items-list">
                 <?php if (empty($rotinas)): ?>
                     <div class="empty-state">
                         <div class="empty-state-icon">📅</div>
-                        <h3>Nenhuma rotina configurada</h3>
-                        <p>Crie rotinas diárias para não esquecer tarefas importantes.</p>
+                        <p>Nenhuma rotina configurada</p>
                     </div>
                 <?php else: ?>
                     <?php foreach ($rotinas as $rotina): ?>
-                        <div class="item rotina <?php echo $rotina['status_hoje'] === 'concluido' ? 'concluido' : ''; ?>" 
-                             data-rotina-id="<?php echo $rotina['id']; ?>">
+                        <div class="item rotina <?php echo $rotina['status_hoje'] === 'concluido' ? 'concluido' : ''; ?>">
                             <input type="checkbox" class="item-checkbox" 
                                    <?php echo $rotina['status_hoje'] === 'concluido' ? 'checked' : ''; ?>
                                    onchange="completarRotina(<?php echo $rotina['controle_id']; ?>)">
@@ -796,20 +718,8 @@ $rotinas_total = count($rotinas);
                                 <div class="item-title"><?php echo htmlspecialchars($rotina['nome']); ?></div>
                                 <div class="item-meta">
                                     <?php if ($rotina['horario_sugerido']): ?>
-                                        <span class="item-time">
-                                            <i class="bi bi-clock"></i>
-                                            <?php echo date('H:i', strtotime($rotina['horario_sugerido'])); ?>
-                                        </span>
+                                        <span><i class="bi bi-clock"></i> <?php echo date('H:i', strtotime($rotina['horario_sugerido'])); ?></span>
                                     <?php endif; ?>
-                                    <?php if ($rotina['descricao']): ?>
-                                        <span title="<?php echo htmlspecialchars($rotina['descricao']); ?>">
-                                            <i class="bi bi-file-text"></i>
-                                        </span>
-                                    <?php endif; ?>
-                                    <span class="item-status">
-                                        <i class="bi bi-check-circle"></i>
-                                        <?php echo ucfirst($rotina['status_hoje']); ?>
-                                    </span>
                                 </div>
                             </div>
 
@@ -827,38 +737,32 @@ $rotinas_total = count($rotinas);
             </div>
         </div>
 
-        <!-- Tarefas -->
+        <!-- TAREFAS -->
         <div class="section">
             <div class="section-title">
                 <i class="bi bi-list-check"></i>
                 Tarefas Pendentes
             </div>
 
-            <div class="items-container">
+            <div class="items-list">
                 <?php if (empty($tarefas)): ?>
                     <div class="empty-state">
                         <div class="empty-state-icon">✅</div>
-                        <h3>Nenhuma tarefa pendente</h3>
-                        <p>Você está em dia! Crie uma nova tarefa para começar.</p>
+                        <p>Sem tarefas pendentes! Você está em dia!</p>
                     </div>
                 <?php else: ?>
                     <?php foreach ($tarefas as $task): ?>
                         <div class="item" data-task-id="<?php echo $task['id']; ?>">
-                            <input type="checkbox" class="item-checkbox" 
-                                   onchange="completarTarefa(<?php echo $task['id']; ?>)">
+                            <input type="checkbox" class="item-checkbox" onchange="completarTarefa(<?php echo $task['id']; ?>)">
                             
                             <div class="item-content">
                                 <div class="item-title"><?php echo htmlspecialchars($task['descricao']); ?></div>
                                 <div class="item-meta">
-                                    <span class="item-priority priority-<?php echo strtolower($task['prioridade']); ?>">
-                                        <i class="bi bi-exclamation-circle-fill"></i> 
+                                    <span class="badge badge-<?php echo strtolower($task['prioridade']); ?>">
                                         <?php echo $task['prioridade']; ?>
                                     </span>
                                     <?php if ($task['data_limite']): ?>
-                                        <span class="item-date">
-                                            <i class="bi bi-calendar"></i>
-                                            <?php echo date('d/m', strtotime($task['data_limite'])); ?>
-                                        </span>
+                                        <span><i class="bi bi-calendar"></i> <?php echo date('d/m', strtotime($task['data_limite'])); ?></span>
                                     <?php endif; ?>
                                 </div>
                             </div>
@@ -873,20 +777,21 @@ $rotinas_total = count($rotinas);
                             </div>
                         </div>
 
-                        <!-- Subtarefas -->
+                        <!-- SUBTAREFAS -->
                         <?php $subs = $subtarefasPorTarefa[$task['id']] ?? []; ?>
-                        <?php if (!empty($subs) || true): ?>
+                        <?php if (!empty($subs)): ?>
                             <div class="subtasks">
                                 <div class="subtasks-header" onclick="toggleSubtasks(this)">
                                     <i class="bi bi-chevron-down"></i>
-                                    <span>Subtarefas (<?php
+                                    <span>Subtarefas (<?php 
                                         $concluidas = count(array_filter($subs, fn($s) => $s['status'] === 'concluida'));
                                         echo $concluidas . '/' . count($subs);
                                     ?>)</span>
-                                    <button type="button" class="btn-icon" onclick="abrirModalSubtarefa(<?php echo $task['id']; ?>)" title="Adicionar subtarefa" style="margin-left: auto; margin-top: 0;">
-                                        <i class="bi bi-plus-circle"></i>
+                                    <button class="btn-icon" onclick="abrirModalSubtarefa(<?php echo $task['id']; ?>); event.stopPropagation();" style="margin-left: auto;" title="Adicionar">
+                                        <i class="bi bi-plus"></i>
                                     </button>
                                 </div>
+                                
                                 <div class="subtasks-list">
                                     <?php foreach ($subs as $sub): ?>
                                         <div class="subtask-item">
@@ -897,7 +802,7 @@ $rotinas_total = count($rotinas);
                                             <label class="subtask-label <?php echo $sub['status'] === 'concluida' ? 'completed' : ''; ?>">
                                                 <?php echo htmlspecialchars($sub['descricao']); ?>
                                             </label>
-                                            <button type="button" class="btn-delete-subtask" onclick="deletarSubtarefa(<?php echo $sub['id']; ?>, <?php echo $task['id']; ?>)">
+                                            <button class="btn-icon" onclick="deletarSubtarefa(<?php echo $sub['id']; ?>);" title="Deletar">
                                                 <i class="bi bi-x"></i>
                                             </button>
                                         </div>
@@ -911,7 +816,7 @@ $rotinas_total = count($rotinas);
         </div>
     </div>
 
-    <!-- Modal Nova Tarefa -->
+    <!-- MODAL NOVA TAREFA -->
     <div id="modalTarefa" class="modal-overlay">
         <div class="modal-box">
             <div class="modal-header">
@@ -923,10 +828,9 @@ $rotinas_total = count($rotinas);
             <form id="formNovaTarefa">
                 <div class="modal-body">
                     <div class="form-group">
-                        <label>Descrição da Tarefa</label>
-                        <input type="text" name="descricao" class="form-input" placeholder="Ex: Revisar relatório" required>
+                        <label>Descrição</label>
+                        <input type="text" name="descricao" class="form-input" placeholder="O que precisa fazer?" required>
                     </div>
-
                     <div class="form-row">
                         <div class="form-group">
                             <label>Prioridade</label>
@@ -937,7 +841,7 @@ $rotinas_total = count($rotinas);
                             </select>
                         </div>
                         <div class="form-group">
-                            <label>Data Limite (opcional)</label>
+                            <label>Data Limite</label>
                             <input type="date" name="data_limite" class="form-input">
                         </div>
                     </div>
@@ -945,14 +849,48 @@ $rotinas_total = count($rotinas);
                 <div class="modal-footer">
                     <button type="button" class="btn-cancel" onclick="fecharModalTarefa()">Cancelar</button>
                     <button type="submit" class="btn-submit">
-                        <i class="bi bi-save"></i> Salvar Tarefa
+                        <i class="bi bi-save"></i> Salvar
                     </button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Modal Nova Subtarefa -->
+    <!-- MODAL NOVA ROTINA -->
+    <div id="modalRotina" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h2><i class="bi bi-calendar-plus"></i> Nova Rotina</h2>
+                <button class="modal-close" onclick="fecharModalRotina()">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
+            <form id="formNovaRotina">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Nome</label>
+                        <input type="text" name="nome" class="form-input" placeholder="Ex: Exercício matinal" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Horário (opcional)</label>
+                        <input type="time" name="horario" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label>Descrição</label>
+                        <textarea name="descricao" class="form-input" rows="3" placeholder="Detalhes da rotina"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancel" onclick="fecharModalRotina()">Cancelar</button>
+                    <button type="submit" class="btn-submit">
+                        <i class="bi bi-save"></i> Criar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL NOVA SUBTAREFA -->
     <div id="modalSubtarefa" class="modal-overlay">
         <div class="modal-box">
             <div class="modal-header">
@@ -964,63 +902,25 @@ $rotinas_total = count($rotinas);
             <form id="formNovaSubtarefa">
                 <div class="modal-body">
                     <div class="form-group">
-                        <label>Descrição da Subtarefa</label>
-                        <input type="text" name="descricao" class="form-input" placeholder="Ex: Passo 1 - Preparar dados" required>
+                        <label>Descrição</label>
+                        <input type="text" name="descricao" class="form-input" placeholder="Passo a fazer" required>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn-cancel" onclick="fecharModalSubtarefa()">Cancelar</button>
                     <button type="submit" class="btn-submit">
-                        <i class="bi bi-save"></i> Salvar Subtarefa
+                        <i class="bi bi-save"></i> Adicionar
                     </button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Modal Nova Rotina Fixa -->
-    <div id="modalRotina" class="modal-overlay">
-        <div class="modal-box">
-            <div class="modal-header">
-                <h2><i class="bi bi-calendar-plus"></i> Nova Rotina Fixa</h2>
-                <button class="modal-close" onclick="fecharModalRotina()">
-                    <i class="bi bi-x"></i>
-                </button>
-            </div>
-            <form id="formNovaRotina">
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label>Nome da Rotina</label>
-                        <input type="text" name="nome" class="form-input" placeholder="Ex: Exercício matinal" required>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Horário Sugerido (opcional)</label>
-                            <input type="time" name="horario" class="form-input">
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Descrição (opcional)</label>
-                        <textarea name="descricao" class="form-input" rows="3" placeholder="Ex: 30 minutos de musculação no ginásio"></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn-cancel" onclick="fecharModalRotina()">Cancelar</button>
-                    <button type="submit" class="btn-submit">
-                        <i class="bi bi-save"></i> Criar Rotina
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Modal Editar Rotina Fixa -->
+    <!-- MODAL EDITAR ROTINA -->
     <div id="modalEditarRotina" class="modal-overlay">
         <div class="modal-box">
             <div class="modal-header">
-                <h2><i class="bi bi-pencil"></i> Editar Rotina Fixa</h2>
+                <h2><i class="bi bi-pencil"></i> Editar Rotina</h2>
                 <button class="modal-close" onclick="fecharModalEditarRotina()">
                     <i class="bi bi-x"></i>
                 </button>
@@ -1028,71 +928,28 @@ $rotinas_total = count($rotinas);
             <form id="formEditarRotina">
                 <div class="modal-body">
                     <div class="form-group">
-                        <label>Nome da Rotina</label>
-                        <input type="text" name="nome" class="form-input" placeholder="Ex: Exercício matinal" required>
+                        <label>Nome</label>
+                        <input type="text" name="nome" class="form-input" required>
                     </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Horário Sugerido (opcional)</label>
-                            <input type="time" name="horario" class="form-input">
-                        </div>
-                    </div>
-
                     <div class="form-group">
-                        <label>Descrição (opcional)</label>
-                        <textarea name="descricao" class="form-input" rows="3" placeholder="Ex: 30 minutos de musculação no ginásio"></textarea>
+                        <label>Horário</label>
+                        <input type="time" name="horario" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label>Descrição</label>
+                        <textarea name="descricao" class="form-input" rows="3"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn-cancel" onclick="fecharModalEditarRotina()">Cancelar</button>
                     <button type="submit" class="btn-submit">
-                        <i class="bi bi-save"></i> Salvar Alterações
+                        <i class="bi bi-save"></i> Salvar
                     </button>
                 </div>
             </form>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="assets/js/tarefas.js"></script>
-    
-    <script>
-        // Inicializar eventos quando o DOM estiver pronto
-        document.addEventListener('DOMContentLoaded', () => {
-            TarefasApp.inicializarEventos();
-        });
-        
-        // Funções globais para compatibilidade com HTML
-        function abrirModalTarefa() { TarefasApp.modal.abrirTarefa(); }
-        function fecharModalTarefa() { TarefasApp.modal.fecharTarefa(); }
-        function abrirModalSubtarefa(id) { TarefasApp.modal.abrirSubtarefa(id); }
-        function fecharModalSubtarefa() { TarefasApp.modal.fecharSubtarefa(); }
-        function abrirModalRotina() { TarefasApp.modal.abrirRotina(); }
-        function fecharModalRotina() { TarefasApp.modal.fecharRotina(); }
-        
-        function completarTarefa(id) { TarefasApp.tarefa.completar(id); }
-        function editarTarefa(id) { TarefasApp.tarefa.editar(id); }
-        function deletarTarefa(id) { TarefasApp.tarefa.deletar(id); }
-        function confirmarDeletarTarefa(id) { TarefasApp.tarefa.confirmarDeletacao(id); }
-        
-        function completarRotina(controleId) { TarefasApp.rotina.completar(controleId); }
-        function abrirModalEditarRotina(id) { TarefasApp.rotina.abrirEditar(id); }
-        function fecharModalEditarRotina() { TarefasApp.rotina.fecharEditar(); }
-        function deletarRotina(id) { TarefasApp.rotina.deletar(id); }
-        
-        function toggleSubtasks(header) { TarefasApp.subtarefa.toggleLista(header); }
-        function toggleSubtarefa(id) { TarefasApp.subtarefa.toggle(id); }
-        function deletarSubtarefa(subId, taskId) { TarefasApp.subtarefa.deletar(subId, taskId); }
-        
-        function htmlEscape(str) {
-            return String(str)
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#039;');
-        }
-    </script>
+    <script src="assets/js/tarefas-novo.js"></script>
 </body>
 </html>
