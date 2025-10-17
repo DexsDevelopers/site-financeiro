@@ -284,10 +284,29 @@ const TarefasApp = {
 
                 const data = await response.json();
                 if (data.success) {
-                    location.reload();
+                    // Encontrar o item de rotina e atualizar visualmente
+                    const rotinaItem = document.querySelector(`[data-rotina-id="${controleId}"]`);
+                    if (rotinaItem) {
+                        const checkbox = rotinaItem.querySelector('.item-checkbox');
+                        const statusSpan = rotinaItem.querySelector('.item-status');
+                        
+                        // Alternar status
+                        if (data.status_novo === 'concluido') {
+                            rotinaItem.classList.add('concluido');
+                            checkbox.checked = true;
+                            if (statusSpan) statusSpan.textContent = '✓ Concluído';
+                        } else {
+                            rotinaItem.classList.remove('concluido');
+                            checkbox.checked = false;
+                            if (statusSpan) statusSpan.textContent = '⟲ Pendente';
+                        }
+                    }
+                } else {
+                    alert('Erro: ' + data.message);
                 }
             } catch (error) {
                 console.error('Erro ao completar rotina:', error);
+                alert('Erro ao atualizar rotina');
             }
         },
 
