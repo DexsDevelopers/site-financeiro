@@ -798,7 +798,26 @@ body {
 
         function deletarTarefa(id) {
             if (confirm('Tem certeza?')) {
-                window.location.href = `excluir_tarefa.php?id=${id}`;
+                fetch('excluir_tarefa.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id })
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        const item = document.querySelector(`[data-task-id="${id}"]`);
+                        item.style.opacity = '0.6';
+                        setTimeout(() => item.remove(), 300);
+                        alert('Tarefa excluída com sucesso!');
+                    } else {
+                        alert('Erro: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro:', error);
+                    alert('Erro ao excluir tarefa');
+                });
             }
         }
 
