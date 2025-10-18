@@ -298,17 +298,19 @@ function salvarSubtarefaRapido() {
 }
 
 function toggleSubtarefasVisibilidade(element) {
-    const subtasks = element.closest('.item').querySelector('.subtasks');
+    const container = element.closest('.subtasks-container');
+    const content = container.querySelector('.subtasks-content');
     const icon = element.querySelector('i');
+    const toolbar = element.closest('.subtasks-toolbar');
     
-    if (!subtasks) return;
+    if (!content) return;
     
-    if (subtasks.style.display === 'none' || !subtasks.style.display) {
-        subtasks.style.display = 'flex';
-        subtasks.style.flexDirection = 'column';
+    // Toggle display
+    if (content.style.display === 'none') {
+        content.style.display = 'flex';
         icon.className = 'bi bi-chevron-down';
     } else {
-        subtasks.style.display = 'none';
+        content.style.display = 'none';
         icon.className = 'bi bi-chevron-right';
     }
 }
