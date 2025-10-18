@@ -1,7 +1,17 @@
+// ===== CONFIGURAÇÃO INICIAL =====
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar atalhos de teclado e animações
+    initializeKeyboardShortcuts();
+    initializeAnimations();
+});
+
 // ===== MODAIS =====
 function abrirModalTarefa() {
-    document.getElementById('modalTarefa').classList.add('active');
-    document.querySelector('#formNovaTarefa input[name="descricao"]').focus();
+    const modal = document.getElementById('modalTarefa');
+    modal.classList.add('active');
+    setTimeout(() => {
+        document.querySelector('#formNovaTarefa input[name="descricao"]').focus();
+    }, 100);
 }
 
 function fecharModalTarefa() {
@@ -45,7 +55,7 @@ function abrirModalEditarRotina(rotinaId) {
                 document.getElementById('formEditarRotina').dataset.rotinaId = rotinaId;
             }
         })
-        .catch(e => alert('Erro ao carregar rotina'));
+        .catch(e => Toast.info('Erro ao carregar rotina'));
 }
 
 function fecharModalEditarRotina() {
@@ -82,7 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const descricao = formData.get('descricao')?.trim();
             
             if (!descricao) {
-                alert('⚠️ Descrição é obrigatória');
+                Toast.warning('Descrição é obrigatória');
                 return;
             }
 
@@ -97,16 +107,16 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(r => r.json())
             .then(data => {
                 if (data.success) {
-                    alert('✅ Tarefa adicionada!');
+                    Toast.success(' Tarefa adicionada!');
                     location.reload();
                 } else {
-                    alert('❌ ' + data.message);
+                    Toast.error(' ' + data.message);
                     btn.disabled = false;
                     btn.textContent = 'Salvar';
                 }
             })
             .catch(e => {
-                alert('❌ Erro ao salvar');
+                Toast.error('Erro ao salvar. Tente novamente.');
                 btn.disabled = false;
                 btn.textContent = 'Salvar';
             });
@@ -122,7 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const nome = formData.get('nome')?.trim();
             
             if (!nome) {
-                alert('⚠️ Nome é obrigatório');
+                Toast.warning('Nome é obrigatório');
                 return;
             }
 
@@ -137,16 +147,16 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(r => r.json())
             .then(data => {
                 if (data.success) {
-                    alert('✅ Rotina criada!');
+                    Toast.success(' Rotina criada!');
                     location.reload();
                 } else {
-                    alert('❌ ' + data.message);
+                    Toast.error(' ' + data.message);
                     btn.disabled = false;
                     btn.innerHTML = '<i class="bi bi-save"></i> Criar';
                 }
             })
             .catch(e => {
-                alert('❌ Erro ao salvar');
+                Toast.error('Erro ao salvar. Tente novamente.');
                 btn.disabled = false;
                 btn.innerHTML = '<i class="bi bi-save"></i> Criar';
             });
@@ -161,7 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const descricao = document.querySelector('#formNovaSubtarefa input[name="descricao"]').value?.trim();
             
             if (!descricao) {
-                alert('⚠️ Descrição é obrigatória');
+                Toast.warning('Descrição é obrigatória');
                 return;
             }
 
@@ -180,16 +190,16 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(r => r.json())
             .then(data => {
                 if (data.success) {
-                    alert('✅ Subtarefa adicionada!');
+                    Toast.success(' Subtarefa adicionada!');
                     location.reload();
                 } else {
-                    alert('❌ ' + data.message);
+                    Toast.error(' ' + data.message);
                     btn.disabled = false;
                     btn.innerHTML = '<i class="bi bi-save"></i> Adicionar';
                 }
             })
             .catch(e => {
-                alert('❌ Erro ao salvar');
+                Toast.error('Erro ao salvar. Tente novamente.');
                 btn.disabled = false;
                 btn.innerHTML = '<i class="bi bi-save"></i> Adicionar';
             });
@@ -206,7 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const nome = formData.get('nome')?.trim();
             
             if (!nome) {
-                alert('⚠️ Nome é obrigatório');
+                Toast.warning('Nome é obrigatório');
                 return;
             }
 
@@ -227,16 +237,16 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(r => r.json())
             .then(data => {
                 if (data.success) {
-                    alert('✅ Rotina atualizada!');
+                    Toast.success(' Rotina atualizada!');
                     location.reload();
                 } else {
-                    alert('❌ ' + data.message);
+                    Toast.error(' ' + data.message);
                     btn.disabled = false;
                     btn.innerHTML = '<i class="bi bi-save"></i> Salvar';
                 }
             })
             .catch(e => {
-                alert('❌ Erro ao salvar');
+                Toast.error('Erro ao salvar. Tente novamente.');
                 btn.disabled = false;
                 btn.innerHTML = '<i class="bi bi-save"></i> Salvar';
             });
@@ -349,7 +359,7 @@ function editarTarefa(id) {
                     .then(r => r.json())
                     .then(data => {
                         if (data.success) {
-                            alert('✅ Tarefa atualizada!');
+                            Toast.success(' Tarefa atualizada!');
                             location.reload();
                         }
                     });
@@ -393,7 +403,7 @@ function confirmarDeletarTarefa(id) {
     .then(r => r.json())
     .then(data => {
         if (data.success) {
-            alert('✅ Tarefa deletada!');
+            Toast.success(' Tarefa deletada!');
             location.reload();
         }
     });
@@ -447,7 +457,7 @@ function confirmarDeletarRotina(id) {
     .then(r => r.json())
     .then(data => {
         if (data.success) {
-            alert('✅ Rotina deletada!');
+            Toast.success(' Rotina deletada!');
             location.reload();
         }
     });
@@ -504,6 +514,84 @@ function deletarSubtarefa(id) {
             }
         });
     }
+}
+
+// ===== ATALHOS DE TECLADO =====
+function initializeKeyboardShortcuts() {
+    document.addEventListener('keydown', function(e) {
+        // Não executar atalhos se estiver digitando em input/textarea
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+            return;
+        }
+        
+        // Alt + N: Nova Tarefa
+        if (e.altKey && e.key === 'n') {
+            e.preventDefault();
+            abrirModalTarefa();
+        }
+        
+        // Alt + R: Nova Rotina
+        if (e.altKey && e.key === 'r') {
+            e.preventDefault();
+            abrirModalRotina();
+        }
+        
+        // ESC: Fechar modais
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.modal-overlay.active').forEach(modal => {
+                modal.classList.remove('active');
+            });
+        }
+        
+        // Ctrl + /: Buscar
+        if (e.ctrlKey && e.key === '/') {
+            e.preventDefault();
+            document.getElementById('searchInput')?.focus();
+        }
+    });
+}
+
+// ===== ANIMAÇÕES E EFEITOS =====
+function initializeAnimations() {
+    // Adicionar efeito de conclusão aos checkboxes
+    document.querySelectorAll('.item-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const item = this.closest('.item');
+            if (this.checked) {
+                item.classList.add('completing');
+                setTimeout(() => {
+                    item.classList.add('concluido');
+                    item.classList.remove('completing');
+                }, 500);
+            } else {
+                item.classList.remove('concluido');
+            }
+        });
+    });
+    
+    // Animação de hover nos botões
+    document.querySelectorAll('.btn, .btn-action').forEach(btn => {
+        btn.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-2px)';
+        });
+        btn.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+        });
+    });
+    
+    // Lazy loading para itens
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+            }
+        });
+    }, { threshold: 0.1 });
+    
+    document.querySelectorAll('.item').forEach(item => {
+        observer.observe(item);
+    });
 }
 
 // ===== UTILIDADES =====

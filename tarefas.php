@@ -101,28 +101,42 @@ $rotinas_total = count($rotinas);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tarefas - Painel</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/tarefas.css">
+    <link rel="stylesheet" href="assets/css/tarefas.css">
+    <link rel="stylesheet" href="assets/css/toast.css">
 </head>
 <body>
     <div class="container">
         <!-- HEADER -->
         <div class="header">
             <h1><i class="bi bi-check2-all"></i> Tarefas</h1>
+            <div class="header-subtitle">Gerencie suas tarefas e rotinas diárias</div>
             
             <div class="stats">
-                <div class="stat">
-                    <span class="stat-value" style="color: #ff6b6b;"><?php echo $stats['Alta']; ?></span>
-                    <span>Alta</span>
+                <div class="stat stat-alta">
+                    <div class="stat-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+                    <div class="stat-content">
+                        <span class="stat-value"><?php echo $stats['Alta']; ?></span>
+                        <span class="stat-label">Alta Prioridade</span>
+                    </div>
                 </div>
-                <div class="stat">
-                    <span class="stat-value" style="color: #6bcf7f;"><?php echo $rotinas_concluidas; ?>/<?php echo $rotinas_total; ?></span>
-                    <span>Rotinas</span>
+                <div class="stat stat-rotinas">
+                    <div class="stat-icon"><i class="bi bi-calendar-check-fill"></i></div>
+                    <div class="stat-content">
+                        <span class="stat-value"><?php echo $rotinas_concluidas; ?>/<?php echo $rotinas_total; ?></span>
+                        <span class="stat-label">Rotinas Hoje</span>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: <?php echo $rotinas_total > 0 ? ($rotinas_concluidas / $rotinas_total * 100) : 0; ?>%"></div>
+                        </div>
+                    </div>
                 </div>
-                <div class="stat">
-                    <span class="stat-value"><?php echo $stats['total']; ?></span>
-                    <span>Tarefas</span>
+                <div class="stat stat-total">
+                    <div class="stat-icon"><i class="bi bi-list-task"></i></div>
+                    <div class="stat-content">
+                        <span class="stat-value"><?php echo $stats['total']; ?></span>
+                        <span class="stat-label">Total Pendentes</span>
+                    </div>
                 </div>
-    </div>
+            </div>
 
             <div class="actions">
                 <button class="btn" onclick="abrirModalTarefa()">
@@ -417,6 +431,7 @@ $rotinas_total = count($rotinas);
 	</div>
 </div>
 
+    <script src="assets/js/toast.js"></script>
     <script src="assets/js/tarefas-novo.js"></script>
     <script src="assets/js/melhorias-v2.js"></script>
 </body>
