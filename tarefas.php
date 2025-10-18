@@ -784,14 +784,14 @@ $rotinas_total = count($rotinas);
                         <?php $subs = $subtarefasPorTarefa[$task['id']] ?? []; ?>
                         <?php if (!empty($subs)): ?>
                             <div class="subtasks">
-                                <div class="subtasks-header" onclick="toggleSubtasks(this)">
+                                <div class="subtasks-header" onclick="toggleSubtarefasVisibilidade(this)">
                                     <i class="bi bi-chevron-down"></i>
-                                    <span>Subtarefas (<?php 
+                                    <span style="flex: 1;">📋 Subtarefas (<?php 
                                         $concluidas = count(array_filter($subs, fn($s) => $s['status'] === 'concluida'));
                                         echo $concluidas . '/' . count($subs);
                                     ?>)</span>
-                                    <button class="btn-icon" onclick="abrirModalSubtarefa(<?php echo $task['id']; ?>); event.stopPropagation();" style="margin-left: auto;" title="Adicionar">
-                                        <i class="bi bi-plus"></i>
+                                    <button class="btn-icon" onclick="abrirAdicionarSubtarefa(<?php echo $task['id']; ?>); event.stopPropagation();" style="margin-left: auto;" title="Adicionar Subtarefa">
+                                        <i class="bi bi-plus-circle"></i>
                                     </button>
                                 </div>
                                 
@@ -799,17 +799,27 @@ $rotinas_total = count($rotinas);
                                     <?php foreach ($subs as $sub): ?>
                                         <div class="subtask-item">
                                             <input type="checkbox" class="subtask-checkbox" 
-                                                   data-id="<?php echo $sub['id']; ?>"
+                                                   data-sub-id="<?php echo $sub['id']; ?>"
                                                    <?php echo $sub['status'] === 'concluida' ? 'checked' : ''; ?>
-                                                   onchange="toggleSubtarefa(<?php echo $sub['id']; ?>)">
-                                            <label class="subtask-label <?php echo $sub['status'] === 'concluida' ? 'completed' : ''; ?>">
+                                                   onchange="marcarSubtarefaConcluida(<?php echo $sub['id']; ?>)">
+                                            <label class="subtask-label <?php echo $sub['status'] === 'concluida' ? 'completed' : ''; ?>" 
+                                                   onclick="marcarSubtarefaConcluida(<?php echo $sub['id']; ?>)">
                                                 <?php echo htmlspecialchars($sub['descricao']); ?>
                                             </label>
-                                            <button class="btn-icon" onclick="deletarSubtarefa(<?php echo $sub['id']; ?>);" title="Deletar">
-                                                <i class="bi bi-x"></i>
+                                            <button class="btn-icon" onclick="deletarSubtarefaRapido(<?php echo $sub['id']; ?>); event.stopPropagation();" title="Deletar" style="opacity: 0.5;">
+                                                <i class="bi bi-x-circle"></i>
                                             </button>
                                         </div>
                                     <?php endforeach; ?>
+                                </div>
+                            </div>
+                        <?php else: ?>
+                            <div class="subtasks">
+                                <div class="subtasks-header" style="color: #888; justify-content: space-between;">
+                                    <span>📋 Sem subtarefas</span>
+                                    <button class="btn-icon" onclick="abrirAdicionarSubtarefa(<?php echo $task['id']; ?>)" style="margin-left: auto; color: #6bcf7f;" title="Adicionar Subtarefa">
+                                        <i class="bi bi-plus-circle"></i> Adicionar
+                                    </button>
                                 </div>
                             </div>
                         <?php endif; ?>

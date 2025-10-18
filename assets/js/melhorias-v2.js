@@ -5,6 +5,7 @@
  * 1. Dark/Light Toggle (Melhoria #9)
  * 2. Drag & Drop para Ordenar (Melhoria #5)
  * 3. Suporte a Categorias/Tags (Melhoria #6)
+ * 4. Subtarefas Melhoradas (Nova)
  */
 
 // ===== 1. DARK/LIGHT MODE TOGGLE =====
@@ -217,6 +218,137 @@ function deletarCategoria(id) {
     .then(data => {
         if (data.success) {
             carregarCategorias();
+        }
+    });
+}
+
+// ===== 4. SUBTAREFAS MELHORADAS =====
+function abrirAdicionarSubtarefa(tarefaId) {
+    window.tarefaIdAtual = tarefaId;
+    
+    // Criar modal dinâmico
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay active';
+    modal.id = 'modalSubtarefaRapida';
+    modal.innerHTML = `
+        <div class="modal-box">
+            <div class="modal-header">
+                <h2><i class="bi bi-plus-circle"></i> Adicionar Subtarefa</h2>
+                <button class="modal-close" onclick="document.getElementById('modalSubtarefaRapida').remove()">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Descrição da Subtarefa</label>
+                    <input type="text" id="descricaoSubtarefa" class="form-input" placeholder="O que é preciso fazer?" autofocus>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-cancel" onclick="document.getElementById('modalSubtarefaRapida').remove()">
+                    Cancelar
+                </button>
+                <button type="button" class="btn-submit" onclick="salvarSubtarefaRapido()">
+                    <i class="bi bi-save"></i> Adicionar
+                </button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    
+    // Fechar ao clicar no overlay
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.remove();
+    });
+    
+    // Enviar com Enter
+    document.getElementById('descricaoSubtarefa').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') salvarSubtarefaRapido();
+    });
+}
+
+function salvarSubtarefaRapido() {
+    const descricao = document.getElementById('descricaoSubtarefa').value?.trim();
+    
+    if (!descricao) {
+        alert('⚠️ Descrição é obrigatória');
+        return;
+    }
+    
+    if (!window.tarefaIdAtual) {
+        alert('❌ Erro: tarefa não identificada');
+        return;
+    }
+    
+    fetch('adicionar_subtarefa.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `id_tarefa_principal=${window.tarefaIdAtual}&descricao=${encodeURIComponent(descricao)}`
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ Subtarefa adicionada!');
+            location.reload();
+        } else {
+            alert('❌ Erro: ' + data.message);
+        }
+    })
+    .catch(e => alert('❌ Erro ao salvar: ' + e.message));
+}
+
+function toggleSubtarefasVisibilidade(element) {
+    const subtasks = element.closest('.item').querySelector('.subtasks');
+    const icon = element.querySelector('i');
+    
+    if (!subtasks) return;
+    
+    if (subtasks.style.display === 'none' || !subtasks.style.display) {
+        subtasks.style.display = 'flex';
+        subtasks.style.flexDirection = 'column';
+        icon.className = 'bi bi-chevron-down';
+    } else {
+        subtasks.style.display = 'none';
+        icon.className = 'bi bi-chevron-right';
+    }
+}
+
+function marcarSubtarefaConcluida(id) {
+    const checkbox = document.querySelector(`[data-sub-id="${id}"]`);
+    const label = checkbox.closest('.subtask-item').querySelector('.subtask-label');
+    const status = checkbox.checked ? 'concluida' : 'pendente';
+    
+    fetch('atualizar_subtarefa_status.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            if (status === 'concluida') {
+                label.classList.add('completed');
+            } else {
+                label.classList.remove('completed');
+            }
+        }
+    });
+}
+
+function deletarSubtarefaRapido(id) {
+    if (!confirm('Deletar esta subtarefa?')) return;
+    
+    fetch('deletar_subtarefa.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            const item = document.querySelector(`[data-sub-id="${id}"]`).closest('.subtask-item');
+            item.style.opacity = '0';
+            setTimeout(() => item.remove(), 300);
         }
     });
 }
