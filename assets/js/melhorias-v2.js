@@ -310,8 +310,15 @@ function marcarSubtarefaConcluida(id) {
     const checkbox = document.querySelector(`[data-sub-id="${id}"]`);
     if (!checkbox) return;
     
-    const label = checkbox.closest('.subtask-row')?.querySelector('.subtask-text');
+    const row = checkbox.closest('.subtask-row');
+    const label = row?.querySelector('.subtask-text');
     const status = checkbox.checked ? 'concluida' : 'pendente';
+    
+    // Feedback visual imediato
+    if (row) {
+        row.style.transition = 'all 0.3s ease';
+        row.style.opacity = '0.5';
+    }
     
     fetch('atualizar_subtarefa_status.php', {
         method: 'POST',
@@ -321,36 +328,132 @@ function marcarSubtarefaConcluida(id) {
     .then(r => r.json())
     .then(data => {
         if (data.success) {
-            const row = checkbox.closest('.subtask-row');
-            if (status === 'concluida') {
-                row?.classList.add('completed');
-                if (label) label.classList.add('completed');
-            } else {
-                row?.classList.remove('completed');
-                if (label) label.classList.remove('completed');
+            if (row) {
+                row.style.opacity = '1';
+                if (status === 'concluida') {
+                    row.classList.add('completed');
+                    Toast.success('Subtarefa concluída!');
+                } else {
+                    row.classList.remove('completed');
+                    Toast.info('Subtarefa reaberta');
+                }
             }
+            // Atualizar contador
+            updateSubtaskCounter(row?.closest('.subtasks-container'));
+        } else {
+            if (row) row.style.opacity = '1';
+            checkbox.checked = !checkbox.checked;
+            Toast.error('Erro ao atualizar subtarefa');
         }
+    })
+    .catch(err => {
+        if (row) row.style.opacity = '1';
+        checkbox.checked = !checkbox.checked;
+        Toast.error('Erro de conexão');
+        console.error(err);
     });
 }
 
 function deletarSubtarefaRapido(id) {
-    if (!confirm('Deletar esta subtarefa?')) return;
+    // Criar modal de confirmação customizado
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay active';
+    modal.innerHTML = `
+        <div class="modal-box modal-confirm" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2><i class="bi bi-trash"></i> Confirmar Exclusão</h2>
+                <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 14px; margin-bottom: 10px;">Tem certeza que deseja deletar esta subtarefa?</p>
+                <p style="font-size: 12px; color: var(--text-muted);">Esta ação não pode ser desfeita.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="this.closest('.modal-overlay').remove()">Cancelar</button>
+                <button class="btn-submit" style="background: var(--danger);" id="confirmDeleteSub">
+                    <i class="bi bi-trash"></i> Deletar
+                </button>
+            </div>
+        </div>
+    `;
     
-    fetch('deletar_subtarefa.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id })
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) {
-            const item = document.querySelector(`[data-sub-id="${id}"]`)?.closest('.subtask-row');
-            if (item) {
-                item.style.opacity = '0';
-                setTimeout(() => item.remove(), 300);
+    document.body.appendChild(modal);
+    
+    // Adicionar evento ao botão de confirmação
+    document.getElementById('confirmDeleteSub').onclick = function() {
+        const btn = this;
+        btn.innerHTML = '<span class="loading"><span></span><span></span><span></span></span>';
+        btn.disabled = true;
+        
+        fetch('deletar_subtarefa.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                // Encontrar e remover a subtarefa com animação
+                const item = document.querySelector(`[data-sub-id="${id}"]`)?.closest('.subtask-row');
+                if (item) {
+                    item.style.animation = 'slideOutRight 0.3s ease forwards';
+                    setTimeout(() => {
+                        const container = item.closest('.subtasks-container');
+                        item.remove();
+                        
+                        // Verificar se ainda há subtarefas
+                        if (container) {
+                            const remaining = container.querySelectorAll('.subtask-row').length;
+                            if (remaining === 0) {
+                                // Se não há mais subtarefas, mostrar botão de adicionar
+                                container.innerHTML = `
+                                    <button class="btn-add-subtask-empty" onclick="abrirModalSubtarefa(${container.closest('[data-task-id]')?.dataset.taskId})" title="Adicionar Subtarefa">
+                                        <i class="bi bi-plus-circle"></i>
+                                        <span>Adicionar Subtarefa</span>
+                                    </button>
+                                `;
+                            } else {
+                                updateSubtaskCounter(container);
+                            }
+                        }
+                    }, 300);
+                }
+                modal.remove();
+                Toast.success('Subtarefa deletada com sucesso!');
+            } else {
+                btn.innerHTML = '<i class="bi bi-trash"></i> Deletar';
+                btn.disabled = false;
+                Toast.error(data.message || 'Erro ao deletar subtarefa');
             }
-        }
-    });
+        })
+        .catch(err => {
+            btn.innerHTML = '<i class="bi bi-trash"></i> Deletar';
+            btn.disabled = false;
+            Toast.error('Erro de conexão');
+            console.error(err);
+        });
+    };
+}
+
+// Função auxiliar para atualizar contador de subtarefas
+function updateSubtaskCounter(container) {
+    if (!container) return;
+    
+    const counter = container.querySelector('.subtasks-count');
+    if (!counter) return;
+    
+    const total = container.querySelectorAll('.subtask-row').length;
+    const completed = container.querySelectorAll('.subtask-row.completed').length;
+    counter.textContent = `(${completed}/${total})`;
+    
+    // Atualizar progress bar se existir
+    const progressBar = container.querySelector('.subtask-progress');
+    if (progressBar) {
+        const percentage = total > 0 ? (completed / total * 100) : 0;
+        progressBar.style.width = `${percentage}%`;
+    }
 }
 
 // ===== INICIALIZAÇÃO =====

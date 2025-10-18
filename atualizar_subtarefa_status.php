@@ -33,6 +33,21 @@ try {
         $status = 'pendente';
     }
 
+    // Verificar se a subtarefa pertence ao usuário
+    $checkStmt = $pdo->prepare("
+        SELECT s.id 
+        FROM subtarefas s
+        INNER JOIN tarefas t ON s.id_tarefa_principal = t.id
+        WHERE s.id = ? AND t.id_usuario = ?
+    ");
+    $checkStmt->execute([$id, $userId]);
+    
+    if (!$checkStmt->fetch()) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'Acesso negado']);
+        exit;
+    }
+
     $stmt = $pdo->prepare("UPDATE subtarefas SET status = ? WHERE id = ?");
     $stmt->execute([$status, $id]);
 
