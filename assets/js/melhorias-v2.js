@@ -226,49 +226,38 @@ function deletarCategoria(id) {
 function abrirAdicionarSubtarefa(tarefaId) {
     window.tarefaIdAtual = tarefaId;
     
-    // Criar modal dinâmico
-    const modal = document.createElement('div');
-    modal.className = 'modal-overlay active';
-    modal.id = 'modalSubtarefaRapida';
-    modal.innerHTML = `
-        <div class="modal-box">
-            <div class="modal-header">
-                <h2><i class="bi bi-plus-circle"></i> Adicionar Subtarefa</h2>
-                <button class="modal-close" onclick="document.getElementById('modalSubtarefaRapida').remove()">
-                    <i class="bi bi-x"></i>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label>Descrição da Subtarefa</label>
-                    <input type="text" id="descricaoSubtarefa" class="form-input" placeholder="O que é preciso fazer?" autofocus>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn-cancel" onclick="document.getElementById('modalSubtarefaRapida').remove()">
-                    Cancelar
-                </button>
-                <button type="button" class="btn-submit" onclick="salvarSubtarefaRapido()">
-                    <i class="bi bi-save"></i> Adicionar
-                </button>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(modal);
+    // Criar modal simples e direto
+    const descricao = prompt('🆕 Descrição da Subtarefa:');
     
-    // Fechar ao clicar no overlay
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) modal.remove();
-    });
+    if (!descricao || !descricao.trim()) {
+        return; // Cancelou ou vazio
+    }
     
-    // Enviar com Enter
-    document.getElementById('descricaoSubtarefa').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') salvarSubtarefaRapido();
+    // Enviar para servidor
+    const formData = new FormData();
+    formData.append('id_tarefa_principal', tarefaId);
+    formData.append('descricao', descricao.trim());
+    
+    fetch('adicionar_subtarefa.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ Subtarefa adicionada!');
+            location.reload();
+        } else {
+            alert('❌ Erro: ' + (data.message || 'Erro ao adicionar'));
+        }
+    })
+    .catch(e => {
+        alert('❌ Erro ao salvar: ' + e.message);
     });
 }
 
 function salvarSubtarefaRapido() {
-    const descricao = document.getElementById('descricaoSubtarefa').value?.trim();
+    const descricao = document.getElementById('descricaoSubtarefa')?.value?.trim();
     
     if (!descricao) {
         alert('⚠️ Descrição é obrigatória');
@@ -280,10 +269,13 @@ function salvarSubtarefaRapido() {
         return;
     }
     
+    const formData = new FormData();
+    formData.append('id_tarefa_principal', window.tarefaIdAtual);
+    formData.append('descricao', descricao);
+    
     fetch('adicionar_subtarefa.php', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `id_tarefa_principal=${window.tarefaIdAtual}&descricao=${encodeURIComponent(descricao)}`
+        body: formData
     })
     .then(r => r.json())
     .then(data => {
@@ -291,7 +283,7 @@ function salvarSubtarefaRapido() {
             alert('✅ Subtarefa adicionada!');
             location.reload();
         } else {
-            alert('❌ Erro: ' + data.message);
+            alert('❌ Erro: ' + (data.message || 'Erro ao adicionar'));
         }
     })
     .catch(e => alert('❌ Erro ao salvar: ' + e.message));
@@ -299,9 +291,8 @@ function salvarSubtarefaRapido() {
 
 function toggleSubtarefasVisibilidade(element) {
     const container = element.closest('.subtasks-container');
-    const content = container.querySelector('.subtasks-content');
+    const content = container?.querySelector('.subtasks-content');
     const icon = element.querySelector('i');
-    const toolbar = element.closest('.subtasks-toolbar');
     
     if (!content) return;
     
@@ -317,7 +308,9 @@ function toggleSubtarefasVisibilidade(element) {
 
 function marcarSubtarefaConcluida(id) {
     const checkbox = document.querySelector(`[data-sub-id="${id}"]`);
-    const label = checkbox.closest('.subtask-item').querySelector('.subtask-label');
+    if (!checkbox) return;
+    
+    const label = checkbox.closest('.subtask-row')?.querySelector('.subtask-text');
     const status = checkbox.checked ? 'concluida' : 'pendente';
     
     fetch('atualizar_subtarefa_status.php', {
@@ -328,10 +321,13 @@ function marcarSubtarefaConcluida(id) {
     .then(r => r.json())
     .then(data => {
         if (data.success) {
+            const row = checkbox.closest('.subtask-row');
             if (status === 'concluida') {
-                label.classList.add('completed');
+                row?.classList.add('completed');
+                if (label) label.classList.add('completed');
             } else {
-                label.classList.remove('completed');
+                row?.classList.remove('completed');
+                if (label) label.classList.remove('completed');
             }
         }
     });
@@ -348,9 +344,11 @@ function deletarSubtarefaRapido(id) {
     .then(r => r.json())
     .then(data => {
         if (data.success) {
-            const item = document.querySelector(`[data-sub-id="${id}"]`).closest('.subtask-item');
-            item.style.opacity = '0';
-            setTimeout(() => item.remove(), 300);
+            const item = document.querySelector(`[data-sub-id="${id}"]`)?.closest('.subtask-row');
+            if (item) {
+                item.style.opacity = '0';
+                setTimeout(() => item.remove(), 300);
+            }
         }
     });
 }
