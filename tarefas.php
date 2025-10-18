@@ -160,7 +160,7 @@ $rotinas_total = count($rotinas);
                 <option value="Média">Média</option>
                 <option value="Baixa">Baixa</option>
             </select>
-        </div>
+    </div>
 
         <!-- ROTINAS -->
         <div class="section">

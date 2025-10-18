@@ -355,25 +355,38 @@ function marcarSubtarefaConcluida(id) {
 }
 
 function deletarSubtarefaRapido(id) {
-    // Criar modal de confirmação customizado
+    console.log('🗑️ Iniciando exclusão da subtarefa ID:', id);
+    
+    // Criar modal de confirmação customizado e moderno
     const modal = document.createElement('div');
     modal.className = 'modal-overlay active';
+    modal.style.zIndex = '10000';
     modal.innerHTML = `
-        <div class="modal-box modal-confirm" style="max-width: 400px;">
-            <div class="modal-header">
-                <h2><i class="bi bi-trash"></i> Confirmar Exclusão</h2>
-                <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">
-                    <i class="bi bi-x"></i>
+        <div class="modal-box modal-confirm" style="max-width: 420px; animation: bounceIn 0.3s ease;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
+                <h2 style="display: flex; align-items: center; gap: 10px; margin: 0; color: white;">
+                    <i class="bi bi-trash3-fill" style="font-size: 22px;"></i>
+                    <span>Excluir Subtarefa</span>
+                </h2>
+                <button class="modal-close" onclick="this.closest('.modal-overlay').remove()" style="color: white; opacity: 0.9;">
+                    <i class="bi bi-x-lg"></i>
                 </button>
             </div>
-            <div class="modal-body">
-                <p style="font-size: 14px; margin-bottom: 10px;">Tem certeza que deseja deletar esta subtarefa?</p>
-                <p style="font-size: 12px; color: var(--text-muted);">Esta ação não pode ser desfeita.</p>
+            <div class="modal-body" style="padding: 25px;">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <div style="width: 60px; height: 60px; margin: 0 auto 15px; background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(255,107,107,0.3);">
+                        <i class="bi bi-exclamation-triangle" style="font-size: 28px; color: white;"></i>
+                    </div>
+                    <p style="font-size: 16px; font-weight: 600; margin-bottom: 8px; color: var(--text);">Tem certeza?</p>
+                    <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5;">Esta ação não pode ser desfeita. A subtarefa será removida permanentemente.</p>
+                </div>
             </div>
-            <div class="modal-footer">
-                <button class="btn-cancel" onclick="this.closest('.modal-overlay').remove()">Cancelar</button>
-                <button class="btn-submit" style="background: var(--danger);" id="confirmDeleteSub">
-                    <i class="bi bi-trash"></i> Deletar
+            <div class="modal-footer" style="padding: 15px 25px; gap: 12px;">
+                <button class="btn-cancel" onclick="this.closest('.modal-overlay').remove()" style="flex: 1; padding: 10px;">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </button>
+                <button class="btn-submit btn-danger" id="confirmDeleteSub_${id}" style="flex: 1; padding: 10px; background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%); border: none; box-shadow: 0 4px 12px rgba(255,107,107,0.3);">
+                    <i class="bi bi-trash3"></i> Sim, Deletar
                 </button>
             </div>
         </div>
@@ -381,60 +394,110 @@ function deletarSubtarefaRapido(id) {
     
     document.body.appendChild(modal);
     
-    // Adicionar evento ao botão de confirmação
-    document.getElementById('confirmDeleteSub').onclick = function() {
+    // Adicionar evento ao botão de confirmação com ID único
+    const confirmBtn = document.getElementById(`confirmDeleteSub_${id}`);
+    if (!confirmBtn) {
+        console.error('❌ Botão de confirmação não encontrado');
+        return;
+    }
+    
+    confirmBtn.onclick = function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        console.log('✅ Confirmação clicada para ID:', id);
+        
         const btn = this;
+        const originalHTML = btn.innerHTML;
         btn.innerHTML = '<span class="loading"><span></span><span></span><span></span></span>';
         btn.disabled = true;
+        btn.style.opacity = '0.7';
+        
+        console.log('📡 Enviando requisição DELETE para:', 'deletar_subtarefa.php');
         
         fetch('deletar_subtarefa.php', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id })
+            headers: { 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ id: parseInt(id) })
         })
-        .then(r => r.json())
+        .then(response => {
+            console.log('📥 Resposta recebida, status:', response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
         .then(data => {
+            console.log('📦 Dados recebidos:', data);
+            
             if (data.success) {
                 // Encontrar e remover a subtarefa com animação
-                const item = document.querySelector(`[data-sub-id="${id}"]`)?.closest('.subtask-row');
+                const checkbox = document.querySelector(`[data-sub-id="${id}"]`);
+                console.log('🔍 Checkbox encontrado:', checkbox);
+                
+                const item = checkbox?.closest('.subtask-row');
+                console.log('🔍 Item encontrado:', item);
+                
                 if (item) {
                     item.style.animation = 'slideOutRight 0.3s ease forwards';
                     setTimeout(() => {
                         const container = item.closest('.subtasks-container');
                         item.remove();
+                        console.log('✅ Subtarefa removida do DOM');
                         
                         // Verificar se ainda há subtarefas
                         if (container) {
                             const remaining = container.querySelectorAll('.subtask-row').length;
+                            console.log('📊 Subtarefas restantes:', remaining);
+                            
                             if (remaining === 0) {
-                                // Se não há mais subtarefas, mostrar botão de adicionar
+                                const taskId = container.closest('[data-task-id]')?.dataset.taskId;
                                 container.innerHTML = `
-                                    <button class="btn-add-subtask-empty" onclick="abrirModalSubtarefa(${container.closest('[data-task-id]')?.dataset.taskId})" title="Adicionar Subtarefa">
+                                    <button class="btn-add-subtask-empty" onclick="abrirModalSubtarefa(${taskId})" title="Adicionar Subtarefa">
                                         <i class="bi bi-plus-circle"></i>
                                         <span>Adicionar Subtarefa</span>
                                     </button>
                                 `;
+                                console.log('🔄 Container atualizado para estado vazio');
                             } else {
                                 updateSubtaskCounter(container);
+                                console.log('🔄 Contador atualizado');
                             }
                         }
                     }, 300);
+                } else {
+                    console.warn('⚠️ Elemento da subtarefa não encontrado no DOM');
                 }
+                
                 modal.remove();
                 Toast.success('Subtarefa deletada com sucesso!');
+                console.log('✅ Exclusão concluída com sucesso');
             } else {
-                btn.innerHTML = '<i class="bi bi-trash"></i> Deletar';
+                console.error('❌ Erro do servidor:', data.message);
+                btn.innerHTML = originalHTML;
                 btn.disabled = false;
+                btn.style.opacity = '1';
                 Toast.error(data.message || 'Erro ao deletar subtarefa');
             }
         })
         .catch(err => {
-            btn.innerHTML = '<i class="bi bi-trash"></i> Deletar';
+            console.error('❌ Erro na requisição:', err);
+            btn.innerHTML = originalHTML;
             btn.disabled = false;
-            Toast.error('Erro de conexão');
-            console.error(err);
+            btn.style.opacity = '1';
+            Toast.error('Erro de conexão. Verifique sua internet.');
         });
     };
+    
+    // Fechar modal ao clicar fora
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            modal.remove();
+        }
+    });
 }
 
 // Função auxiliar para atualizar contador de subtarefas
