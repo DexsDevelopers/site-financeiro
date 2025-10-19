@@ -297,18 +297,46 @@ if (
         });
     }
     
-    // Mostrar notificação de atualização disponível
+    // Mostrar notificação de atualização disponível (COM CONTROLE DE FREQUÊNCIA)
     function showUpdateAvailable() {
+        // Verificar se já foi mostrado nas últimas 24 horas
+        const lastShown = localStorage.getItem('pwa-update-last-shown');
+        const now = Date.now();
+        const oneDay = 24 * 60 * 60 * 1000; // 24 horas em milissegundos
+        
+        // Se foi mostrado há menos de 24 horas, não mostrar novamente
+        if (lastShown && (now - parseInt(lastShown)) < oneDay) {
+            console.log('Modal de atualização já foi mostrado nas últimas 24h. Ignorando...');
+            return;
+        }
+        
+        // Marcar como mostrado agora
+        localStorage.setItem('pwa-update-last-shown', now.toString());
+        
         Swal.fire({
             title: 'Atualização Disponível',
             text: 'Uma nova versão do app está disponível. Deseja atualizar?',
             icon: 'info',
             showCancelButton: true,
-            confirmButtonText: 'Atualizar',
-            cancelButtonText: 'Depois'
+            showDenyButton: true,
+            confirmButtonText: 'Atualizar Agora',
+            cancelButtonText: 'Lembrar Depois',
+            denyButtonText: 'Não Mostrar Hoje',
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#6c757d',
+            denyButtonColor: '#dc3545'
         }).then((result) => {
             if (result.isConfirmed) {
+                // Atualizar agora
                 window.location.reload();
+            } else if (result.isDenied) {
+                // Não mostrar por 24 horas
+                localStorage.setItem('pwa-update-last-shown', now.toString());
+                showToast('OK', 'Não mostraremos esta notificação novamente hoje.');
+            } else {
+                // Lembrar em 1 hora
+                const oneHour = 60 * 60 * 1000;
+                localStorage.setItem('pwa-update-last-shown', (now - oneDay + oneHour).toString());
             }
         });
     }

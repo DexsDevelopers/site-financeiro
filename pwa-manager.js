@@ -255,8 +255,24 @@ class PWAManager {
     }
     
     showUpdateNotification() {
+        // ✅ CONTROLE DE FREQUÊNCIA - Não mostrar toda hora
+        const lastShown = localStorage.getItem('pwa-update-last-shown');
+        const now = Date.now();
+        const oneDay = 24 * 60 * 60 * 1000; // 24 horas
+        
+        // Se foi mostrado há menos de 24 horas, não mostrar novamente
+        if (lastShown && (now - parseInt(lastShown)) < oneDay) {
+            console.log('⏰ PWA: Modal de atualização já foi mostrado nas últimas 24h. Ignorando...');
+            return;
+        }
+        
+        // Marcar como mostrado agora
+        localStorage.setItem('pwa-update-last-shown', now.toString());
+        console.log('✅ PWA: Mostrando notificação de atualização');
+        
         const notification = document.createElement('div');
         notification.className = 'pwa-update-notification';
+        notification.id = 'pwa-update-notification';
         notification.innerHTML = `
             <div class="pwa-update-content">
                 <div class="pwa-update-icon">🔄</div>
@@ -268,8 +284,11 @@ class PWAManager {
                     <button class="btn btn-sm btn-primary" onclick="window.pwaManager.updateApp()">
                         Atualizar
                     </button>
-                    <button class="btn btn-sm btn-secondary" onclick="this.parentElement.parentElement.parentElement.remove()">
+                    <button class="btn btn-sm btn-secondary" onclick="window.pwaManager.dismissUpdate('later')">
                         Depois
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="window.pwaManager.dismissUpdate('today')" title="Não mostrar hoje">
+                        <i class="bi bi-x"></i>
                     </button>
                 </div>
             </div>
@@ -290,17 +309,35 @@ class PWAManager {
         
         document.body.appendChild(notification);
         
-        // Auto-remover após 10 segundos
+        // Auto-remover após 15 segundos (aumentado de 10)
+        setTimeout(() => {
+            this.dismissUpdate('auto');
+        }, 15000);
+    }
+    
+    dismissUpdate(reason) {
+        const notification = document.getElementById('pwa-update-notification');
+        if (!notification) return;
+        
+        const now = Date.now();
+        const oneDay = 24 * 60 * 60 * 1000;
+        const oneHour = 60 * 60 * 1000;
+        
+        if (reason === 'today') {
+            // Não mostrar por 24 horas
+            localStorage.setItem('pwa-update-last-shown', now.toString());
+            this.showNotification('✅ OK! Não mostraremos esta notificação hoje.', 'success');
+        } else if (reason === 'later') {
+            // Lembrar em 1 hora
+            localStorage.setItem('pwa-update-last-shown', (now - oneDay + oneHour).toString());
+        }
+        
+        notification.style.animation = 'slideOutRight 0.3s ease';
         setTimeout(() => {
             if (notification.parentNode) {
-                notification.style.animation = 'slideOutRight 0.3s ease';
-                setTimeout(() => {
-                    if (notification.parentNode) {
-                        notification.parentNode.removeChild(notification);
-                    }
-                }, 300);
+                notification.parentNode.removeChild(notification);
             }
-        }, 10000);
+        }, 300);
     }
     
     async updateApp() {
@@ -327,10 +364,23 @@ class PWAManager {
     async checkForUpdates() {
         if (this.serviceWorker) {
             try {
+                // ✅ CONTROLE - Só verificar a cada 6 horas (não toda vez que carrega)
+                const lastCheck = localStorage.getItem('pwa-last-update-check');
+                const now = Date.now();
+                const sixHours = 6 * 60 * 60 * 1000; // 6 horas
+                
+                if (lastCheck && (now - parseInt(lastCheck)) < sixHours) {
+                    console.log('⏰ PWA: Última verificação foi há menos de 6h. Pulando...');
+                    return;
+                }
+                
+                // Marcar horário da verificação
+                localStorage.setItem('pwa-last-update-check', now.toString());
+                
                 await this.serviceWorker.update();
-                console.log('PWA Manager: Verificação de atualizações concluída');
+                console.log('✅ PWA Manager: Verificação de atualizações concluída');
             } catch (error) {
-                console.error('PWA Manager: Erro ao verificar atualizações:', error);
+                console.error('❌ PWA Manager: Erro ao verificar atualizações:', error);
             }
         }
     }
