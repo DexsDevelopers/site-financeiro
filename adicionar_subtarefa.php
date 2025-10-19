@@ -20,7 +20,8 @@ try {
         $input = $_POST;
     }
     
-    $tarefaId = $input['tarefa_id'] ?? null;
+    // Aceitar tanto 'tarefa_id' quanto 'id_tarefa_principal' (compatibilidade)
+    $tarefaId = $input['tarefa_id'] ?? $input['id_tarefa_principal'] ?? null;
     $descricao = trim($input['descricao'] ?? '');
     
     // Validações
@@ -56,7 +57,11 @@ try {
     echo json_encode([
         'success' => true, 
         'message' => 'Subtarefa adicionada com sucesso',
-        'id' => $subtarefaId
+        'subtarefa' => [
+            'id' => $subtarefaId,
+            'descricao' => $descricao,
+            'status' => 'pendente'
+        ]
     ]);
     
 } catch (PDOException $e) {
