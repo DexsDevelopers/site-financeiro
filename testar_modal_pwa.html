@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Teste Modal PWA - Correção</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .test-container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
+        }
+        
+        .test-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .test-header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .test-header p {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .test-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .test-section h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .test-button {
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            border: none;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .test-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .btn-primary-custom {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-success-custom {
+            background: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%);
+            color: white;
+        }
+        
+        .btn-danger-custom {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%);
+            color: white;
+        }
+        
+        .btn-info-custom {
+            background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
+            color: white;
+        }
+        
+        .status-box {
+            background: #e7f3ff;
+            border-left: 4px solid #0072ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        
+        .status-box.success {
+            background: #d4edda;
+            border-left-color: #28a745;
+        }
+        
+        .status-box.warning {
+            background: #fff3cd;
+            border-left-color: #ffc107;
+        }
+        
+        .status-box.danger {
+            background: #f8d7da;
+            border-left-color: #dc3545;
+        }
+        
+        .info-label {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 5px;
+        }
+        
+        .info-value {
+            font-family: 'Courier New', monospace;
+            background: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            color: #666;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-header">
+            <h1>🧪 Teste de Correção Modal PWA</h1>
+            <p>Ferramenta para testar se o modal parou de aparecer toda hora</p>
+        </div>
+        
+        <div class="test-section">
+            <h3><i class="bi bi-info-circle-fill text-primary"></i> Status Atual</h3>
+            
+            <div class="info-label">Última vez que modal foi mostrado:</div>
+            <div class="info-value" id="lastShown">Nunca foi mostrado</div>
+            
+            <div class="info-label mt-3">Última verificação de atualização:</div>
+            <div class="info-value" id="lastCheck">Nunca foi verificado</div>
+            
+            <div class="info-label mt-3">Tempo até poder mostrar novamente:</div>
+            <div class="info-value" id="timeRemaining">Disponível agora</div>
+        </div>
+        
+        <div class="test-section">
+            <h3><i class="bi bi-play-circle-fill text-success"></i> Ações de Teste</h3>
+            
+            <button class="test-button btn-primary-custom" onclick="forceShowModal()">
+                <i class="bi bi-eye"></i>
+                Forçar Mostrar Modal (Teste)
+            </button>
+            
+            <button class="test-button btn-success-custom" onclick="checkCanShow()">
+                <i class="bi bi-check-circle"></i>
+                Verificar se Modal Pode Aparecer
+            </button>
+            
+            <button class="test-button btn-danger-custom" onclick="clearStorage()">
+                <i class="bi bi-trash"></i>
+                Limpar Controles (Reset)
+            </button>
+            
+            <button class="test-button btn-info-custom" onclick="simulateWait()">
+                <i class="bi bi-clock"></i>
+                Simular Passagem de 24h
+            </button>
+        </div>
+        
+        <div id="resultBox"></div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        // Atualizar status na página
+        function updateStatus() {
+            const lastShown = localStorage.getItem('pwa-update-last-shown');
+            const lastCheck = localStorage.getItem('pwa-last-update-check');
+            
+            // Última vez mostrado
+            if (lastShown) {
+                const date = new Date(parseInt(lastShown));
+                document.getElementById('lastShown').textContent = date.toLocaleString('pt-BR');
+                
+                // Calcular tempo restante
+                const now = Date.now();
+                const oneDay = 24 * 60 * 60 * 1000;
+                const elapsed = now - parseInt(lastShown);
+                const remaining = oneDay - elapsed;
+                
+                if (remaining > 0) {
+                    const hours = Math.floor(remaining / (1000 * 60 * 60));
+                    const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+                    document.getElementById('timeRemaining').textContent = `${hours}h ${minutes}min`;
+                } else {
+                    document.getElementById('timeRemaining').textContent = 'Disponível agora ✅';
+                }
+            } else {
+                document.getElementById('lastShown').textContent = 'Nunca foi mostrado';
+                document.getElementById('timeRemaining').textContent = 'Disponível agora ✅';
+            }
+            
+            // Última verificação
+            if (lastCheck) {
+                const date = new Date(parseInt(lastCheck));
+                document.getElementById('lastCheck').textContent = date.toLocaleString('pt-BR');
+            } else {
+                document.getElementById('lastCheck').textContent = 'Nunca foi verificado';
+            }
+        }
+        
+        // Forçar mostrar o modal (para teste)
+        function forceShowModal() {
+            Swal.fire({
+                title: 'Atualização Disponível',
+                text: 'Uma nova versão do app está disponível. Deseja atualizar?',
+                icon: 'info',
+                showCancelButton: true,
+                showDenyButton: true,
+                confirmButtonText: 'Atualizar Agora',
+                cancelButtonText: 'Lembrar Depois',
+                denyButtonText: 'Não Mostrar Hoje',
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#6c757d',
+                denyButtonColor: '#dc3545'
+            }).then((result) => {
+                const now = Date.now();
+                const oneDay = 24 * 60 * 60 * 1000;
+                const oneHour = 60 * 60 * 1000;
+                
+                if (result.isConfirmed) {
+                    showResult('success', 'Você clicou em "Atualizar Agora". A página seria recarregada.');
+                    localStorage.setItem('pwa-update-last-shown', now.toString());
+                } else if (result.isDenied) {
+                    localStorage.setItem('pwa-update-last-shown', now.toString());
+                    showResult('success', 'Modal bloqueado por 24 horas! ✅');
+                } else {
+                    localStorage.setItem('pwa-update-last-shown', (now - oneDay + oneHour).toString());
+                    showResult('warning', 'Modal será mostrado novamente em 1 hora.');
+                }
+                
+                updateStatus();
+            });
+        }
+        
+        // Verificar se pode mostrar
+        function checkCanShow() {
+            const lastShown = localStorage.getItem('pwa-update-last-shown');
+            const now = Date.now();
+            const oneDay = 24 * 60 * 60 * 1000;
+            
+            if (!lastShown) {
+                showResult('success', '✅ Modal PODE ser mostrado (nunca foi mostrado antes)');
+            } else if ((now - parseInt(lastShown)) < oneDay) {
+                const remaining = oneDay - (now - parseInt(lastShown));
+                const hours = Math.floor(remaining / (1000 * 60 * 60));
+                const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+                showResult('danger', `❌ Modal NÃO pode ser mostrado. Faltam ${hours}h ${minutes}min para completar 24h.`);
+            } else {
+                showResult('success', '✅ Modal PODE ser mostrado (24 horas já passaram)');
+            }
+        }
+        
+        // Limpar storage
+        function clearStorage() {
+            Swal.fire({
+                title: 'Tem certeza?',
+                text: 'Isso vai resetar todos os controles do modal PWA.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sim, limpar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    localStorage.removeItem('pwa-update-last-shown');
+                    localStorage.removeItem('pwa-last-update-check');
+                    showResult('success', '✅ Controles resetados! Modal pode aparecer agora.');
+                    updateStatus();
+                }
+            });
+        }
+        
+        // Simular passagem de 24h
+        function simulateWait() {
+            const now = Date.now();
+            const oneDayAgo = now - (24 * 60 * 60 * 1000) - 1000; // 24h + 1 segundo
+            
+            localStorage.setItem('pwa-update-last-shown', oneDayAgo.toString());
+            showResult('success', '⏰ Simulado! Modal foi "marcado" como mostrado há 24 horas atrás.');
+            updateStatus();
+        }
+        
+        // Mostrar resultado
+        function showResult(type, message) {
+            const box = document.getElementById('resultBox');
+            box.innerHTML = `
+                <div class="status-box ${type}">
+                    <strong>${type === 'success' ? '✅' : type === 'warning' ? '⚠️' : '❌'}</strong>
+                    ${message}
+                </div>
+            `;
+        }
+        
+        // Atualizar status ao carregar
+        updateStatus();
+        
+        // Atualizar a cada segundo
+        setInterval(updateStatus, 1000);
+    </script>
+</body>
+</html>
+
