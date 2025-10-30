@@ -1,5 +1,5 @@
 // sw.js - Service Worker para PWA
-const CACHE_NAME = 'painel-financeiro-v1.0.0';
+const CACHE_NAME = 'painel-financeiro-v1.0.1';
 const OFFLINE_URL = '/seu_projeto/offline.html';
 
 // Recursos essenciais para cache

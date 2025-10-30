@@ -140,6 +140,22 @@
     window.startOnboardingTour = () => startTour(true);
 
     document.addEventListener('DOMContentLoaded', function () {
+        // Garantir CSS do Driver carregado (injeta com fallback de CDN)
+        (function ensureDriverCss() {
+            const already = Array.from(document.styleSheets).some(s => s.href && (s.href.includes('driver.css') || s.href.includes('driver.min.css')));
+            if (already) return;
+            const hrefs = [
+                'https://unpkg.com/driver.js@1.3.1/dist/driver.css',
+                'https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.css'
+            ];
+            hrefs.forEach(href => {
+                const link = document.createElement('link');
+                link.rel = 'stylesheet';
+                link.href = href;
+                document.head.appendChild(link);
+            });
+        })();
+
         // Incluir Driver.js JS (se não estiver presente)
         if (!getDriver()) {
             const cdns = [
