@@ -1,5 +1,5 @@
 // assets/js/onboarding.js
-// Onboarding visual usando Driver.js
+// Onboarding visual (TourLite puro, sem dependências externas)
 (function () {
     const ONBOARDING_KEY = 'onboarding-v1-shown';
 

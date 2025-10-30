@@ -118,26 +118,25 @@ if (
     });
 </script>
 
-<!-- OneSignal Push (inicializa apenas se o worker existir no escopo) -->
+<!-- OneSignal Push (inicializa apenas se houver SW OneSignal registrado) -->
 <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 <script>
     (function(){
         window.OneSignalDeferred = window.OneSignalDeferred || [];
-        // Verifica se o Service Worker do OneSignal está acessível
-        fetch('/OneSignalSDKWorker.js', { method: 'HEAD', cache: 'no-store' })
-            .then(resp => {
-                if (!resp || !resp.ok) throw new Error('Worker não encontrado');
-                OneSignalDeferred.push(async function(OneSignal) {
-                    try {
-                        await OneSignal.init({ appId: "8b948d38-c99d-402b-a456-e99e66fcc60f" });
-                    } catch(e) {
-                        console.log('OneSignal init falhou:', e);
-                    }
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(regs){
+                var hasOneSignal = regs.some(function(r){
+                    try { return r.active && r.active.scriptURL && r.active.scriptURL.indexOf('OneSignalSDKWorker.js') !== -1; } catch(e){ return false; }
                 });
-            })
-            .catch(() => {
-                console.log('OneSignal desativado: Service Worker não disponível neste domínio/escopo.');
-            });
+                if (hasOneSignal) {
+                    OneSignalDeferred.push(async function(OneSignal) {
+                        try { await OneSignal.init({ appId: "8b948d38-c99d-402b-a456-e99e66fcc60f" }); } catch(e) { console.log('OneSignal init falhou:', e); }
+                    });
+                } else {
+                    console.log('OneSignal desativado: sem SW registrado.');
+                }
+            }).catch(function(){ console.log('OneSignal desativado.'); });
+        }
     })();
 </script>
 
@@ -185,7 +184,7 @@ if (
                     // Para Safari, não tentar fallback para evitar mais erros
                     if (!isSafari && !isIOS) {
                         console.log('Tentando service worker minimalista...');
-                        navigator.serviceWorker.register('/seu_projeto/sw-minimal.js')
+                        navigator.serviceWorker.register('/sw-minimal.js')
                             .then(registration => {
                                 console.log('SW minimalista registrado: ', registration);
                             })
