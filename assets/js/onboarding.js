@@ -79,15 +79,15 @@
             });
         }
 
-        // Append page-specific steps if provided
+        // Se houver passos específicos da página, usar apenas eles
         if (window.ONBOARDING_STEPS && typeof window.ONBOARDING_STEPS[page] === 'function') {
             try {
-                const extra = window.ONBOARDING_STEPS[page](exists, isMobile) || [];
-                extra.forEach(s => steps.push(s));
+                const perPage = window.ONBOARDING_STEPS[page](exists, isMobile) || [];
+                if (perPage.length) return perPage;
             } catch(e) { /* ignora para não quebrar o tour */ }
         }
 
-        return steps;
+        return steps; // fallback genérico quando não há mapeamento da página
     }
 
     function startTour(force = false) {
