@@ -32,6 +32,12 @@
     }
 
     function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
+    function isInViewportRect(r, pad){
+        const vw = document.documentElement.clientWidth;
+        const vh = document.documentElement.clientHeight;
+        const p = pad || 8;
+        return r.top >= p && r.left >= p && r.bottom <= (vh - p) && r.right <= (vw - p);
+    }
 
     class TourLite {
         constructor(steps = []) {
@@ -53,14 +59,18 @@
             this.active = true;
             this.build();
             this.showStep();
-            window.addEventListener('resize', this.handleResize);
-            window.addEventListener('scroll', this.handleResize, { passive: true });
+            // Throttle com rAF para posicionamento em scroll/resize
+            this._onScrollOrResize = () => {
+                if (this._raf) return; this._raf = requestAnimationFrame(() => { this._raf = null; this.position(false); });
+            };
+            window.addEventListener('resize', this._onScrollOrResize);
+            window.addEventListener('scroll', this._onScrollOrResize, { passive: true });
         }
 
         stop() {
             this.active = false;
-            window.removeEventListener('resize', this.handleResize);
-            window.removeEventListener('scroll', this.handleResize);
+            window.removeEventListener('resize', this._onScrollOrResize || this.handleResize);
+            window.removeEventListener('scroll', this._onScrollOrResize || this.handleResize);
             if (this._kbd) window.removeEventListener('keydown', this._kbd);
             if (this.overlay && this.overlay.parentNode) this.overlay.parentNode.removeChild(this.overlay);
             if (typeof this.onFinish === 'function') this.onFinish();
@@ -176,7 +186,21 @@
             const el = document.querySelector(step.element);
             if (!el) { this.next(); return; }
             el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
-            setTimeout(() => this.position(animated), 180);
+            // Aguarda o elemento entrar na viewport antes de posicionar
+            const start = performance.now();
+            const retry = () => {
+                if (!this.active) return;
+                const r = el.getBoundingClientRect();
+                if (isInViewportRect({ top: r.top, left: r.left, right: r.right, bottom: r.bottom }, 4)) {
+                    this.position(animated);
+                } else if (performance.now() - start < 1000) {
+                    requestAnimationFrame(retry);
+                } else {
+                    // fallback: posiciona mesmo assim
+                    this.position(animated);
+                }
+            };
+            requestAnimationFrame(retry);
         }
 
         position(animated = false) {
