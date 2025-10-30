@@ -24,8 +24,9 @@
 <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/countup.js@2.8.0/dist/countUp.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<!-- Onboarding (TourLite sem dependências externas) -->
+<!-- Onboarding (TourLite + passos por página) -->
 <script src="assets/js/tour-lite.js" defer></script>
+<script src="assets/js/onboarding-steps.js" defer></script>
 <script src="assets/js/onboarding.js" defer></script>
 
 <script>

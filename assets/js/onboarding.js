@@ -7,9 +7,17 @@
         return !!document.querySelector(selector);
     }
 
+    function getPageId() {
+        const fromBody = document.body.getAttribute('data-page') || '';
+        if (fromBody) return fromBody.toLowerCase();
+        const name = location.pathname.split('/').pop() || '';
+        return name.toLowerCase();
+    }
+
     function buildSteps() {
         const isMobile = window.innerWidth < 768;
         const steps = [];
+        const page = getPageId();
 
         if (exists('.navbar-toggler-custom')) {
             steps.push({
@@ -69,6 +77,14 @@
                     align: 'center'
                 }
             });
+        }
+
+        // Append page-specific steps if provided
+        if (window.ONBOARDING_STEPS && typeof window.ONBOARDING_STEPS[page] === 'function') {
+            try {
+                const extra = window.ONBOARDING_STEPS[page](exists, isMobile) || [];
+                extra.forEach(s => steps.push(s));
+            } catch(e) { /* ignora para não quebrar o tour */ }
         }
 
         return steps;
