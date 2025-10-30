@@ -95,7 +95,7 @@
         btn.style.position = 'fixed';
         btn.style.bottom = '20px';
         btn.style.right = '20px';
-        btn.style.zIndex = '1200';
+        btn.style.zIndex = '2000';
         btn.style.border = 'none';
         btn.style.borderRadius = '50%';
         btn.style.width = '46px';
@@ -104,6 +104,7 @@
         btn.style.alignItems = 'center';
         btn.style.justifyContent = 'center';
         btn.style.cursor = 'pointer';
+        btn.style.pointerEvents = 'auto';
         btn.style.background = 'linear-gradient(135deg, var(--accent-red), #764ba2)';
         btn.style.color = '#fff';
         btn.style.boxShadow = '0 8px 24px rgba(0,0,0,0.25)';
@@ -114,12 +115,23 @@
         document.body.appendChild(btn);
     }
 
+    function ensureHelpFab() {
+        if (!document.getElementById('onboarding-help-fab')) {
+            createHelpFab();
+        }
+    }
+
     // Expor função global
     window.startOnboardingTour = () => startTour(true);
 
     document.addEventListener('DOMContentLoaded', function () {
         setTimeout(() => startTour(false), 800);
         createHelpFab();
+        // Reforço pós-load
+        window.addEventListener('load', function(){ setTimeout(ensureHelpFab, 300); });
+        // Observa remoções acidentais
+        const observer = new MutationObserver(() => ensureHelpFab());
+        observer.observe(document.body, { childList: true });
     });
 })();
 
