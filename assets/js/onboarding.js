@@ -3,12 +3,6 @@
 (function () {
     const ONBOARDING_KEY = 'onboarding-v1-shown';
 
-    function getDriver() {
-        const drv = window.driver || (window['driver.js'] && window['driver.js'].driver);
-        if (!drv) return null;
-        return drv;
-    }
-
     function exists(selector) {
         return !!document.querySelector(selector);
     }
@@ -81,29 +75,13 @@
     }
 
     function startTour(force = false) {
-        const driver = getDriver();
-        if (!driver) return;
-
-        if (!force && localStorage.getItem(ONBOARDING_KEY) === '1') {
-            return;
-        }
-
+        if (!force && localStorage.getItem(ONBOARDING_KEY) === '1') return;
         const steps = buildSteps();
         if (!steps.length) return;
-
-        const drv = driver({
-            showProgress: true,
-            overlayColor: 'rgba(0,0,0,0.6)',
-            stagePadding: 6,
-            smoothScroll: true,
-            allowClose: true,
-            animate: true,
-            keyboardControl: true,
-            onCloseClick: () => {},
-            popoverClass: 'driver-popover--dark'
-        });
-
-        drv.drive(steps);
+        if (!window.TourLite) return;
+        const tour = new window.TourLite(steps);
+        tour.onFinish = () => {};
+        tour.start(0);
         localStorage.setItem(ONBOARDING_KEY, '1');
     }
 
@@ -140,46 +118,8 @@
     window.startOnboardingTour = () => startTour(true);
 
     document.addEventListener('DOMContentLoaded', function () {
-        // Garantir CSS do Driver carregado (injeta com fallback de CDN)
-        (function ensureDriverCss() {
-            const already = Array.from(document.styleSheets).some(s => s.href && (s.href.includes('driver.css') || s.href.includes('driver.min.css')));
-            if (already) return;
-            const hrefs = [
-                'https://unpkg.com/driver.js@1.3.1/dist/driver.css',
-                'https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.css'
-            ];
-            hrefs.forEach(href => {
-                const link = document.createElement('link');
-                link.rel = 'stylesheet';
-                link.href = href;
-                document.head.appendChild(link);
-            });
-        })();
-
-        // Incluir Driver.js JS (se não estiver presente)
-        if (!getDriver()) {
-            const cdns = [
-                'https://unpkg.com/driver.js@1.3.1/dist/driver.min.js',
-                'https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.min.js'
-            ];
-            let idx = 0;
-            const loadNext = () => {
-                if (idx >= cdns.length) return;
-                const script = document.createElement('script');
-                script.src = cdns[idx++];
-                script.defer = true;
-                script.onload = () => {
-                    setTimeout(() => startTour(false), 800);
-                    createHelpFab();
-                };
-                script.onerror = () => loadNext();
-                document.head.appendChild(script);
-            };
-            loadNext();
-        } else {
-            setTimeout(() => startTour(false), 800);
-            createHelpFab();
-        }
+        setTimeout(() => startTour(false), 800);
+        createHelpFab();
     });
 })();
 

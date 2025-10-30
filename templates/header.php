@@ -88,7 +88,7 @@ if (!isset($_SESSION['dias_uso_cache_time']) ||
     <meta name="description" content="Sistema completo de gestão financeira pessoal com funcionalidades avançadas">
     <meta name="theme-color" content="#e50914">
     <meta name="msapplication-TileColor" content="#e50914">
-    <meta name="msapplication-config" content="/seu_projeto/browserconfig.xml">
+    <meta name="msapplication-config" content="/browserconfig.xml">
     
     <!-- Apple Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -96,22 +96,22 @@ if (!isset($_SESSION['dias_uso_cache_time']) ||
     <meta name="apple-mobile-web-app-title" content="Painel Financeiro">
     
     <!-- Manifest -->
-    <link rel="manifest" href="/seu_projeto/manifest.json">
+    <link rel="manifest" href="/manifest.json">
     
     <!-- Icons -->
-    <link rel="icon" type="image/png" sizes="32x32" href="/seu_projeto/icons/icon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/seu_projeto/icons/icon-16x16.png">
-    <link rel="apple-touch-icon" href="/seu_projeto/icons/icon-192x192.png">
-    <link rel="apple-touch-icon" sizes="152x152" href="/seu_projeto/icons/icon-152x152.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/seu_projeto/icons/icon-180x180.png">
-    <link rel="apple-touch-icon" sizes="167x167" href="/seu_projeto/icons/icon-167x167.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-16x16.png">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180x180.png">
+    <link rel="apple-touch-icon" sizes="167x167" href="/icons/icon-167x167.png">
     
     <!-- Microsoft Tiles -->
-    <meta name="msapplication-TileImage" content="/seu_projeto/icons/icon-144x144.png">
-    <meta name="msapplication-square70x70logo" content="/seu_projeto/icons/icon-70x70.png">
-    <meta name="msapplication-square150x150logo" content="/seu_projeto/icons/icon-150x150.png">
-    <meta name="msapplication-wide310x150logo" content="/seu_projeto/icons/icon-310x150.png">
-    <meta name="msapplication-square310x310logo" content="/seu_projeto/icons/icon-310x310.png">
+    <meta name="msapplication-TileImage" content="/icons/icon-144x144.png">
+    <meta name="msapplication-square70x70logo" content="/icons/icon-70x70.png">
+    <meta name="msapplication-square150x150logo" content="/icons/icon-150x150.png">
+    <meta name="msapplication-wide310x150logo" content="/icons/icon-310x150.png">
+    <meta name="msapplication-square310x310logo" content="/icons/icon-310x310.png">
     <meta name="theme-color" content="#e50914">
     
     <!-- OTIMIZAÇÃO: Preload de recursos críticos -->

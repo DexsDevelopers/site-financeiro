@@ -1,14 +1,14 @@
 // sw.js - Service Worker para PWA
 const CACHE_NAME = 'painel-financeiro-v1.0.1';
-const OFFLINE_URL = '/seu_projeto/offline.html';
+const OFFLINE_URL = '/offline.html';
 
 // Recursos essenciais para cache
 const CORE_ASSETS = [
-  '/seu_projeto/',
-  '/seu_projeto/dashboard.php',
-  '/seu_projeto/index.php',
-  '/seu_projeto/offline.html',
-  '/seu_projeto/manifest.json',
+  '/',
+  '/dashboard.php',
+  '/index.php',
+  '/offline.html',
+  '/manifest.json',
   'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css',
   'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css',
   'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js',

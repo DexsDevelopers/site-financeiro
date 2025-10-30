@@ -24,7 +24,8 @@
 <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/countup.js@2.8.0/dist/countUp.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<!-- Onboarding (Driver.js carregado pelo arquivo abaixo se necessário) -->
+<!-- Onboarding (TourLite sem dependências externas) -->
+<script src="assets/js/tour-lite.js" defer></script>
 <script src="assets/js/onboarding.js" defer></script>
 
 <script>
@@ -159,7 +160,7 @@ if (
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             // Usar service worker minimalista para Safari
-            const swFile = (isSafari || isIOS) ? '/seu_projeto/sw-minimal.js' : '/seu_projeto/sw.js';
+            const swFile = (isSafari || isIOS) ? '/sw-minimal.js' : '/sw.js';
             
             navigator.serviceWorker.register(swFile)
                 .then(registration => {
