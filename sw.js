@@ -86,9 +86,12 @@ self.addEventListener('fetch', event => {
   }
 
   // Ignorar requisições de recursos externos que podem causar problemas
+  // e bibliotecas via CDN (deixar o navegador tratar)
   if (event.request.url.includes('googleapis.com') ||
       event.request.url.includes('gstatic.com') ||
-      event.request.url.includes('onesignal.com')) {
+      event.request.url.includes('onesignal.com') ||
+      event.request.url.includes('unpkg.com') ||
+      event.request.url.includes('cdn.jsdelivr.net')) {
     return;
   }
 

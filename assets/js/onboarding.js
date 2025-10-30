@@ -142,14 +142,24 @@
     document.addEventListener('DOMContentLoaded', function () {
         // Incluir Driver.js JS (se não estiver presente)
         if (!getDriver()) {
-            const script = document.createElement('script');
-            script.src = 'https://unpkg.com/driver.js/dist/driver.min.js';
-            script.defer = true;
-            script.onload = () => {
-                setTimeout(() => startTour(false), 800);
-                createHelpFab();
+            const cdns = [
+                'https://unpkg.com/driver.js@1.3.1/dist/driver.min.js',
+                'https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.min.js'
+            ];
+            let idx = 0;
+            const loadNext = () => {
+                if (idx >= cdns.length) return;
+                const script = document.createElement('script');
+                script.src = cdns[idx++];
+                script.defer = true;
+                script.onload = () => {
+                    setTimeout(() => startTour(false), 800);
+                    createHelpFab();
+                };
+                script.onerror = () => loadNext();
+                document.head.appendChild(script);
             };
-            document.head.appendChild(script);
+            loadNext();
         } else {
             setTimeout(() => startTour(false), 800);
             createHelpFab();
