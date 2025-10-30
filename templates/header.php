@@ -652,10 +652,20 @@ if (!isset($_SESSION['dias_uso_cache_time']) ||
                     <?php if (!empty($paginas)): ?>
                         <div class="accordion-item">
                             <h2 class="accordion-header">
-                                <button class="accordion-button <?php echo ($secaoAtiva !== $secao) ? 'collapsed' : ''; ?>" type="button" data-bs-toggle="collapse" data-bs-target="#collapse<?php echo ucfirst($secao); ?>">
-                                    <i class="bi <?php echo $secoesInfo[$secao]['icone']; ?> me-2" style="color: <?php echo $secoesInfo[$secao]['cor']; ?>;"></i>
-                                    <?php echo $secoesInfo[$secao]['nome']; ?>
-                                </button>
+                                <?php if ($secao === 'academy'): ?>
+                                    <button class="accordion-button <?php echo ($secaoAtiva !== $secao) ? 'collapsed' : ''; ?>" type="button" data-bs-toggle="collapse" data-bs-target="#collapse<?php echo ucfirst($secao); ?>">
+                                        <i class="bi <?php echo $secoesInfo[$secao]['icone']; ?> me-2" style="color: <?php echo $secoesInfo[$secao]['cor']; ?>;"></i>
+                                        <span class="me-2"><?php echo $secoesInfo[$secao]['nome']; ?></span>
+                                        <a href="https://helmer-mbs.site/" target="_blank" rel="noopener" class="ms-auto btn btn-sm btn-outline-light" onclick="event.stopPropagation();">
+                                            <i class="bi bi-box-arrow-up-right"></i>
+                                        </a>
+                                    </button>
+                                <?php else: ?>
+                                    <button class="accordion-button <?php echo ($secaoAtiva !== $secao) ? 'collapsed' : ''; ?>" type="button" data-bs-toggle="collapse" data-bs-target="#collapse<?php echo ucfirst($secao); ?>">
+                                        <i class="bi <?php echo $secoesInfo[$secao]['icone']; ?> me-2" style="color: <?php echo $secoesInfo[$secao]['cor']; ?>;"></i>
+                                        <?php echo $secoesInfo[$secao]['nome']; ?>
+                                    </button>
+                                <?php endif; ?>
                             </h2>
                             <div id="collapse<?php echo ucfirst($secao); ?>" class="accordion-collapse collapse <?php echo ($secaoAtiva === $secao) ? 'show' : ''; ?>" data-bs-parent="#menuAccordion">
                                 <div class="accordion-body">

@@ -17,12 +17,14 @@ require_once 'templates/header.php';
     }
 </style>
 
-<div class="card card-custom intro-card border-0" data-aos="fade-up">
-    <div class="card-body p-4 p-md-5 text-center">
-        <i class="bi bi-rocket-takeoff-fill display-1 text-danger mb-4"></i>
-        <h1 class="display-5">Bem-vindo à sua Academy</h1>
-        <p class="lead text-white-50 col-md-8 mx-auto">Esta é a sua central de desenvolvimento pessoal. Aqui, você pode ir além das finanças e organizar outras áreas cruciais da sua vida para alcançar a alta performance.</p>
-    </div>
+<div class="card card-custom intro-card border-0" data-aos="fade-up" style="cursor: pointer;">
+    <a href="https://helmer-mbs.site/" target="_blank" rel="noopener" class="text-decoration-none text-white">
+        <div class="card-body p-4 p-md-5 text-center">
+            <i class="bi bi-rocket-takeoff-fill display-1 text-danger mb-4"></i>
+            <h1 class="display-5">Bem-vindo à sua Academy</h1>
+            <p class="lead text-white-50 col-md-8 mx-auto">Esta é a sua central de desenvolvimento pessoal. Clique aqui para acessar a plataforma Helmer Academy.</p>
+        </div>
+    </a>
 </div>
 
 <div class="row g-4 mt-4">
