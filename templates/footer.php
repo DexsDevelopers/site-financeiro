@@ -24,6 +24,8 @@
 <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/countup.js@2.8.0/dist/countUp.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<!-- Onboarding (Driver.js carregado pelo arquivo abaixo se necessário) -->
+<script src="assets/js/onboarding.js" defer></script>
 
 <script>
     // Função global para mostrar notificações "Toast"
