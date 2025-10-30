@@ -95,7 +95,7 @@
         btn.style.position = 'fixed';
         btn.style.bottom = '20px';
         btn.style.right = '20px';
-        btn.style.zIndex = '1002';
+        btn.style.zIndex = '1200';
         btn.style.border = 'none';
         btn.style.borderRadius = '50%';
         btn.style.width = '46px';
