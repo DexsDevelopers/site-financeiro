@@ -26,8 +26,9 @@
     }
 
     function rectOf(el) {
+        // Coordenadas no espaço da viewport (compatível com overlay fixo)
         const r = el.getBoundingClientRect();
-        return { top: r.top + window.scrollY, left: r.left + window.scrollX, width: r.width, height: r.height };
+        return { top: r.top, left: r.left, right: r.right, bottom: r.bottom, width: r.width, height: r.height };
     }
 
     function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
@@ -205,10 +206,10 @@
             const ttW = this.tooltip.offsetWidth;
             const ttH = this.tooltip.offsetHeight;
             const fits = {
-                bottom: (r.top + r.height + margin + ttH - window.scrollY) <= vhClient,
-                top: (r.top - margin - ttH) >= window.scrollY,
-                right: (r.left + r.width + margin + ttW - window.scrollX) <= vwClient,
-                left: (r.left - margin - ttW) >= window.scrollX
+                bottom: (r.bottom + margin + ttH) <= vhClient,
+                top: (r.top - margin - ttH) >= 0,
+                right: (r.right + margin + ttW) <= vwClient,
+                left: (r.left - margin - ttW) >= 0
             };
             const order = ['bottom','right','top','left'];
             if (!fits[side]) {
@@ -220,10 +221,10 @@
             if (side === 'left') left = r.left - margin - ttW;
 
             // Posição fallback dentro da viewport
-            const vw = window.scrollX + document.documentElement.clientWidth;
-            const vh = window.scrollY + document.documentElement.clientHeight;
-            left = clamp(left, window.scrollX + 8, vw - ttW - 8);
-            top = clamp(top, window.scrollY + 8, vh - ttH - 8);
+            const vw = document.documentElement.clientWidth;
+            const vh = document.documentElement.clientHeight;
+            left = clamp(left, 8, vw - ttW - 8);
+            top = clamp(top, 8, vh - ttH - 8);
 
             this.tooltip.style.left = `${left}px`;
             this.tooltip.style.top = `${top}px`;
