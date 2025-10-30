@@ -68,6 +68,18 @@ self.addEventListener('fetch', event => {
     return;
   }
 
+  // Ignorar completamente requisições cross-origin (deixa o navegador tratar)
+  try {
+    const reqUrl = new URL(event.request.url);
+    const swOrigin = self.location.origin;
+    if (reqUrl.origin !== swOrigin) {
+      return;
+    }
+  } catch (e) {
+    // Se não conseguir parsear, não intercepta
+    return;
+  }
+
   // Ignorar requisições de API e formulários
   if (event.request.url.includes('/api/') || 
       event.request.url.includes('salvar_') || 

@@ -117,15 +117,27 @@ if (
     });
 </script>
 
-<!-- OneSignal Push -->
+<!-- OneSignal Push (inicializa apenas se o worker existir no escopo) -->
 <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 <script>
-    window.OneSignalDeferred = window.OneSignalDeferred || [];
-    OneSignalDeferred.push(async function(OneSignal) {
-        await OneSignal.init({
-            appId: "8b948d38-c99d-402b-a456-e99e66fcc60f",
-        });
-    });
+    (function(){
+        window.OneSignalDeferred = window.OneSignalDeferred || [];
+        // Verifica se o Service Worker do OneSignal está acessível
+        fetch('/OneSignalSDKWorker.js', { method: 'HEAD', cache: 'no-store' })
+            .then(resp => {
+                if (!resp || !resp.ok) throw new Error('Worker não encontrado');
+                OneSignalDeferred.push(async function(OneSignal) {
+                    try {
+                        await OneSignal.init({ appId: "8b948d38-c99d-402b-a456-e99e66fcc60f" });
+                    } catch(e) {
+                        console.log('OneSignal init falhou:', e);
+                    }
+                });
+            })
+            .catch(() => {
+                console.log('OneSignal desativado: Service Worker não disponível neste domínio/escopo.');
+            });
+    })();
 </script>
 
 <!-- PWA JavaScript -->
