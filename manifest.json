@@ -2,77 +2,21 @@
   "name": "Painel Financeiro Pessoal",
   "short_name": "Painel Financeiro",
   "description": "Sistema completo de gestão financeira pessoal com funcionalidades avançadas",
-  "start_url": "/seu_projeto/dashboard.php",
+  "start_url": "/dashboard.php",
   "id": "painel-financeiro-pwa",
   "display": "standalone",
   "background_color": "#667eea",
   "theme_color": "#667eea",
   "orientation": "portrait-primary",
-  "scope": "/seu_projeto/",
+  "scope": "/",
   "lang": "pt-BR",
   "dir": "ltr",
   "categories": ["finance", "productivity", "utilities"],
   "icons": [
-    {
-      "src": "icons/icon-72x72.png",
-      "sizes": "72x72",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icons/icon-96x96.png",
-      "sizes": "96x96",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icons/icon-128x128.png",
-      "sizes": "128x128",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icons/icon-144x144.png",
-      "sizes": "144x144",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icons/icon-152x152.png",
-      "sizes": "152x152",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icons/icon-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icons/icon-384x384.png",
-      "sizes": "384x384",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icons/icon-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icons/icon-maskable-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "icons/icon-maskable-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
-    }
+    { "src": "images/icon-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "images/icon-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "images/icon-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "images/icon-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
   "screenshots": [
     {
@@ -95,7 +39,7 @@
       "name": "Dashboard",
       "short_name": "Dashboard",
       "description": "Acessar dashboard principal",
-      "url": "/seu_projeto/dashboard.php",
+      "url": "/dashboard.php",
       "icons": [
         {
           "src": "icons/shortcut-dashboard.png",
@@ -107,7 +51,7 @@
       "name": "Extrato",
       "short_name": "Extrato",
       "description": "Ver extrato financeiro",
-      "url": "/seu_projeto/extrato_completo.php",
+      "url": "/extrato_completo.php",
       "icons": [
         {
           "src": "icons/shortcut-extrato.png",
@@ -119,7 +63,7 @@
       "name": "Tarefas",
       "short_name": "Tarefas",
       "description": "Gerenciar tarefas",
-      "url": "/seu_projeto/tarefas.php",
+      "url": "/tarefas.php",
       "icons": [
         {
           "src": "icons/shortcut-tarefas.png",
@@ -131,7 +75,7 @@
       "name": "Relatórios",
       "short_name": "Relatórios",
       "description": "Ver relatórios financeiros",
-      "url": "/seu_projeto/relatorios.php",
+      "url": "/relatorios.php",
       "icons": [
         {
           "src": "icons/shortcut-relatorios.png",
@@ -148,31 +92,14 @@
   "launch_handler": {
     "client_mode": "navigate-existing"
   },
-  "file_handlers": [
-    {
-      "action": "/seu_projeto/upload.php",
-      "accept": {
-        "text/csv": [".csv"],
-        "application/vnd.ms-excel": [".xls"],
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"]
-      }
-    }
-  ],
+  "file_handlers": [],
   "protocol_handlers": [
     {
       "protocol": "web+painelfinanceiro",
-      "url": "/seu_projeto/dashboard.php?action=%s"
+        "url": "/dashboard.php?action=%s"
     }
   ],
-  "share_target": {
-    "action": "/seu_projeto/dashboard.php",
-    "method": "GET",
-    "params": {
-      "title": "title",
-      "text": "text",
-      "url": "url"
-    }
-  },
+  "share_target": {},
   "display_override": ["window-controls-overlay", "standalone"],
   "handle_links": "preferred",
   "capture_links": "existing-client-navigate"
