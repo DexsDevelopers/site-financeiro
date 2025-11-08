@@ -14,7 +14,24 @@
             .tourlite-tooltip .tourlite-header { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; }
             .tourlite-tooltip .tourlite-step { font-size:.8rem; color: var(--text-secondary, #aaa); }
             .tourlite-arrow { position:absolute; width:12px; height:12px; background: var(--card-background, #1e1e1e); transform: rotate(45deg); border-left:1px solid var(--border-color, rgba(255,255,255,0.1)); border-top:1px solid var(--border-color, rgba(255,255,255,0.1)); }
-            @media (max-width: 767px) { .tourlite-tooltip { max-width: 92vw !important; } }
+            /* Bottom sheet no mobile */
+            @media (max-width: 575px) {
+                .tourlite-tooltip { 
+                    max-width: none !important;
+                    width: 100vw !important;
+                    left: 0 !important;
+                    right: 0 !important;
+                    bottom: env(safe-area-inset-bottom);
+                    top: auto !important;
+                    border-radius: 16px 16px 0 0 !important;
+                }
+                .tourlite-arrow { display: none !important; }
+            }
+            /* Reduce motion */
+            @media (prefers-reduced-motion: reduce) {
+                .tourlite-overlay, .tourlite-tooltip { animation: none !important; }
+                .tourlite-tooltip { transition: none !important; }
+            }
         `;
         document.head.appendChild(style);
     }
@@ -50,6 +67,7 @@
             this.arrow = null;
             this.onFinish = null;
             this.handleResize = this.position.bind(this);
+            this.isMobile = (typeof window !== 'undefined') ? (window.innerWidth < 576) : false;
             injectStyles();
         }
 
@@ -102,7 +120,13 @@
                 z-index: 10000;
                 pointer-events: auto;
                 transition: background 0.2s ease;
+                backdrop-filter: blur(2px);
             `;
+            // Clique no overlay avança (sem clicar no buraco/tooltip)
+            this.overlay.addEventListener('click', (ev) => {
+                if (!this.active) return;
+                if (ev.target === this.overlay) this.next();
+            });
             document.body.appendChild(this.overlay);
 
             // Buraco com foco (bordas)
@@ -152,14 +176,17 @@
             const btnPrev = createEl('button', 'btn btn-sm btn-secondary', '<i class="bi bi-arrow-left"></i> Anterior');
             const btnNext = createEl('button', 'btn btn-sm btn-primary', 'Próximo <i class="bi bi-arrow-right"></i>');
             const btnClose = createEl('button', 'btn btn-sm btn-outline-light', 'Concluir');
+            const btnSkip = createEl('button', 'btn btn-sm btn-outline-secondary', 'Pular');
 
             btnPrev.onclick = () => this.prev();
             btnNext.onclick = () => this.next();
             btnClose.onclick = () => this.stop();
+            btnSkip.onclick = () => this.stop();
 
             actions.appendChild(btnPrev);
             actions.appendChild(btnNext);
             actions.appendChild(btnClose);
+            actions.appendChild(btnSkip);
             this.tooltip.appendChild(progress);
             this.tooltip.appendChild(header);
             this.tooltip.appendChild(desc);
@@ -229,6 +256,16 @@
             const vhClient = document.documentElement.clientHeight;
             const ttW = this.tooltip.offsetWidth;
             const ttH = this.tooltip.offsetHeight;
+
+            // No mobile nos comportamos como bottom sheet
+            if (this.isMobile) {
+                this.tooltip.style.left = `0px`;
+                this.tooltip.style.right = `0px`;
+                this.tooltip.style.bottom = `0px`;
+                this.tooltip.style.top = ``;
+                // Centraliza buraco e deixa tooltip fixa em baixo
+                // Arrow é oculto via CSS
+            } else {
             const fits = {
                 bottom: (r.bottom + margin + ttH) <= vhClient,
                 top: (r.top - margin - ttH) >= 0,
@@ -252,6 +289,7 @@
 
             this.tooltip.style.left = `${left}px`;
             this.tooltip.style.top = `${top}px`;
+            }
             if (animated) {
                 this.tooltip.style.transform = 'scale(0.98)';
                 this.tooltip.style.opacity = '0.9';
@@ -267,16 +305,16 @@
 
             // Posiciona seta
             const aw = 12;
-            if (side === 'bottom') {
+            if (!this.isMobile && side === 'bottom') {
                 this.arrow.style.left = `${clamp(r.left + r.width/2 - left - aw/2, 10, ttW-22)}px`;
                 this.arrow.style.top = `-${aw/2}px`;
-            } else if (side === 'top') {
+            } else if (!this.isMobile && side === 'top') {
                 this.arrow.style.left = `${clamp(r.left + r.width/2 - left - aw/2, 10, ttW-22)}px`;
                 this.arrow.style.top = `${ttH - aw/2}px`;
-            } else if (side === 'right') {
+            } else if (!this.isMobile && side === 'right') {
                 this.arrow.style.left = `-${aw/2}px`;
                 this.arrow.style.top = `${clamp(r.top + r.height/2 - top - aw/2, 10, ttH-22)}px`;
-            } else if (side === 'left') {
+            } else if (!this.isMobile && side === 'left') {
                 this.arrow.style.left = `${ttW - aw/2}px`;
                 this.arrow.style.top = `${clamp(r.top + r.height/2 - top - aw/2, 10, ttH-22)}px`;
             }

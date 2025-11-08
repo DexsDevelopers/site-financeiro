@@ -64,8 +64,9 @@
         'academy.php': function(exists){
             const steps = [];
             intro(steps, exists, 'Academy', 'Central de desenvolvimento pessoal: cursos, treinos, rotina e alimentação.');
-            safePush(steps, exists, step('.card .card-title:contains("Cursos"), .feature-icon .bi-book-half', 'Meus Cursos', 'Organize seus cursos entre pendentes, assistindo e concluídos.', 'bottom'));
-            safePush(steps, exists, step('.card .card-title:contains("Treinos"), .feature-icon .bi-barbell', 'Registro de Treinos', 'Registre cargas, séries e repetições.', 'bottom'));
+            // Removido :contains (não suportado em querySelector). Usar ícones e fallbacks genéricos.
+            safePush(steps, exists, step('.feature-icon .bi-book-half, .bi-book-half', 'Meus Cursos', 'Organize seus cursos entre pendentes, assistindo e concluídos.', 'bottom'));
+            safePush(steps, exists, step('.feature-icon .bi-barbell, .bi-barbell', 'Registro de Treinos', 'Registre cargas, séries e repetições.', 'bottom'));
             return steps;
         }
     };
