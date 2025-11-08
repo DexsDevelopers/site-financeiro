@@ -42,7 +42,7 @@ if (!$menu_config) {
             'financeiro' => ['compras_futuras.php', 'relatorios.php', 'extrato_completo.php', 'recorrentes.php', 'orcamento.php', 'categorias.php', 'regras_categorizacao.php', 'alertas_inteligentes.php'],
             'produtividade' => ['tarefas.php', 'calendario.php', 'pomodoro.php'],
             'personalizacao' => ['temas_customizaveis.php', 'layouts_flexiveis.php', 'preferencias_avancadas.php', 'personalizar_menu.php'],
-            'sistema' => ['perfil.php']
+            'sistema' => ['perfil.php', 'contas.php']
         ],
         'ordem_secoes' => ['academy', 'financeiro', 'produtividade', 'personalizacao', 'sistema'],
         'ordem_paginas' => [
@@ -50,9 +50,23 @@ if (!$menu_config) {
             'financeiro' => ['compras_futuras.php', 'relatorios.php', 'extrato_completo.php', 'recorrentes.php', 'orcamento.php', 'categorias.php', 'regras_categorizacao.php', 'alertas_inteligentes.php'],
             'produtividade' => ['tarefas.php', 'calendario.php', 'pomodoro.php'],
             'personalizacao' => ['temas_customizaveis.php', 'layouts_flexiveis.php', 'preferencias_avancadas.php', 'personalizar_menu.php'],
-            'sistema' => ['perfil.php']
+            'sistema' => ['perfil.php', 'contas.php']
         ]
     ];
+}
+
+// Garante que 'contas.php' esteja sempre visível na seção Sistema (mesmo com config antiga)
+if (!isset($menu_config['paginas_visiveis']['sistema'])) {
+    $menu_config['paginas_visiveis']['sistema'] = [];
+}
+if (!in_array('contas.php', $menu_config['paginas_visiveis']['sistema'], true)) {
+    $menu_config['paginas_visiveis']['sistema'][] = 'contas.php';
+}
+if (!isset($menu_config['ordem_paginas']['sistema'])) {
+    $menu_config['ordem_paginas']['sistema'] = [];
+}
+if (!in_array('contas.php', $menu_config['ordem_paginas']['sistema'], true)) {
+    $menu_config['ordem_paginas']['sistema'][] = 'contas.php';
 }
 
 // Salvar na sessão para uso no header
@@ -128,5 +142,6 @@ $paginasInfo = [
     'preferencias_avancadas.php' => ['nome' => 'Preferências Avançadas', 'icone' => 'bi-gear-fill'],
     'personalizar_menu.php' => ['nome' => 'Personalizar Menu', 'icone' => 'bi-list-ul'],
     'perfil.php' => ['nome' => 'Meu Perfil', 'icone' => 'bi-person-circle'],
+    'contas.php' => ['nome' => 'Contas', 'icone' => 'bi-wallet2'],
 ];
 ?>

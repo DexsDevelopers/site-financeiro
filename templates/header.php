@@ -715,11 +715,6 @@ if (!isset($_SESSION['dias_uso_cache_time']) ||
                         <i class="bi bi-people-fill me-2"></i> Minha Equipe
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link <?php echo ($paginaAtual == 'contas.php') ? 'active' : ''; ?>" href="contas.php">
-                        <i class="bi bi-wallet2 me-2"></i> Contas
-                    </a>
-                </li>
             </ul>
             
             <!-- acordeão menus -->
