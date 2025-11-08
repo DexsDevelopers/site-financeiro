@@ -93,17 +93,20 @@ if ($editId > 0) {
     $contaEdit = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
 }
 
-// Listagem (com tolerância se a tabela ainda não existir)
+// Listagem (com verificação explícita da existência da tabela)
 $contas = [];
 $tabelaExiste = true;
 try {
-    $stmt = $pdo->prepare("SELECT id, nome, tipo, instituicao, saldo_inicial, cor, criado_em FROM contas WHERE id_usuario = ? ORDER BY nome");
-    $stmt->execute([$userId]);
-    $contas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $check = $pdo->query("SHOW TABLES LIKE 'contas'")->fetchColumn();
+    if (!$check) {
+        $tabelaExiste = false;
+    } else {
+        $stmt = $pdo->prepare("SELECT id, nome, tipo, instituicao, saldo_inicial, cor, criado_em FROM contas WHERE id_usuario = ? ORDER BY nome");
+        $stmt->execute([$userId]);
+        $contas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 } catch (Throwable $e) {
     $tabelaExiste = false;
-    $isOk = false;
-    $msg = 'A estrutura de contas ainda não foi criada. Clique no botão abaixo para criar.';
 }
 ?>
 
