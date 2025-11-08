@@ -1,0 +1,85 @@
+<?php
+// criar_tabelas_contas.php
+// Executa migração para suportar múltiplas contas (carteiras) e vincular transações a contas
+// Uso: acesse este arquivo uma vez no navegador após deploy (estando logado) para criar/atualizar as estruturas.
+// Segurança básica: requer sessão e usuário logado.
+
+session_start();
+if (!isset($_SESSION['user_id'])) {
+    http_response_code(403);
+    echo "Acesso negado. Faça login.";
+    exit;
+}
+
+require_once __DIR__ . '/includes/db_connect.php';
+
+header('Content-Type: text/plain; charset=utf-8');
+
+try {
+    $pdo->beginTransaction();
+
+    // 1) Criar tabela contas (se não existir)
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS contas (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            id_usuario INT NOT NULL,
+            nome VARCHAR(100) NOT NULL,
+            tipo VARCHAR(20) DEFAULT 'banco',
+            instituicao VARCHAR(100) DEFAULT NULL,
+            saldo_inicial DECIMAL(12,2) DEFAULT 0,
+            cor VARCHAR(7) DEFAULT NULL,
+            criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_usuario (id_usuario),
+            CONSTRAINT fk_contas_usuario FOREIGN KEY (id_usuario) REFERENCES usuarios(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    ");
+
+    // 2) Adicionar coluna id_conta em transacoes (se não existir)
+    $colExists = $pdo->query("SHOW COLUMNS FROM transacoes LIKE 'id_conta'")->fetch(PDO::FETCH_ASSOC);
+    if (!$colExists) {
+        $pdo->exec("ALTER TABLE transacoes ADD COLUMN id_conta INT NULL AFTER id_categoria, ADD INDEX idx_id_conta (id_conta)");
+        // Opcional: adicionar FK (se banco permitir sem downtime em produção)
+        // $pdo->exec("ALTER TABLE transacoes ADD CONSTRAINT fk_transacoes_conta FOREIGN KEY (id_conta) REFERENCES contas(id) ON DELETE SET NULL");
+    }
+
+    // 3) Backfill: criar conta 'Geral' para cada usuário que não tenha nenhuma
+    // e associar transações sem id_conta a essa conta
+    // Buscar usuários com transações sem id_conta
+    $usuariosSemConta = $pdo->query("
+        SELECT DISTINCT t.id_usuario 
+        FROM transacoes t 
+        LEFT JOIN contas c ON c.id_usuario = t.id_usuario 
+        WHERE t.id_conta IS NULL
+    ")->fetchAll(PDO::FETCH_COLUMN);
+
+    foreach ($usuariosSemConta as $uid) {
+        // Verificar se já existe alguma conta
+        $stmt = $pdo->prepare("SELECT id FROM contas WHERE id_usuario = ? LIMIT 1");
+        $stmt->execute([$uid]);
+        $contaId = $stmt->fetchColumn();
+
+        if (!$contaId) {
+            // Criar conta Geral
+            $stmt = $pdo->prepare("INSERT INTO contas (id_usuario, nome, tipo, saldo_inicial) VALUES (?, 'Geral', 'dinheiro', 0)");
+            $stmt->execute([$uid]);
+            $contaId = $pdo->lastInsertId();
+        }
+
+        // Atualizar transações sem conta para apontar para a conta criada/existente
+        $stmt = $pdo->prepare("UPDATE transacoes SET id_conta = ? WHERE id_usuario = ? AND (id_conta IS NULL)");
+        $stmt->execute([$contaId, $uid]);
+    }
+
+    $pdo->commit();
+    echo "Migração concluída com sucesso.\n";
+    echo "- Tabela 'contas' criada/verificada.\n";
+    echo "- Coluna 'id_conta' em 'transacoes' criada/verificada.\n";
+    echo "- Backfill aplicado (transações antigas vinculadas à conta 'Geral').\n";
+} catch (Throwable $e) {
+    if ($pdo->inTransaction()) $pdo->rollBack();
+    http_response_code(500);
+    echo "Falha na migração: " . $e->getMessage();
+}
+?>
+
+

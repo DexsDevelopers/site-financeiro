@@ -13,6 +13,7 @@ if (!isset($_SESSION['user_id'])) {
 
 $input = json_decode(file_get_contents('php://input'), true);
 $texto_usuario = $input['texto'] ?? '';
+$id_conta_req = isset($input['id_conta']) ? (int)$input['id_conta'] : null;
 $userId = $_SESSION['user_id'];
 
 if (empty($texto_usuario)) {
@@ -170,6 +171,25 @@ if (empty($resultado_ia['descricao']) || empty($resultado_ia['valor']) || empty(
 try {
     $id_categoria = null;
     $tipo_transacao = '';
+    // Definir conta alvo
+    $id_conta = null;
+    if ($id_conta_req) {
+        $stmt_chk = $pdo->prepare("SELECT id FROM contas WHERE id = ? AND id_usuario = ?");
+        $stmt_chk->execute([$id_conta_req, $userId]);
+        if ($stmt_chk->fetchColumn()) {
+            $id_conta = $id_conta_req;
+        }
+    }
+    if (!$id_conta) {
+        $stmt_default = $pdo->prepare("SELECT id FROM contas WHERE id_usuario = ? ORDER BY id ASC LIMIT 1");
+        $stmt_default->execute([$userId]);
+        $id_conta = $stmt_default->fetchColumn();
+        if (!$id_conta) {
+            $stmt_ins = $pdo->prepare("INSERT INTO contas (id_usuario, nome, tipo, saldo_inicial) VALUES (?, 'Geral', 'dinheiro', 0)");
+            $stmt_ins->execute([$userId]);
+            $id_conta = $pdo->lastInsertId();
+        }
+    }
 
     // Se a IA sugeriu uma NOVA categoria
     if (isset($resultado_ia['nova_categoria_nome'])) {
@@ -200,9 +220,9 @@ try {
     }
 
     // Finalmente, insere a transação
-    $sql = "INSERT INTO transacoes (id_usuario, id_categoria, descricao, valor, tipo, data_transacao) VALUES (?, ?, ?, ?, ?, ?)";
+    $sql = "INSERT INTO transacoes (id_usuario, id_categoria, id_conta, descricao, valor, tipo, data_transacao) VALUES (?, ?, ?, ?, ?, ?, ?)";
     $stmt = $pdo->prepare($sql);
-    $stmt->execute([ $userId, $id_categoria, $resultado_ia['descricao'], $resultado_ia['valor'], $tipo_transacao, $resultado_ia['data'] ]);
+    $stmt->execute([ $userId, $id_categoria, $id_conta, $resultado_ia['descricao'], $resultado_ia['valor'], $tipo_transacao, $resultado_ia['data'] ]);
 
     echo json_encode(['success' => true, 'message' => 'Lançamento adicionado pela IA com sucesso!']);
 

@@ -31,6 +31,7 @@ $descricao = trim($_POST['descricao'] ?? '');
 $valor = $_POST['valor'] ?? '';
 $id_categoria = $_POST['id_categoria'] ?? '';
 $data_transacao = $_POST['data_transacao'] ?? '';
+$id_conta = isset($_POST['id_conta']) && $_POST['id_conta'] !== '' ? (int)$_POST['id_conta'] : null;
 
 if (empty($descricao) || !is_numeric($valor) || $valor < 0 || empty($id_categoria) || empty($data_transacao)) {
     http_response_code(400); // Requisição Inválida
@@ -54,10 +55,33 @@ try {
     }
     $tipo = $categoria_info['tipo'];
 
+    // --- 3.1. Verificação/definição de Conta ---
+    if ($id_conta) {
+        $stmt_conta = $pdo->prepare("SELECT id FROM contas WHERE id = ? AND id_usuario = ?");
+        $stmt_conta->execute([$id_conta, $id_usuario]);
+        if (!$stmt_conta->fetchColumn()) {
+            http_response_code(400);
+            $response['message'] = 'Conta inválida.';
+            echo json_encode($response);
+            exit();
+        }
+    } else {
+        // Obter uma conta padrão do usuário
+        $stmt_default = $pdo->prepare("SELECT id FROM contas WHERE id_usuario = ? ORDER BY id ASC LIMIT 1");
+        $stmt_default->execute([$id_usuario]);
+        $id_conta = $stmt_default->fetchColumn();
+        if (!$id_conta) {
+            // cria uma conta padrão 'Geral' caso não exista nenhuma
+            $stmt_ins = $pdo->prepare("INSERT INTO contas (id_usuario, nome, tipo, saldo_inicial) VALUES (?, 'Geral', 'dinheiro', 0)");
+            $stmt_ins->execute([$id_usuario]);
+            $id_conta = $pdo->lastInsertId();
+        }
+    }
+
     // --- 4. Inserção no Banco de Dados ---
-    $sql = "INSERT INTO transacoes (id_usuario, id_categoria, descricao, valor, tipo, data_transacao) VALUES (?, ?, ?, ?, ?, ?)";
+    $sql = "INSERT INTO transacoes (id_usuario, id_categoria, id_conta, descricao, valor, tipo, data_transacao) VALUES (?, ?, ?, ?, ?, ?, ?)";
     $stmt = $pdo->prepare($sql);
-    $stmt->execute([$id_usuario, $id_categoria, $descricao, $valor, $tipo, $data_transacao]);
+    $stmt->execute([$id_usuario, $id_categoria, $id_conta, $descricao, $valor, $tipo, $data_transacao]);
     
     $newTransactionId = $pdo->lastInsertId();
 
@@ -71,6 +95,7 @@ try {
         'valor'          => (float)$valor,
         'tipo'           => $tipo,
         'data_transacao' => $data_transacao,
+        'id_conta'       => (int)$id_conta,
         'nome_categoria' => $categoria_info['nome']
     ];
     echo json_encode($response);

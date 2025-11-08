@@ -7,6 +7,9 @@ require_once 'templates/header.php';
 
 $mes_selecionado = isset($_GET['mes']) ? (int)$_GET['mes'] : date('n');
 $ano_selecionado = isset($_GET['ano']) ? (int)$_GET['ano'] : date('Y');
+// Filtro de conta (carteira); 'all' para todas
+$conta_param = $_GET['conta'] ?? 'all';
+$conta_id = ($conta_param !== 'all') ? (int)$conta_param : 0;
 setlocale(LC_TIME, 'pt_BR.utf8', 'pt_BR', 'portuguese');
 $data_base = DateTime::createFromFormat('Y-n-d', "$ano_selecionado-$mes_selecionado-1");
 $nome_mes_ano = ucfirst(strftime('%B de %Y', $data_base->getTimestamp()));
@@ -15,10 +18,20 @@ $nome_mes_ano = ucfirst(strftime('%B de %Y', $data_base->getTimestamp()));
 $totalReceitas = 0; $totalDespesas = 0; $saldoMes = 0; $ultimos_lancamentos = [];
 $barChartLabels = []; $barChartData = []; $pieChartLabels = []; $pieChartData = []; $pieChartColors = [];
 $lista_categorias = [];
+$lista_contas = [];
 
 // Buscar tarefas para o dashboard
 $tarefas_hoje = []; $tarefas_pendentes_resumo = []; $stats_tarefas = [];
 try {
+    // Contas do usuário para o filtro e formulários
+    try {
+        $stmt_contas = $pdo->prepare("SELECT id, nome FROM contas WHERE id_usuario = ? ORDER BY nome");
+        $stmt_contas->execute([$userId]);
+        $lista_contas = $stmt_contas->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        $lista_contas = [];
+    }
+
     // Tarefas de hoje
     $stmt_hoje = $pdo->prepare("SELECT * FROM tarefas WHERE id_usuario = ? AND status = 'pendente' AND (DATE(data_limite) = CURDATE() OR data_limite IS NULL) ORDER BY FIELD(prioridade, 'Alta', 'Média', 'Baixa') LIMIT 5");
     $stmt_hoje->execute([$userId]);
@@ -74,9 +87,16 @@ function getPrioridadeBadge($prioridade) {
 // A lógica para $dias_de_uso foi removida daqui.
 
 try {
-    $sql_financeiro = "SELECT SUM(CASE WHEN tipo = 'receita' THEN valor ELSE 0 END) as total_receitas, SUM(CASE WHEN tipo = 'despesa' THEN valor ELSE 0 END) as total_despesas FROM transacoes WHERE id_usuario = ? AND MONTH(data_transacao) = ? AND YEAR(data_transacao) = ?";
+    // Resumo financeiro com filtro de conta (se selecionada)
+    $params_fin = [$userId, $mes_selecionado, $ano_selecionado];
+    $sql_financeiro = "SELECT 
+            SUM(CASE WHEN tipo = 'receita' THEN valor ELSE 0 END) as total_receitas, 
+            SUM(CASE WHEN tipo = 'despesa' THEN valor ELSE 0 END) as total_despesas 
+        FROM transacoes 
+        WHERE id_usuario = ? AND MONTH(data_transacao) = ? AND YEAR(data_transacao) = ?";
+    if ($conta_id > 0) { $sql_financeiro .= " AND id_conta = ?"; $params_fin[] = $conta_id; }
     $stmt_financeiro = $pdo->prepare($sql_financeiro);
-    $stmt_financeiro->execute([$userId, $mes_selecionado, $ano_selecionado]);
+    $stmt_financeiro->execute($params_fin);
     $resumo = $stmt_financeiro->fetch();
     $totalReceitas = $resumo['total_receitas'] ?? 0;
     $totalDespesas = $resumo['total_despesas'] ?? 0;
@@ -94,9 +114,14 @@ if ($saldoMes > 0) {
     }
 }
 
-    $sql_chart_bar = "SELECT DAY(data_transacao) as dia, SUM(valor) as total_gasto FROM transacoes WHERE id_usuario = ? AND tipo = 'despesa' AND MONTH(data_transacao) = ? AND YEAR(data_transacao) = ? GROUP BY DAY(data_transacao) ORDER BY dia ASC";
+    $sql_chart_bar = "SELECT DAY(data_transacao) as dia, SUM(valor) as total_gasto 
+        FROM transacoes 
+        WHERE id_usuario = ? AND tipo = 'despesa' AND MONTH(data_transacao) = ? AND YEAR(data_transacao) = ?";
+    $params_bar = [$userId, $mes_selecionado, $ano_selecionado];
+    if ($conta_id > 0) { $sql_chart_bar .= " AND id_conta = ?"; $params_bar[] = $conta_id; }
+    $sql_chart_bar .= " GROUP BY DAY(data_transacao) ORDER BY dia ASC";
     $stmt_chart_bar = $pdo->prepare($sql_chart_bar);
-    $stmt_chart_bar->execute([$userId, $mes_selecionado, $ano_selecionado]);
+    $stmt_chart_bar->execute($params_bar);
     foreach ($stmt_chart_bar->fetchAll() as $dado) {
         $barChartLabels[] = 'Dia ' . $dado['dia'];
         $barChartData[] = $dado['total_gasto'];
@@ -104,16 +129,29 @@ if ($saldoMes > 0) {
     
     
 
-    $sql_chart_pie = "SELECT c.nome as categoria, SUM(t.valor) as total_categoria FROM transacoes t JOIN categorias c ON t.id_categoria = c.id WHERE t.id_usuario = ? AND t.tipo = 'despesa' AND MONTH(t.data_transacao) = ? AND YEAR(t.data_transacao) = ? GROUP BY t.id_categoria, c.nome ORDER BY total_categoria DESC";
+    $sql_chart_pie = "SELECT c.nome as categoria, SUM(t.valor) as total_categoria 
+        FROM transacoes t 
+        JOIN categorias c ON t.id_categoria = c.id 
+        WHERE t.id_usuario = ? AND t.tipo = 'despesa' AND MONTH(t.data_transacao) = ? AND YEAR(t.data_transacao) = ?";
+    $params_pie = [$userId, $mes_selecionado, $ano_selecionado];
+    if ($conta_id > 0) { $sql_chart_pie .= " AND t.id_conta = ?"; $params_pie[] = $conta_id; }
+    $sql_chart_pie .= " GROUP BY t.id_categoria, c.nome ORDER BY total_categoria DESC";
     $stmt_chart_pie = $pdo->prepare($sql_chart_pie);
-    $stmt_chart_pie->execute([$userId, $mes_selecionado, $ano_selecionado]);
+    $stmt_chart_pie->execute($params_pie);
     $dados_pie_chart = $stmt_chart_pie->fetchAll();
     $cores_disponiveis = ['#e50914', '#f9a826', '#0984e3', '#00b894', '#6c5ce7', '#e84393', '#fd79a8'];
     $colorIndex = 0;
     foreach ($dados_pie_chart as $dado) { $pieChartLabels[] = $dado['categoria']; $pieChartData[] = $dado['total_categoria']; $pieChartColors[] = $cores_disponiveis[$colorIndex % count($cores_disponiveis)]; $colorIndex++; }
 
-    $stmt_ultimos = $pdo->prepare("SELECT t.id, t.descricao, t.valor, t.tipo, t.data_transacao, c.nome as nome_categoria FROM transacoes t LEFT JOIN categorias c ON t.id_categoria = c.id WHERE t.id_usuario = ? ORDER BY t.data_transacao DESC, t.id DESC LIMIT 5");
-    $stmt_ultimos->execute([$userId]);
+    $sql_ultimos = "SELECT t.id, t.descricao, t.valor, t.tipo, t.data_transacao, c.nome as nome_categoria 
+        FROM transacoes t 
+        LEFT JOIN categorias c ON t.id_categoria = c.id 
+        WHERE t.id_usuario = ?";
+    $params_ult = [$userId];
+    if ($conta_id > 0) { $sql_ultimos .= " AND t.id_conta = ?"; $params_ult[] = $conta_id; }
+    $sql_ultimos .= " ORDER BY t.data_transacao DESC, t.id DESC LIMIT 5";
+    $stmt_ultimos = $pdo->prepare($sql_ultimos);
+    $stmt_ultimos->execute($params_ult);
     $ultimos_lancamentos = $stmt_ultimos->fetchAll();
     
     $stmt_cats = $pdo->prepare("SELECT id, nome, tipo FROM categorias WHERE id_usuario = ? ORDER BY tipo, nome");
@@ -144,6 +182,12 @@ if ($saldoMes > 0) {
                         <form id="filtroMesAno" class="d-flex gap-2">
                             <select name="mes" id="selectMes" class="form-select form-select-sm" style="width: 130px;"><?php for ($m = 1; $m <= 12; $m++): ?><option value="<?php echo $m; ?>" <?php echo ($m == $mes_selecionado) ? 'selected' : ''; ?>><?php echo ucfirst(strftime('%B', mktime(0, 0, 0, $m, 1))); ?></option><?php endfor; ?></select>
                             <select name="ano" id="selectAno" class="form-select form-select-sm" style="width: 90px;"><?php for ($a = date('Y'); $a >= date('Y') - 5; $a--): ?><option value="<?php echo $a; ?>" <?php echo ($a == $ano_selecionado) ? 'selected' : ''; ?>><?php echo $a; ?></option><?php endfor; ?></select>
+                            <select name="conta" id="selectConta" class="form-select form-select-sm" style="width: 180px;">
+                                <option value="all" <?php echo ($conta_id === 0) ? 'selected' : ''; ?>>Todas as contas</option>
+                                <?php foreach($lista_contas as $conta): ?>
+                                    <option value="<?php echo (int)$conta['id']; ?>" <?php echo ($conta_id === (int)$conta['id']) ? 'selected' : ''; ?>><?php echo htmlspecialchars($conta['nome']); ?></option>
+                                <?php endforeach; ?>
+                            </select>
                         </form>
                     </div>
                 </div>
@@ -293,7 +337,7 @@ if ($saldoMes > 0) {
     </div>
 </main>
 
-<div class="modal fade" id="modalNovoLancamento" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="modalLabel"><i class="bi bi-pencil-square me-2"></i>Novo Lançamento</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><form action="salvar_transacao.php" method="POST" id="formNovoLancamento"><div class="modal-body"><div class="mb-3"><label for="descricao" class="form-label">Descrição</label><input type="text" class="form-control" id="descricao" name="descricao" placeholder="Ex: Almoço, Salário" required></div><div class="row"><div class="col-md-6 mb-3"><label for="valor" class="form-label">Valor (R$)</label><input type="number" class="form-control" id="valor" name="valor" step="0.01" min="0" placeholder="25,50" required></div><div class="col-md-6 mb-3"><label for="data_transacao" class="form-label">Data</label><input type="date" class="form-control" id="data_transacao" name="data_transacao" value="<?php echo date('Y-m-d'); ?>" required></div></div><div class="mb-3"><label for="id_categoria" class="form-label">Categoria</label><select class="form-select" name="id_categoria" id="id_categoria" required><option value="">Selecione uma categoria</option><optgroup label="Despesas"><?php foreach($lista_categorias as $cat): if($cat['tipo'] == 'despesa'): ?><option value="<?php echo $cat['id']; ?>"><?php echo htmlspecialchars($cat['nome']); ?></option><?php endif; endforeach; ?></optgroup><optgroup label="Receitas"><?php foreach($lista_categorias as $cat): if($cat['tipo'] == 'receita'): ?><option value="<?php echo $cat['id']; ?>"><?php echo htmlspecialchars($cat['nome']); ?></option><?php endif; endforeach; ?></optgroup></select></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-custom-red">Salvar Lançamento</button></div></form></div></div></div>
+<div class="modal fade" id="modalNovoLancamento" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="modalLabel"><i class="bi bi-pencil-square me-2"></i>Novo Lançamento</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><form action="salvar_transacao.php" method="POST" id="formNovoLancamento"><div class="modal-body"><div class="mb-3"><label for="descricao" class="form-label">Descrição</label><input type="text" class="form-control" id="descricao" name="descricao" placeholder="Ex: Almoço, Salário" required></div><div class="row"><div class="col-md-6 mb-3"><label for="valor" class="form-label">Valor (R$)</label><input type="number" class="form-control" id="valor" name="valor" step="0.01" min="0" placeholder="25,50" required></div><div class="col-md-6 mb-3"><label for="data_transacao" class="form-label">Data</label><input type="date" class="form-control" id="data_transacao" name="data_transacao" value="<?php echo date('Y-m-d'); ?>" required></div></div><div class="mb-3"><label for="id_categoria" class="form-label">Categoria</label><select class="form-select" name="id_categoria" id="id_categoria" required><option value="">Selecione uma categoria</option><optgroup label="Despesas"><?php foreach($lista_categorias as $cat): if($cat['tipo'] == 'despesa'): ?><option value="<?php echo $cat['id']; ?>"><?php echo htmlspecialchars($cat['nome']); ?></option><?php endif; endforeach; ?></optgroup><optgroup label="Receitas"><?php foreach($lista_categorias as $cat): if($cat['tipo'] == 'receita'): ?><option value="<?php echo $cat['id']; ?>"><?php echo htmlspecialchars($cat['nome']); ?></option><?php endif; endforeach; ?></optgroup></select></div><div class="mb-3"><label for="id_conta" class="form-label">Conta</label><select class="form-select" name="id_conta" id="id_conta" required><option value="">Selecione uma conta</option><option value="<?php echo ($conta_id > 0) ? $conta_id : ''; ?>" <?php echo ($conta_id > 0) ? 'selected' : ''; ?>><?php echo ($conta_id > 0) ? (htmlspecialchars(array_values(array_filter($lista_contas, fn($c) => (int)$c['id'] === $conta_id))[0]['nome'] ?? 'Selecionada')) : '—'; ?></option><?php foreach($lista_contas as $conta): ?><option value="<?php echo (int)$conta['id']; ?>"><?php echo htmlspecialchars($conta['nome']); ?></option><?php endforeach; ?></select></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-custom-red">Salvar Lançamento</button></div></form></div></div></div>
 
 <div class="onesignal-customlink-container">
   <button class="notify-button">
@@ -316,10 +360,12 @@ if ($saldoMes > 0) {
         // --- LÓGICA DO FILTRO DE DATA ---
         const selectMes = document.getElementById('selectMes');
         const selectAno = document.getElementById('selectAno');
-        function atualizarDashboard() { const mes = selectMes.value; const ano = selectAno.value; window.location.href = `dashboard.php?mes=${mes}&ano=${ano}`; }
+        function atualizarDashboard() { const mes = selectMes.value; const ano = selectAno.value; const contaSel = (document.getElementById('selectConta')?.value || 'all'); window.location.href = `dashboard.php?mes=${mes}&ano=${ano}&conta=${encodeURIComponent(contaSel)}`; }
         if (selectMes && selectAno) {
             selectMes.addEventListener('change', atualizarDashboard);
             selectAno.addEventListener('change', atualizarDashboard);
+            const selectConta = document.getElementById('selectConta');
+            if (selectConta) { selectConta.addEventListener('change', atualizarDashboard); }
         }
         
         // --- LÓGICA DOS GRÁFICOS E FORMULÁRIOS AJAX ---
@@ -330,10 +376,10 @@ if ($saldoMes > 0) {
         if(pieChartCanvas && <?php echo json_encode(!empty($pieChartData)); ?>){ new Chart(pieChartCanvas.getContext('2d'), { type: 'doughnut', data: { labels: <?php echo json_encode($pieChartLabels); ?>, datasets: [{ data: <?php echo json_encode($pieChartData); ?>, backgroundColor: <?php echo json_encode($pieChartColors); ?>, borderColor: '#1f1f1f', borderWidth: 3 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#f5f5f1' } }, tooltip: { callbacks: { label: function(c) { let l = c.label || ''; if(l) l += ': '; let v = c.parsed || 0; l += 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 2 }); return l; } } } } } }); }
         
         const formNovoLancamento = document.getElementById('formNovoLancamento');
-        if(formNovoLancamento){ formNovoLancamento.addEventListener('submit', function(e){ e.preventDefault(); const d = new FormData(formNovoLancamento); const b = formNovoLancamento.querySelector('button[type="submit"]'); b.disabled = true; b.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Salvando...'; fetch('salvar_transacao.php', { method: 'POST', body: d }).then(r => r.ok ? r.json() : r.json().then(e => { throw new Error(e.message || 'Ocorreu um erro.') })).then(d => { if(d.success){ showToast('Sucesso!', d.message); setTimeout(() => { window.location.href = `dashboard.php?mes=${selectMes.value}&ano=${selectAno.value}`; }, 1000); } else { showToast('Erro!', d.message, true); b.disabled = false; b.innerHTML = 'Salvar Lançamento'; } }).catch(e => { console.error('Erro:', e); showToast('Erro!', e.message, true); b.disabled = false; b.innerHTML = 'Salvar Lançamento'; }); }); }
+        if(formNovoLancamento){ formNovoLancamento.addEventListener('submit', function(e){ e.preventDefault(); const d = new FormData(formNovoLancamento); const b = formNovoLancamento.querySelector('button[type="submit"]'); b.disabled = true; b.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Salvando...'; fetch('salvar_transacao.php', { method: 'POST', body: d }).then(r => r.ok ? r.json() : r.json().then(e => { throw new Error(e.message || 'Ocorreu um erro.') })).then(d => { if(d.success){ showToast('Sucesso!', d.message); setTimeout(() => { const contaSel = (document.getElementById('selectConta')?.value || 'all'); window.location.href = `dashboard.php?mes=${selectMes.value}&ano=${selectAno.value}&conta=${encodeURIComponent(contaSel)}`; }, 1000); } else { showToast('Erro!', d.message, true); b.disabled = false; b.innerHTML = 'Salvar Lançamento'; } }).catch(e => { console.error('Erro:', e); showToast('Erro!', e.message, true); b.disabled = false; b.innerHTML = 'Salvar Lançamento'; }); }); }
 
         const formIaRapida = document.getElementById('formIaRapida');
-        if(formIaRapida){ formIaRapida.addEventListener('submit', function(e){ e.preventDefault(); const i = document.getElementById('inputIa'); const b = document.getElementById('btnIaSubmit'); const t = i.value; b.disabled = true; b.innerHTML = '<span class="spinner-border spinner-border-sm"></span>'; fetch('processar_ia.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ texto: t }) }).then(r => r.json()).then(d => { if(d.success){ showToast('Sucesso!', d.message); setTimeout(() => { window.location.href = `dashboard.php?mes=${selectMes.value}&ano=${selectAno.value}`; }, 1500); } else { showToast('Erro da IA!', d.message, true); b.disabled = false; b.innerHTML = 'Lançar'; } }).catch(e => { console.error('Erro de rede:', e); showToast('Erro de Rede!', 'Não foi possível se conectar ao servidor.', true); b.disabled = false; b.innerHTML = 'Lançar'; }); }); }
+        if(formIaRapida){ formIaRapida.addEventListener('submit', function(e){ e.preventDefault(); const i = document.getElementById('inputIa'); const b = document.getElementById('btnIaSubmit'); const t = i.value; const contaSel = (document.getElementById('selectConta')?.value || 'all'); const idConta = (contaSel !== 'all') ? parseInt(contaSel) : null; b.disabled = true; b.innerHTML = '<span class="spinner-border spinner-border-sm"></span>'; fetch('processar_ia.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ texto: t, id_conta: idConta }) }).then(r => r.json()).then(d => { if(d.success){ showToast('Sucesso!', d.message); setTimeout(() => { window.location.href = `dashboard.php?mes=${selectMes.value}&ano=${selectAno.value}&conta=${encodeURIComponent(contaSel)}`; }, 1500); } else { showToast('Erro da IA!', d.message, true); b.disabled = false; b.innerHTML = 'Lançar'; } }).catch(e => { console.error('Erro de rede:', e); showToast('Erro de Rede!', 'Não foi possível se conectar ao servidor.', true); b.disabled = false; b.innerHTML = 'Lançar'; }); }); }
         
         // --- FUNCIONALIDADES DAS TAREFAS ---
         // Marcar tarefa como concluída

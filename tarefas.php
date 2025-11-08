@@ -157,9 +157,9 @@ function getPrioridadeBadge($prioridade) { switch ($prioridade) { case 'Alta': r
     <h4 class="mb-0">Minhas Tarefas</h4>
     <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#modalNovaTarefa">
         <i class="bi bi-plus-lg"></i> Nova Tarefa
-    </button>
-</div>
-
+            </button>
+        </div>
+        
 
 <h4 class="mb-3">Pendentes</h4>
 <div id="lista-tarefas-pendentes" class="mb-5">
@@ -167,34 +167,34 @@ function getPrioridadeBadge($prioridade) { switch ($prioridade) { case 'Alta': r
 <div class="d-flex flex-wrap gap-2 align-items-center text-muted small">
     <span class="badge <?php echo getPrioridadeBadge($tarefa['prioridade']); ?>">
         <?php echo $tarefa['prioridade']; ?>
-    </span>
+                                </span>
     
-    <?php if ($tarefa['data_limite']): ?>
+                                <?php if ($tarefa['data_limite']): ?>
         <span><i class="bi bi-calendar-event me-1"></i> <?php echo date('d/m/Y', strtotime($tarefa['data_limite'])); ?></span>
     <?php endif; ?>
 
     <?php if ($tarefa['hora_inicio'] || $tarefa['hora_fim']): ?>
-        <span>
+                                    <span>
             <i class="bi bi-clock me-1"></i>
             <?php
                 $inicio = $tarefa['hora_inicio'] ? date('H:i', strtotime($tarefa['hora_inicio'])) : '--:--';
                 $fim = $tarefa['hora_fim'] ? date('H:i', strtotime($tarefa['hora_fim'])) : '--:--';
                 echo "{$inicio} - {$fim}";
             ?>
-        </span>
-    <?php endif; ?>
-</div>
+                                    </span>
+                                <?php endif; ?>
+                            </div>
 </div><div class="ms-3"><div class="btn-group-mobile">
     <button class="btn btn-sm btn-outline-success btn-atualizar-status" data-id="<?php echo $tarefa['id']; ?>" data-status="concluida" title="Concluir Tarefa">
-        <i class="bi bi-check-lg"></i>
-    </button>
+                                <i class="bi bi-check-lg"></i>
+                            </button>
     <button class="btn btn-sm btn-outline-primary btn-editar-tarefa" data-id="<?php echo $tarefa['id']; ?>" data-bs-toggle="modal" data-bs-target="#modalEditarTarefa" title="Editar Tarefa">
         <i class="bi bi-pencil"></i>
     </button>
     <button class="btn btn-sm btn-outline-danger btn-excluir-tarefa" data-id="<?php echo $tarefa['id']; ?>" data-nome="<?php echo htmlspecialchars($tarefa['descricao']); ?>" title="Excluir Tarefa">
-        <i class="bi bi-trash"></i>
-    </button>
-</div>
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
 </div></div><button class="btn btn-link btn-sm text-decoration-none text-muted mt-2 p-0" type="button" data-bs-toggle="collapse" data-bs-target="#subtarefas-<?php echo $tarefa['id']; ?>"><i class="bi bi-chevron-down"></i> Detalhes e Subtarefas</button><div class="collapse mt-3" id="subtarefas-<?php echo $tarefa['id']; ?>"><hr style="border-color: #303030;"><?php if ($tarefa['tempo_estimado'] > 0): $h = floor($tarefa['tempo_estimado'] / 60); $m = $tarefa['tempo_estimado'] % 60; $tf = ''; if ($h > 0) $tf .= $h . 'h '; if ($m > 0) $tf .= $m . 'min'; ?><p class="text-muted mb-2 ps-4"><i class="bi bi-clock"></i> Tempo Estimado: <?php echo trim($tf); ?></p><?php endif; ?><div class="subtask-list ps-4"><?php if (!empty($tarefa['subtarefas'])): ?><?php foreach($tarefa['subtarefas'] as $sub): ?><div class="subtask-item" id="subtask-item-<?php echo $sub['id']; ?>"><div class="form-check"><input class="form-check-input subtask-checkbox" type="checkbox" data-id="<?php echo $sub['id']; ?>" id="sub-<?php echo $sub['id']; ?>" <?php echo ($sub['status'] == 'concluida') ? 'checked' : ''; ?>><label class="form-check-label <?php echo ($sub['status'] == 'concluida') ? 'text-decoration-line-through text-muted' : ''; ?>" for="sub-<?php echo $sub['id']; ?>"><?php echo htmlspecialchars($sub['descricao']); ?></label></div><div class="subtask-actions"><button class="btn btn-sm btn-outline-primary btn-editar-subtarefa" data-id="<?php echo $sub['id']; ?>" data-descricao="<?php echo htmlspecialchars($sub['descricao']); ?>"><i class="bi bi-pencil"></i></button><button class="btn btn-sm btn-outline-danger btn-excluir-subtarefa" data-id="<?php echo $sub['id']; ?>"><i class="bi bi-x-lg"></i></button></div></div><?php endforeach; ?><?php endif; ?></div><form class="d-flex mt-3 ps-4 form-add-subtask" action="adicionar_subtarefa.php" method="POST"><input type="hidden" name="id_tarefa_principal" value="<?php echo $tarefa['id']; ?>"><input type="text" name="descricao" class="form-control form-control-sm" placeholder="Adicionar nova subtarefa..." required><button type="submit" class="btn btn-sm btn-secondary ms-2">Add</button></form></div></div></div><?php endforeach; ?><?php endif; ?>
 </div>
 
@@ -286,26 +286,26 @@ document.addEventListener('DOMContentLoaded', function () {
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Hora Início</label>
                             <input type="time" name="hora_inicio" class="form-control" value="${t.hora_inicio ?? ''}">
-                        </div>
+                </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Hora Fim</label>
                             <input type="time" name="hora_fim" class="form-control" value="${t.hora_fim ?? ''}">
-                        </div>
-                    </div>
-                    <div class="mb-3">
+                </div>
+        </div>
+					<div class="mb-3">
                         <label class="form-label">Tempo Estimado</label>
                         <div class="input-group">
                             <input type="number" name="tempo_horas" class="form-control" min="0" value="${h}">
                             <span class="input-group-text">h</span>
                             <input type="number" name="tempo_minutos" class="form-control" min="0" max="59" value="${m}">
                             <span class="input-group-text">min</span>
-                        </div>
+					</div>
                     </div>`;
-            } else {
+    } else {
                 corpoModalEditar.innerHTML = `<p class="text-danger">${data.message}</p>`;
-            }
-        })
-        .catch(err => {
+        }
+    })
+    .catch(err => {
             corpoModalEditar.innerHTML = `<p class="text-danger">Erro de rede.</p>`;
         });
     });
@@ -366,9 +366,9 @@ document.addEventListener('DOMContentLoaded', function () {
                         if (data.success) { showToast('Sucesso!', data.message); if (subtaskItem) { gsap.to(subtaskItem, { duration: 0.5, opacity: 0, x: 20, onComplete: () => subtaskItem.remove() }); } }
                         else { showToast('Erro!', data.message, true); }
                     }).catch(error => showToast('Erro de Rede!', 'Não foi possível se conectar.', true));
-                }
-            });
         }
+    });
+}
         if (editSubtaskButton) {
             const subtaskId = editSubtaskButton.dataset.id;
             const currentDesc = editSubtaskButton.dataset.descricao;
@@ -381,13 +381,13 @@ document.addEventListener('DOMContentLoaded', function () {
                     const newDesc = result.value;
                     fetch('atualizar_subtarefa.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: subtaskId, descricao: newDesc }) })
                     .then(response => response.json()).then(data => {
-                        if (data.success) {
+            if (data.success) {
                             showToast('Sucesso!', data.message);
                             const label = document.querySelector(`#subtask-item-${subtaskId} .form-check-label`);
                             const button = document.querySelector(`.btn-editar-subtarefa[data-id='${subtaskId}']`);
                             if (label) label.textContent = newDesc;
                             if (button) button.dataset.descricao = newDesc;
-                        } else {
+            } else {
                             showToast('Erro!', data.message, true);
                         }
                     }).catch(error => showToast('Erro de Rede!', 'Não foi possível salvar.', true));
@@ -415,8 +415,8 @@ document.addEventListener('DOMContentLoaded', function () {
             const items = listaTarefas.querySelectorAll('.task-card');
             const novaOrdem = Array.from(items).map(item => item.dataset.id);
             fetch('atualizar_ordem_tarefas.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ordem: novaOrdem })
             })
             .then(res => res.json())

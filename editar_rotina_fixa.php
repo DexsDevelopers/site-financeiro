@@ -43,22 +43,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (strpos($contentType, 'application/json') !== false) {
         header('Content-Type: application/json');
         
-        $input = json_decode(file_get_contents('php://input'), true);
-        $nome = trim($input['nome'] ?? '');
-        $horarioSugerido = $input['horario'] ?? null;
-        $descricao = trim($input['descricao'] ?? '');
-        
+$input = json_decode(file_get_contents('php://input'), true);
+$nome = trim($input['nome'] ?? '');
+$horarioSugerido = $input['horario'] ?? null;
+$descricao = trim($input['descricao'] ?? '');
+
         if (!$nome) {
             http_response_code(400);
             echo json_encode(['success' => false, 'message' => 'Nome é obrigatório']);
-            exit;
-        }
-        
-        if (empty($horarioSugerido) || $horarioSugerido === '00:00') {
-            $horarioSugerido = null;
-        }
-        
-        try {
+    exit;
+}
+
+if (empty($horarioSugerido) || $horarioSugerido === '00:00') {
+    $horarioSugerido = null;
+}
+
+try {
             $stmt = $pdo->prepare("
                 UPDATE rotinas_fixas 
                 SET nome = ?, horario_sugerido = ?, descricao = ?
@@ -71,8 +71,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } catch (PDOException $e) {
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Erro: ' . $e->getMessage()]);
-            exit;
-        }
+        exit;
+    }
     } 
     // Form POST (Formulário HTML)
     else {
@@ -84,11 +84,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $erro = 'Nome é obrigatório';
         } else {
             try {
-                $stmt = $pdo->prepare("
-                    UPDATE rotinas_fixas 
-                    SET nome = ?, horario_sugerido = ?, descricao = ?
-                    WHERE id = ? AND id_usuario = ?
-                ");
+    $stmt = $pdo->prepare("
+        UPDATE rotinas_fixas 
+        SET nome = ?, horario_sugerido = ?, descricao = ?
+        WHERE id = ? AND id_usuario = ?
+    ");
                 $stmt->execute([$nome, $horario ?: null, $descricao, $rotinaId, $userId]);
                 
                 // Recarregar dados atualizados
