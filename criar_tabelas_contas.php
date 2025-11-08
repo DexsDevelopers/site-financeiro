@@ -55,6 +55,15 @@ try {
         // garantir NOT NULL em nome
         try { $pdo->exec("ALTER TABLE contas MODIFY COLUMN nome VARCHAR(100) NOT NULL"); } catch (Throwable $e) {}
     }
+    // Garantir coluna criado_em
+    if (!$pdo->query("SHOW COLUMNS FROM contas LIKE 'criado_em'")->fetch(PDO::FETCH_ASSOC)) {
+        try {
+            $pdo->exec("ALTER TABLE contas ADD COLUMN criado_em DATETIME DEFAULT CURRENT_TIMESTAMP");
+        } catch (Throwable $e) {
+            // fallback para hosts sem DEFAULT CURRENT_TIMESTAMP em DATETIME
+            try { $pdo->exec("ALTER TABLE contas ADD COLUMN criado_em DATETIME NULL"); } catch (Throwable $e2) {}
+        }
+    }
     // Ajuste opcional: algumas instalações antigas possuem 'codigo_conta' UNIQUE com default ''.
     $hasCodigoConta = (bool)$pdo->query("SHOW COLUMNS FROM contas LIKE 'codigo_conta'")->fetch(PDO::FETCH_ASSOC);
     if ($hasCodigoConta) {
