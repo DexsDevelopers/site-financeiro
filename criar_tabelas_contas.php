@@ -22,17 +22,38 @@ try {
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS contas (
             id INT AUTO_INCREMENT PRIMARY KEY,
-            id_usuario INT NOT NULL,
-            nome VARCHAR(100) NOT NULL,
-            tipo VARCHAR(20) DEFAULT 'banco',
-            instituicao VARCHAR(100) DEFAULT NULL,
-            saldo_inicial DECIMAL(12,2) DEFAULT 0,
-            cor VARCHAR(7) DEFAULT NULL,
-            criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_usuario (id_usuario),
-            CONSTRAINT fk_contas_usuario FOREIGN KEY (id_usuario) REFERENCES usuarios(id) ON DELETE CASCADE
+            -- algumas instalações antigas podem não ter todas as colunas; vamos garantir abaixo
+            nome VARCHAR(100) NULL,
+            criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     ");
+
+    // 1.1) Garantir colunas obrigatórias na tabela contas
+    $needIdUsuario = !$pdo->query("SHOW COLUMNS FROM contas LIKE 'id_usuario'")->fetch(PDO::FETCH_ASSOC);
+    if ($needIdUsuario) {
+        $pdo->exec("ALTER TABLE contas ADD COLUMN id_usuario INT NOT NULL AFTER id");
+        $pdo->exec("CREATE INDEX idx_usuario ON contas (id_usuario)");
+        // FK é opcional (pode falhar em hosts compartilhados); tentamos sem quebrar tudo
+        try { $pdo->exec("ALTER TABLE contas ADD CONSTRAINT fk_contas_usuario FOREIGN KEY (id_usuario) REFERENCES usuarios(id) ON DELETE CASCADE"); } catch (Throwable $e) {}
+    }
+    if (!$pdo->query("SHOW COLUMNS FROM contas LIKE 'tipo'")->fetch(PDO::FETCH_ASSOC)) {
+        $pdo->exec("ALTER TABLE contas ADD COLUMN tipo VARCHAR(20) DEFAULT 'banco'");
+    }
+    if (!$pdo->query("SHOW COLUMNS FROM contas LIKE 'instituicao'")->fetch(PDO::FETCH_ASSOC)) {
+        $pdo->exec("ALTER TABLE contas ADD COLUMN instituicao VARCHAR(100) DEFAULT NULL");
+    }
+    if (!$pdo->query("SHOW COLUMNS FROM contas LIKE 'saldo_inicial'")->fetch(PDO::FETCH_ASSOC)) {
+        $pdo->exec("ALTER TABLE contas ADD COLUMN saldo_inicial DECIMAL(12,2) DEFAULT 0");
+    }
+    if (!$pdo->query("SHOW COLUMNS FROM contas LIKE 'cor'")->fetch(PDO::FETCH_ASSOC)) {
+        $pdo->exec("ALTER TABLE contas ADD COLUMN cor VARCHAR(7) DEFAULT NULL");
+    }
+    if (!$pdo->query("SHOW COLUMNS FROM contas LIKE 'nome'")->fetch(PDO::FETCH_ASSOC)) {
+        $pdo->exec("ALTER TABLE contas ADD COLUMN nome VARCHAR(100) NOT NULL");
+    } else {
+        // garantir NOT NULL em nome
+        try { $pdo->exec("ALTER TABLE contas MODIFY COLUMN nome VARCHAR(100) NOT NULL"); } catch (Throwable $e) {}
+    }
 
     // 2) Adicionar coluna id_conta em transacoes (se não existir)
     $colExists = $pdo->query("SHOW COLUMNS FROM transacoes LIKE 'id_conta'")->fetch(PDO::FETCH_ASSOC);
@@ -45,12 +66,7 @@ try {
     // 3) Backfill: criar conta 'Geral' para cada usuário que não tenha nenhuma
     // e associar transações sem id_conta a essa conta
     // Buscar usuários com transações sem id_conta
-    $usuariosSemConta = $pdo->query("
-        SELECT DISTINCT t.id_usuario 
-        FROM transacoes t 
-        LEFT JOIN contas c ON c.id_usuario = t.id_usuario 
-        WHERE t.id_conta IS NULL
-    ")->fetchAll(PDO::FETCH_COLUMN);
+    $usuariosSemConta = $pdo->query("SELECT DISTINCT id_usuario FROM transacoes WHERE id_conta IS NULL")->fetchAll(PDO::FETCH_COLUMN);
 
     foreach ($usuariosSemConta as $uid) {
         // Verificar se já existe alguma conta

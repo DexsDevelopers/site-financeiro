@@ -84,10 +84,18 @@ if ($editId > 0) {
     $contaEdit = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
 }
 
-// Listagem
-$stmt = $pdo->prepare("SELECT id, nome, tipo, instituicao, saldo_inicial, cor, criado_em FROM contas WHERE id_usuario = ? ORDER BY nome");
-$stmt->execute([$userId]);
-$contas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// Listagem (com tolerância se a tabela ainda não existir)
+$contas = [];
+$tabelaExiste = true;
+try {
+    $stmt = $pdo->prepare("SELECT id, nome, tipo, instituicao, saldo_inicial, cor, criado_em FROM contas WHERE id_usuario = ? ORDER BY nome");
+    $stmt->execute([$userId]);
+    $contas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (Throwable $e) {
+    $tabelaExiste = false;
+    $isOk = false;
+    $msg = 'A estrutura de contas ainda não foi criada. Clique no botão abaixo para criar.';
+}
 ?>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -160,7 +168,15 @@ $contas = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <div class="card card-glass">
                 <div class="card-body p-4">
                     <h4 class="card-title mb-3">Minhas Contas</h4>
-                    <?php if (empty($contas)): ?>
+                    <?php if (!$tabelaExiste): ?>
+                        <div class="alert alert-warning">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>Estrutura não encontrada (tabela <code>contas</code>). Crie a estrutura para continuar.</span>
+                                <a class="btn btn-sm btn-custom-red" href="criar_tabelas_contas.php">Criar Estrutura</a>
+                            </div>
+                        </div>
+                        <p class="text-muted mb-0">Após criar, recarregue esta página.</p>
+                    <?php elseif (empty($contas)): ?>
                         <p class="text-muted">Nenhuma conta cadastrada ainda.</p>
                     <?php else: ?>
                         <div class="table-responsive">

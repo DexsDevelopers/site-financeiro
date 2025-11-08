@@ -21,11 +21,18 @@ foreach ($arquivos as $arquivo) {
 echo "</ul>";
 
 echo "<h3>🔧 Teste de conectividade</h3>";
+// Usa a mesma conexão do sistema (inclui credenciais corretas)
 try {
-    $pdo = new PDO('mysql:host=localhost;dbname=u250128_site_financeiro', 'u250128_site_financeiro', 'Senha123!');
-    echo "<p>✅ <strong>Conexão com banco de dados:</strong> OK</p>";
-} catch (PDOException $e) {
-    echo "<p>❌ <strong>Erro de conexão:</strong> " . $e->getMessage() . "</p>";
+    require_once __DIR__ . '/includes/db_connect.php';
+    // Teste simples
+    $ok = $pdo->query('SELECT 1')->fetchColumn();
+    if ($ok == 1) {
+        echo "<p>✅ <strong>Conexão com banco de dados:</strong> OK</p>";
+    } else {
+        echo "<p>❌ <strong>Conexão estabelecida, mas teste falhou.</strong></p>";
+    }
+} catch (Throwable $e) {
+    echo "<p>❌ <strong>Erro de conexão:</strong> " . htmlspecialchars($e->getMessage()) . "</p>";
 }
 
 echo "<h3>🌐 Teste de URLs</h3>";
