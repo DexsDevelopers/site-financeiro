@@ -54,6 +54,12 @@ try {
         // garantir NOT NULL em nome
         try { $pdo->exec("ALTER TABLE contas MODIFY COLUMN nome VARCHAR(100) NOT NULL"); } catch (Throwable $e) {}
     }
+    // Ajuste opcional: algumas instalações antigas possuem 'codigo_conta' UNIQUE com default ''.
+    $hasCodigoConta = (bool)$pdo->query("SHOW COLUMNS FROM contas LIKE 'codigo_conta'")->fetch(PDO::FETCH_ASSOC);
+    if ($hasCodigoConta) {
+        // Garantir que aceite NULL (para evitar duplicidade de string vazia)
+        try { $pdo->exec("ALTER TABLE contas MODIFY COLUMN codigo_conta VARCHAR(64) NULL"); } catch (Throwable $e) {}
+    }
 
     // 2) Adicionar coluna id_conta em transacoes (se não existir)
     $colExists = $pdo->query("SHOW COLUMNS FROM transacoes LIKE 'id_conta'")->fetch(PDO::FETCH_ASSOC);
@@ -76,8 +82,15 @@ try {
 
         if (!$contaId) {
             // Criar conta Geral
-            $stmt = $pdo->prepare("INSERT INTO contas (id_usuario, nome, tipo, saldo_inicial) VALUES (?, 'Geral', 'dinheiro', 0)");
-            $stmt->execute([$uid]);
+            if ($hasCodigoConta) {
+                // Gerar um código único e não vazio
+                $codigo = bin2hex(random_bytes(8)); // 16 chars
+                $stmt = $pdo->prepare("INSERT INTO contas (id_usuario, nome, tipo, saldo_inicial, codigo_conta) VALUES (?, 'Geral', 'dinheiro', 0, ?)");
+                $stmt->execute([$uid, $codigo]);
+            } else {
+                $stmt = $pdo->prepare("INSERT INTO contas (id_usuario, nome, tipo, saldo_inicial) VALUES (?, 'Geral', 'dinheiro', 0)");
+                $stmt->execute([$uid]);
+            }
             $contaId = $pdo->lastInsertId();
         }
 

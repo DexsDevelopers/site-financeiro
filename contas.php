@@ -29,8 +29,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($nome === '') throw new Exception('Informe o nome da conta.');
             if (!in_array($tipo, ['banco','cartao','dinheiro','outro'], true)) $tipo = 'banco';
 
-            $stmt = $pdo->prepare("INSERT INTO contas (id_usuario, nome, tipo, instituicao, saldo_inicial, cor) VALUES (?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$userId, $nome, $tipo, $instituicao ?: null, $saldo_inicial, $cor]);
+            // Detectar coluna codigo_conta (algumas instalações exigem valor único)
+            $hasCodigoConta = (bool)$pdo->query("SHOW COLUMNS FROM contas LIKE 'codigo_conta'")->fetch(PDO::FETCH_ASSOC);
+            if ($hasCodigoConta) {
+                try { $pdo->exec("ALTER TABLE contas MODIFY COLUMN codigo_conta VARCHAR(64) NULL"); } catch (Throwable $e) {}
+                $codigo = bin2hex(random_bytes(8));
+                $stmt = $pdo->prepare("INSERT INTO contas (id_usuario, nome, tipo, instituicao, saldo_inicial, cor, codigo_conta) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                $stmt->execute([$userId, $nome, $tipo, $instituicao ?: null, $saldo_inicial, $cor, $codigo]);
+            } else {
+                $stmt = $pdo->prepare("INSERT INTO contas (id_usuario, nome, tipo, instituicao, saldo_inicial, cor) VALUES (?, ?, ?, ?, ?, ?)");
+                $stmt->execute([$userId, $nome, $tipo, $instituicao ?: null, $saldo_inicial, $cor]);
+            }
             $isOk = true; $msg = 'Conta criada com sucesso.';
         }
 
