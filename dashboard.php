@@ -19,6 +19,7 @@ $totalReceitas = 0; $totalDespesas = 0; $saldoMes = 0; $ultimos_lancamentos = []
 $barChartLabels = []; $barChartData = []; $pieChartLabels = []; $pieChartData = []; $pieChartColors = [];
 $lista_categorias = [];
 $lista_contas = [];
+$saldoInicialContas = 0.0;
 
 // Buscar tarefas para o dashboard
 $tarefas_hoje = []; $tarefas_pendentes_resumo = []; $stats_tarefas = [];
@@ -100,7 +101,20 @@ try {
     $resumo = $stmt_financeiro->fetch();
     $totalReceitas = $resumo['total_receitas'] ?? 0;
     $totalDespesas = $resumo['total_despesas'] ?? 0;
-    $saldoMes = $totalReceitas - $totalDespesas;
+
+    // Saldo inicial (conta selecionada ou todas)
+    if ($conta_id > 0) {
+        $stmt_si = $pdo->prepare("SELECT COALESCE(saldo_inicial,0) FROM contas WHERE id = ? AND id_usuario = ?");
+        $stmt_si->execute([$conta_id, $userId]);
+        $saldoInicialContas = (float)($stmt_si->fetchColumn() ?? 0);
+    } else {
+        $stmt_si = $pdo->prepare("SELECT COALESCE(SUM(saldo_inicial),0) FROM contas WHERE id_usuario = ?");
+        $stmt_si->execute([$userId]);
+        $saldoInicialContas = (float)($stmt_si->fetchColumn() ?? 0);
+    }
+
+    // Saldo do período considerando saldo inicial
+    $saldoMes = $saldoInicialContas + ($totalReceitas - $totalDespesas);
     
     // NOVA LÓGICA: Busca as metas de compras para o modal
 $metas_para_alocar = [];
