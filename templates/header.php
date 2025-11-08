@@ -254,6 +254,35 @@ if (!isset($_SESSION['dias_uso_cache_time']) ||
             -webkit-backdrop-filter: blur(10px); 
         }
         
+        /* Topbar com efeito de vidro (mobile) */
+        .topbar-glass {
+            background: var(--card-background) !important;
+            border-bottom: 1px solid var(--border-color);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+            position: sticky;
+            top: 0;
+            z-index: 1030;
+            border-radius: 0 0 var(--border-radius) var(--border-radius);
+        }
+        .topbar-glass .navbar-brand, .topbar-glass .btn {
+            color: var(--text-primary);
+        }
+        .topbar-glass .btn.btn-outline-light {
+            border-color: var(--border-color);
+        }
+        
+        /* Cabeçalho do menu lateral com vidro e borda */
+        .sidebar-nav .offcanvas-header {
+            background: var(--sidebar-background);
+            border-bottom: 1px solid var(--border-color);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-top-left-radius: var(--border-radius);
+            border-top-right-radius: var(--border-radius);
+        }
+        
         .sidebar-nav .offcanvas-body { 
             overflow-y: auto; 
             /* PERFORMANCE: Scroll otimizado */
@@ -723,7 +752,7 @@ if (!isset($_SESSION['dias_uso_cache_time']) ||
     </div>
 
     <div class="main-content">
-        <nav class="navbar d-lg-none navbar-dark bg-dark mb-3">
+        <nav class="navbar d-lg-none navbar-dark topbar-glass mb-3">
             <div class="container-fluid">
                 <button class="btn btn-outline-light navbar-toggler-custom" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu">
                     <i class="bi bi-list"></i>
