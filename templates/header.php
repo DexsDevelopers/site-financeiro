@@ -256,31 +256,72 @@ if (!isset($_SESSION['dias_uso_cache_time']) ||
         
         /* Topbar com efeito de vidro (mobile) */
         .topbar-glass {
-            background: var(--card-background) !important;
+            background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)) , var(--card-background) !important;
             border-bottom: 1px solid var(--border-color);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+            backdrop-filter: blur(14px) saturate(140%);
+            -webkit-backdrop-filter: blur(14px) saturate(140%);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.35);
             position: sticky;
             top: 0;
             z-index: 1030;
             border-radius: 0 0 var(--border-radius) var(--border-radius);
+            overflow: hidden;
+        }
+        .topbar-glass::after {
+            content: '';
+            position: absolute;
+            left: 0; right: 0; top: 0;
+            height: 2px;
+            background: linear-gradient(90deg, rgba(229,9,20,0.75), rgba(229,9,20,0) 30%, rgba(255,255,255,0.15) 70%, rgba(229,9,20,0.5));
+            opacity: .85;
         }
         .topbar-glass .navbar-brand, .topbar-glass .btn {
             color: var(--text-primary);
         }
+        .topbar-glass .navbar-brand {
+            font-weight: 700;
+            letter-spacing: .2px;
+            background: linear-gradient(90deg, var(--accent-red), #ff6b6b);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
         .topbar-glass .btn.btn-outline-light {
             border-color: var(--border-color);
+            background: rgba(255,255,255,0.02);
+        }
+        .navbar-toggler-custom {
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            background: rgba(255,255,255,0.03);
+            transition: transform .15s ease, box-shadow .2s ease, background .2s ease;
+        }
+        .navbar-toggler-custom:hover {
+            transform: translateY(-1px);
+            background: rgba(255,255,255,0.06);
+            box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+        }
+        .navbar-toggler-custom:active {
+            transform: translateY(0);
         }
         
         /* Cabeçalho do menu lateral com vidro e borda */
         .sidebar-nav .offcanvas-header {
             background: var(--sidebar-background);
             border-bottom: 1px solid var(--border-color);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(12px) saturate(120%);
+            -webkit-backdrop-filter: blur(12px) saturate(120%);
             border-top-left-radius: var(--border-radius);
             border-top-right-radius: var(--border-radius);
+            position: relative;
+            overflow: hidden;
+        }
+        .sidebar-nav .offcanvas-header::after {
+            content: '';
+            position: absolute;
+            left: 12px; right: 12px; bottom: 0;
+            height: 1px;
+            background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.25), rgba(255,255,255,0));
         }
         
         .sidebar-nav .offcanvas-body { 
