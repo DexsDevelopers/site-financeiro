@@ -903,6 +903,18 @@ footer {
         height: 300px;
     }
 }
+
+/* Responsividade do filtro de contas (evita overflow no mobile) */
+@media (max-width: 576px) {
+    #filtroMesAno {
+        flex-wrap: wrap;
+        width: 100%;
+    }
+    #selectConta {
+        width: 100% !important;
+        max-width: 100%;
+    }
+}
 </style>
 
 <?php
