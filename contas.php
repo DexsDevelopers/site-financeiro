@@ -97,8 +97,11 @@ if ($editId > 0) {
 $contas = [];
 $tabelaExiste = true;
 try {
-    $check = $pdo->query("SHOW TABLES LIKE 'contas'")->fetchColumn();
-    if (!$check) {
+    // Checagem robusta via information_schema (resistente a case sensitivity)
+    $stmtChk = $pdo->prepare("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name IN ('contas','Contas')");
+    $stmtChk->execute();
+    $exists = (int)$stmtChk->fetchColumn() > 0;
+    if (!$exists) {
         $tabelaExiste = false;
     } else {
         $stmt = $pdo->prepare("SELECT id, nome, tipo, instituicao, saldo_inicial, cor, criado_em FROM contas WHERE id_usuario = ? ORDER BY nome");
