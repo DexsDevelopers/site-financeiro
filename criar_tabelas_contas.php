@@ -16,7 +16,8 @@ require_once __DIR__ . '/includes/db_connect.php';
 header('Content-Type: text/plain; charset=utf-8');
 
 try {
-    $pdo->beginTransaction();
+    // IMPORTANTE: DDL em MySQL faz commit implícito. Não use transação aqui.
+    $startedTx = false;
 
     // 1) Criar tabela contas (se não existir)
     $pdo->exec("
@@ -74,6 +75,12 @@ try {
     // Buscar usuários com transações sem id_conta
     $usuariosSemConta = $pdo->query("SELECT DISTINCT id_usuario FROM transacoes WHERE id_conta IS NULL")->fetchAll(PDO::FETCH_COLUMN);
 
+    // Iniciar transação apenas para DML do backfill
+    if (!empty($usuariosSemConta)) {
+        $pdo->beginTransaction();
+        $startedTx = true;
+    }
+
     foreach ($usuariosSemConta as $uid) {
         // Verificar se já existe alguma conta
         $stmt = $pdo->prepare("SELECT id FROM contas WHERE id_usuario = ? LIMIT 1");
@@ -99,13 +106,15 @@ try {
         $stmt->execute([$contaId, $uid]);
     }
 
-    $pdo->commit();
+    if ($startedTx && $pdo->inTransaction()) {
+        $pdo->commit();
+    }
     echo "Migração concluída com sucesso.\n";
     echo "- Tabela 'contas' criada/verificada.\n";
     echo "- Coluna 'id_conta' em 'transacoes' criada/verificada.\n";
     echo "- Backfill aplicado (transações antigas vinculadas à conta 'Geral').\n";
 } catch (Throwable $e) {
-    if ($pdo->inTransaction()) $pdo->rollBack();
+    if (isset($startedTx) && $startedTx && $pdo->inTransaction()) $pdo->rollBack();
     http_response_code(500);
     echo "Falha na migração: " . $e->getMessage();
 }
