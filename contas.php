@@ -93,21 +93,15 @@ if ($editId > 0) {
     $contaEdit = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
 }
 
-// Listagem (com verificação explícita da existência da tabela)
+// Listagem (detecção direta tentando selecionar)
 $contas = [];
 $tabelaExiste = true;
-try {
-    // Checagem robusta via information_schema (resistente a case sensitivity)
-    $stmtChk = $pdo->prepare("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name IN ('contas','Contas')");
-    $stmtChk->execute();
-    $exists = (int)$stmtChk->fetchColumn() > 0;
-    if (!$exists) {
-        $tabelaExiste = false;
-    } else {
-        $stmt = $pdo->prepare("SELECT id, nome, tipo, instituicao, saldo_inicial, cor, criado_em FROM contas WHERE id_usuario = ? ORDER BY nome");
-        $stmt->execute([$userId]);
-        $contas = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
+try { 
+    // Tenta acesso direto à tabela; se falhar, consideramos inexistente
+    $pdo->query("SELECT 1 FROM contas LIMIT 1");
+    $stmt = $pdo->prepare("SELECT id, nome, tipo, instituicao, saldo_inicial, cor, criado_em FROM contas WHERE id_usuario = ? ORDER BY nome");
+    $stmt->execute([$userId]);
+    $contas = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Throwable $e) {
     $tabelaExiste = false;
 }
