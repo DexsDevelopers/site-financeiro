@@ -25,6 +25,14 @@ let sock;
 let isReady = false;
 let lastQR = null;
 
+// Formata número brasileiro para WhatsApp
+function formatBrazilNumber(raw) {
+  let digits = String(raw).replace(/\D+/g, '');
+  if (digits.startsWith('0')) digits = digits.slice(1);
+  if (!digits.startsWith('55')) digits = '55' + digits;
+  return digits;
+}
+
 async function start() {
   const { version, isLatest } = await fetchLatestBaileysVersion();
   console.log(`WhatsApp Web version: ${version?.join('.')} (latest=${isLatest})`);
@@ -38,6 +46,7 @@ async function start() {
   });
 
   sock.ev.on('creds.update', saveCreds);
+
   sock.ev.on('connection.update', (update) => {
     const { connection, lastDisconnect, qr } = update;
 
@@ -58,22 +67,13 @@ async function start() {
       let hint = '';
       switch (code) {
         case DisconnectReason.loggedOut:
-        case 401:
-          hint = 'Sessão expirada/deslogada. Apague a pasta ./auth e escaneie o QR novamente.';
-          break;
-        case 405:
-          hint = 'Sessão inválida (405). Apague ./auth e refaça o login.';
-          break;
+        case 401: hint = 'Sessão expirada/deslogada. Apague ./auth e escaneie QR novamente.'; break;
+        case 405: hint = 'Sessão inválida (405). Apague ./auth e refaça o login.'; break;
         case DisconnectReason.connectionReplaced:
-        case 409:
-          hint = 'Conexão substituída por outro login do mesmo número.';
-          break;
+        case 409: hint = 'Conexão substituída por outro login do mesmo número.'; break;
         case DisconnectReason.restartRequired:
-        case 410:
-          hint = 'Reinício requerido. Tentando reconectar...';
-          break;
-        default:
-          hint = 'Tentando reconectar...';
+        case 410: hint = 'Reinício requerido. Tentando reconectar...'; break;
+        default: hint = 'Tentando reconectar...';
       }
 
       if (![DisconnectReason.loggedOut, 401, 405].includes(code)) {
@@ -105,28 +105,26 @@ function auth(req, res, next) {
   next();
 }
 
-// Status do bot
+// Status
 app.get('/status', (req, res) => res.json({ ok: true, ready: isReady }));
 
-// QR Code em alta qualidade
+// QR Code
 app.get('/qr', async (req, res) => {
-  if (!lastQR) return res.status(404).send('<html><body style="background:#111;color:#eee;font-family:sans-serif"><h3>Nenhum QR disponível</h3><p>Tente reiniciar e aguarde o QR aparecer.</p></body></html>');
+  if (!lastQR) return res.status(404).send('<html><body style="background:#111;color:#eee;font-family:sans-serif"><h3>Nenhum QR disponível</h3></body></html>');
   try {
     const dataUrl = await QRCodeImg.toDataURL(lastQR, { scale: 8, margin: 1 });
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.end(`<html><body style="background:#0f0f10;color:#eee;font-family:system-ui;margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh">
       <div style="text-align:center">
-        <h3 style="margin:0 0 12px">Escaneie o QR Code</h3>
+        <h3>Escaneie o QR Code</h3>
         <img src="${dataUrl}" style="image-rendering: pixelated; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,.5)" />
-        <p style="opacity:.7">Se não conectar, remova “Aparelhos conectados” no WhatsApp e tente novamente.</p>
-      </div>
-    </body></html>`);
+      </div></body></html>`);
   } catch (e) {
     res.status(500).send('Falha ao gerar QR');
   }
 });
 
-// Envio de mensagens
+// Envio de mensagens robusto
 app.post('/send', auth, async (req, res) => {
   try {
     if (!isReady) return res.status(503).json({ ok: false, error: 'not_ready' });
@@ -134,29 +132,31 @@ app.post('/send', auth, async (req, res) => {
     let { to, text } = req.body || {};
     if (!to || !text) return res.status(400).json({ ok: false, error: 'missing_params' });
 
-    const digits = String(to).replace(/\D+/g, '');
-    if (digits.length < 10) return res.status(400).json({ ok: false, error: 'invalid_number', to: digits });
-
+    const digits = formatBrazilNumber(to);
     const jid = `${digits}@s.whatsapp.net`;
-    console.log(`[SEND] Preparando para enviar mensagem`);
-    console.log(`Número original: ${to}`);
-    console.log(`Número limpo: ${digits}`);
-    console.log(`JID usado: ${jid}`);
+    console.log(`[SEND] Preparando para enviar mensagem para ${digits}`);
 
-    const check = await sock.onWhatsApp(jid);
-    const exists = Array.isArray(check) ? !!check[0]?.exists : !!check?.exists;
-    if (!exists) return res.status(400).json({ ok: false, error: 'number_not_registered', to: digits });
+    try {
+      await sock.sendMessage(jid, { text });
+      console.log(`[SEND] ✅ Mensagem enviada para ${digits}`);
+      return res.json({ ok: true, to: digits });
+    } catch (err) {
+      console.error(`[SEND] ❌ Falha ao enviar para ${digits}:`, err?.message || err);
 
-    await sock.sendMessage(jid, { text });
-    console.log(`[SEND] Mensagem enviada para ${digits}`);
-    res.json({ ok: true, to: digits });
+      // Detecta erro de número inexistente
+      if (err?.output?.statusCode === 400 || err?.message?.includes('not a WhatsApp user')) {
+        return res.status(400).json({ ok: false, error: 'number_not_registered', to: digits });
+      }
+
+      return res.status(500).json({ ok: false, error: err.message || 'unknown_error' });
+    }
   } catch (e) {
-    console.error('[SEND] Erro ao enviar mensagem:', e);
+    console.error('[SEND] Erro geral:', e);
     res.status(500).json({ ok: false, error: e.message });
   }
 });
 
-// Verificação se número está no WhatsApp
+// Check prático de número
 app.post('/check', auth, async (req, res) => {
   try {
     if (!isReady) return res.status(503).json({ ok: false, error: 'not_ready' });
@@ -164,17 +164,19 @@ app.post('/check', auth, async (req, res) => {
     const { to } = req.body || {};
     if (!to) return res.status(400).json({ ok: false, error: 'missing_params' });
 
-    const digits = String(to).replace(/\D+/g, '');
-    if (!digits || digits.length < 10) return res.status(400).json({ ok: false, error: 'invalid_number' });
-
+    const digits = formatBrazilNumber(to);
     const jid = `${digits}@s.whatsapp.net`;
-    const resCheck = await sock.onWhatsApp(jid);
-    const exists = Array.isArray(resCheck) ? !!resCheck[0]?.exists : !!resCheck?.exists;
 
-    if (!exists) return res.json({ ok: false, error: 'number_not_registered', to: digits });
-    res.json({ ok: true, to: digits });
+    try {
+      // Tenta enviar mensagem vazia para testar
+      await sock.sendMessage(jid, { text: '.' });
+      return res.json({ ok: true, to: digits, jid });
+    } catch (err) {
+      console.log(`[CHECK] Número não registrado ou bloqueado: ${digits}`);
+      return res.status(400).json({ ok: false, error: 'number_not_registered', to: digits });
+    }
   } catch (e) {
-    console.error('[CHECK] Erro:', e);
+    console.error('[CHECK] Erro geral:', e);
     res.status(500).json({ ok: false, error: e.message });
   }
 });
