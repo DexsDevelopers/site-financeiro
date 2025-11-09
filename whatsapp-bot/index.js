@@ -130,7 +130,10 @@ app.post('/send', auth, async (req, res) => {
     if (!isReady) return res.status(503).json({ ok: false, error: 'not_ready' });
     const { to, text } = req.body || {};
     if (!to || !text) return res.status(400).json({ ok: false, error: 'missing_params' });
-    const jid = to.includes('@s.whatsapp.net') ? to : `${to}@s.whatsapp.net`;
+    // Normaliza: somente dígitos e monta JID
+    const digits = String(to).replace(/\D+/g, '');
+    const jid = digits.includes('@s.whatsapp.net') ? digits : `${digits}@s.whatsapp.net`;
+    console.log('[SEND]', { to, digits, jid, len: digits.length });
     await sock.sendMessage(jid, { text });
     res.json({ ok: true });
   } catch (e) {

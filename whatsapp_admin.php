@@ -55,16 +55,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute();
             $destinatarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
             foreach ($destinatarios as $row) {
-                $to = $row['telefone_e164'] ?? null;
-                if (!$to) {
-                    $digits = preg_replace('/\D+/', '', (string)($row['telefone'] ?? ''));
-                    if (strlen($digits) === 11) { $to = '+55'.$digits; }
+                // Normalização robusta: prioriza E.164; caso contrário, tenta BR (55 + 11 dígitos)
+                $toE164 = (string)($row['telefone_e164'] ?? '');
+                $toDigits = preg_replace('/\D+/', '', ltrim($toE164, '+'));
+                if ($toDigits === '') {
+                    $raw = preg_replace('/\D+/', '', (string)($row['telefone'] ?? ''));
+                    // Remove zero à esquerda acidental
+                    $raw = ltrim($raw, '0');
+                    if (strlen($raw) === 11) { $toDigits = '55'.$raw; }
                 }
-                if (!$to) { $falhas++; $logs[] = ['id'=>$row['id'],'status'=>'ignorado']; continue; }
-                if ($dryRun) { $enviados++; $logs[] = ['id'=>$row['id'],'to'=>$to,'status'=>'dry']; continue; }
-                $resp = wpp_send_message(ltrim($to,'+'), $mensagem);
+                // Validação mínima: 12+ dígitos (ex.: 55 + 11 = 13)
+                if (strlen($toDigits) < 12) { $falhas++; $logs[] = ['id'=>$row['id'],'status'=>'ignorado_len','raw'=>$row['telefone'] ?? null,'e164'=>$row['telefone_e164'] ?? null]; continue; }
+                if ($dryRun) { $enviados++; $logs[] = ['id'=>$row['id'],'to'=>$toDigits,'status'=>'dry']; continue; }
+                $resp = wpp_send_message($toDigits, $mensagem);
                 if (!empty($resp['ok'])) { $enviados++; $logs[] = ['id'=>$row['id'],'to'=>$to,'ok'=>true]; }
-                else { $falhas++; $logs[] = ['id'=>$row['id'],'to'=>$to,'ok'=>false,'err'=>$resp['error'] ?? 'erro']; }
+                else { $falhas++; $logs[] = ['id'=>$row['id'],'to'=>$toDigits,'ok'=>false,'err'=>$resp['error'] ?? 'erro']; }
                 usleep(200000); // 200ms entre envios
             }
             $resultado = ['ok'=>true,'enviados'=>$enviados,'falhas'=>$falhas,'processados'=>count($destinatarios),'logs'=>$logs];

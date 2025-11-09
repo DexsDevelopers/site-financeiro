@@ -4,10 +4,13 @@ require_once 'includes/whatsapp_client.php';
 
 $resultado = null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $to = preg_replace('/\D+/', '', $_POST['to'] ?? '');
+    $toRaw = trim($_POST['to'] ?? '');
+    $toDigits = preg_replace('/\D+/', '', ltrim($toRaw, '+'));
+    // Se informou só 11 dígitos, assume BR
+    if (strlen($toDigits) === 11) $toDigits = '55' . $toDigits;
     $text = trim($_POST['text'] ?? '');
-    if ($to && $text) {
-        $resultado = wpp_send_message($to, $text);
+    if ($toDigits && $text) {
+        $resultado = wpp_send_message($toDigits, $text);
     } else {
         $resultado = ['ok' => false, 'error' => 'Preencha telefone e mensagem.'];
     }
