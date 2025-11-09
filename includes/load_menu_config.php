@@ -42,7 +42,7 @@ if (!$menu_config) {
             'financeiro' => ['compras_futuras.php', 'relatorios.php', 'extrato_completo.php', 'recorrentes.php', 'orcamento.php', 'categorias.php', 'regras_categorizacao.php', 'alertas_inteligentes.php'],
             'produtividade' => ['tarefas.php', 'calendario.php', 'pomodoro.php'],
             'personalizacao' => ['temas_customizaveis.php', 'layouts_flexiveis.php', 'preferencias_avancadas.php', 'personalizar_menu.php'],
-            'sistema' => ['perfil.php', 'contas.php']
+            'sistema' => ['perfil.php', 'contas.php', 'whatsapp_admin.php']
         ],
         'ordem_secoes' => ['academy', 'financeiro', 'produtividade', 'personalizacao', 'sistema'],
         'ordem_paginas' => [
@@ -50,7 +50,7 @@ if (!$menu_config) {
             'financeiro' => ['compras_futuras.php', 'relatorios.php', 'extrato_completo.php', 'recorrentes.php', 'orcamento.php', 'categorias.php', 'regras_categorizacao.php', 'alertas_inteligentes.php'],
             'produtividade' => ['tarefas.php', 'calendario.php', 'pomodoro.php'],
             'personalizacao' => ['temas_customizaveis.php', 'layouts_flexiveis.php', 'preferencias_avancadas.php', 'personalizar_menu.php'],
-            'sistema' => ['perfil.php', 'contas.php']
+            'sistema' => ['perfil.php', 'contas.php', 'whatsapp_admin.php']
         ]
     ];
 }
@@ -67,6 +67,14 @@ if (!isset($menu_config['ordem_paginas']['sistema'])) {
 }
 if (!in_array('contas.php', $menu_config['ordem_paginas']['sistema'], true)) {
     $menu_config['ordem_paginas']['sistema'][] = 'contas.php';
+}
+
+// Garante que 'whatsapp_admin.php' apareça em Sistema
+if (!in_array('whatsapp_admin.php', $menu_config['paginas_visiveis']['sistema'], true)) {
+    $menu_config['paginas_visiveis']['sistema'][] = 'whatsapp_admin.php';
+}
+if (!in_array('whatsapp_admin.php', $menu_config['ordem_paginas']['sistema'], true)) {
+    $menu_config['ordem_paginas']['sistema'][] = 'whatsapp_admin.php';
 }
 
 // Salvar na sessão para uso no header
@@ -143,5 +151,6 @@ $paginasInfo = [
     'personalizar_menu.php' => ['nome' => 'Personalizar Menu', 'icone' => 'bi-list-ul'],
     'perfil.php' => ['nome' => 'Meu Perfil', 'icone' => 'bi-person-circle'],
     'contas.php' => ['nome' => 'Contas', 'icone' => 'bi-wallet2'],
+    'whatsapp_admin.php' => ['nome' => 'Avisos WhatsApp', 'icone' => 'bi-whatsapp'],
 ];
 ?>
