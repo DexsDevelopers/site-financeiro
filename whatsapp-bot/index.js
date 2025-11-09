@@ -128,14 +128,21 @@ app.get('/qr', async (req, res) => {
 app.post('/send', auth, async (req, res) => {
   try {
     if (!isReady) return res.status(503).json({ ok: false, error: 'not_ready' });
-    const { to, text } = req.body || {};
+    let { to, text } = req.body || {};
     if (!to || !text) return res.status(400).json({ ok: false, error: 'missing_params' });
+
     // Normaliza: somente dígitos e monta JID
     const digits = String(to).replace(/\D+/g, '');
-    const jid = digits.includes('@s.whatsapp.net') ? digits : `${digits}@s.whatsapp.net`;
+    const jid = `${digits}@s.whatsapp.net`;
+
+    // Verifica se número existe antes de enviar
+    const check = await sock.onWhatsApp(jid);
+    const exists = Array.isArray(check) ? !!check[0]?.exists : !!check?.exists;
+    if (!exists) return res.status(400).json({ ok: false, error: 'number_not_registered', to: digits });
+
     console.log('[SEND]', { to, digits, jid, len: digits.length });
     await sock.sendMessage(jid, { text });
-    res.json({ ok: true });
+    res.json({ ok: true, to: digits });
   } catch (e) {
     console.error(e);
     res.status(500).json({ ok: false, error: e.message });
