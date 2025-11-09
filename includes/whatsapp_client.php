@@ -4,8 +4,13 @@
 
 function wpp_get_config(): array {
     // Configure aqui ou via variáveis de ambiente/servidor
-    $base = getenv('WHATSAPP_API_URL') ?: ($_ENV['WHATSAPP_API_URL'] ?? 'http://localhost:3000');
-    $token = getenv('WHATSAPP_API_TOKEN') ?: ($_ENV['WHATSAPP_API_TOKEN'] ?? 'troque-este-token');
+    $base = getenv('WHATSAPP_API_URL')
+        ?: ($_ENV['WHATSAPP_API_URL'] ?? null)
+        ?: ($_SERVER['WHATSAPP_API_URL'] ?? 'http://localhost:3000');
+
+    $token = getenv('WHATSAPP_API_TOKEN')
+        ?: ($_ENV['WHATSAPP_API_TOKEN'] ?? null)
+        ?: ($_SERVER['WHATSAPP_API_TOKEN'] ?? 'troque-este-token');
     return ['base' => rtrim($base, '/'), 'token' => $token];
 }
 
