@@ -94,6 +94,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 else echo 'Mensagem enviada com sucesso ✅';
                             ?>
                         </div>
+                        <?php if ($normalizedTo): ?>
+                            <?php $wa = preg_replace('/\D+/', '', $normalizedTo); ?>
+                            <div class="mb-2">
+                                Link wa.me: <a class="link-light" href="https://wa.me/<?php echo $wa; ?>" target="_blank" rel="noopener">https://wa.me/<?php echo $wa; ?></a>
+                            </div>
+                        <?php endif; ?>
                     <?php else: ?>
                         <div class="alert alert-danger">
                             Falha: <?php echo htmlspecialchars($resultado['error'] ?? 'erro desconhecido'); ?>

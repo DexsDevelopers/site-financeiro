@@ -59,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             foreach ($destinatarios as $row) {
                 // Prioriza E.164; se não existir, tenta normalizar BR
                 $toRaw = $row['telefone_e164'] ?? $row['telefone'] ?? '';
-                $to = wpp_normalize_number($toRaw);
+                $to = wpp_normalize_number($toRaw); // formato +E.164
 
                 if (!$to) {
                     $falhas++;
@@ -67,9 +67,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     continue;
                 }
                 // Dedup por dígitos E.164 (sem +)
-                $canon = preg_replace('/\D+/', '', $to);
+                $canon = preg_replace('/\D+/', '', $to); // dígitos (wa.me)
                 if (isset($seen[$canon])) {
-                    $logs[] = ['id'=>$row['id'],'status'=>'duplicate_in_batch','to'=>$to];
+                    $logs[] = ['id'=>$row['id'],'status'=>'duplicate_in_batch','to'=>$to,'wa'=>"https://wa.me/{$canon}"];
                     continue;
                 }
                 $seen[$canon] = true;
@@ -78,16 +78,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $check = wpp_test_number($to);
                 if (empty($check['ok'])) {
                     $falhas++;
-                    $logs[] = ['id'=>$row['id'],'status'=>'not_registered','to'=>$to,'error'=>$check['error'] ?? 'unknown'];
+                    $logs[] = ['id'=>$row['id'],'status'=>'not_registered','to'=>$to,'wa'=>"https://wa.me/{$canon}",'error'=>$check['error'] ?? 'unknown'];
                     continue;
                 }
 
-                if ($dryRun) { $enviados++; $logs[] = ['id'=>$row['id'],'to'=>$to,'status'=>'dry']; continue; }
+                if ($dryRun) { $enviados++; $logs[] = ['id'=>$row['id'],'to'=>$to,'wa'=>"https://wa.me/{$canon}",'status'=>'dry']; continue; }
 
                 // Envio real
-                $resp = wpp_send_message($to, $mensagem);
-                if (!empty($resp['ok'])) { $enviados++; $logs[] = ['id'=>$row['id'],'to'=>$to,'ok'=>true]; }
-                else { $falhas++; $logs[] = ['id'=>$row['id'],'to'=>$to,'ok'=>false,'error'=>$resp['error'] ?? 'erro_desconhecido']; }
+                // Opcionalmente poderíamos enviar 'canon' (somente dígitos); o cliente/bot já normalizam
+                $resp = wpp_send_message($canon, $mensagem);
+                if (!empty($resp['ok'])) { $enviados++; $logs[] = ['id'=>$row['id'],'to'=>$to,'wa'=>"https://wa.me/{$canon}",'ok'=>true]; }
+                else { $falhas++; $logs[] = ['id'=>$row['id'],'to'=>$to,'wa'=>"https://wa.me/{$canon}",'ok'=>false,'error'=>$resp['error'] ?? 'erro_desconhecido']; }
                 usleep(200000); // 200ms entre envios
             }
             $resultado = ['ok'=>true,'enviados'=>$enviados,'falhas'=>$falhas,'processados'=>count($destinatarios),'logs'=>$logs];
