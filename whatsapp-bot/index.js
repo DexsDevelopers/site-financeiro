@@ -20,10 +20,14 @@ app.use(express.json());
 
 const PORT = Number(process.env.API_PORT || 3000);
 const API_TOKEN = process.env.API_TOKEN || 'troque-este-token';
+const AUTO_REPLY = String(process.env.AUTO_REPLY || 'false').toLowerCase() === 'true';
+const AUTO_REPLY_WINDOW_MS = Number(process.env.AUTO_REPLY_WINDOW_MS || 3600000); // 1h
 
 let sock;
 let isReady = false;
 let lastQR = null;
+// Controle simples para evitar auto-resposta repetida
+const lastReplyAt = new Map(); // key: jid, value: timestamp
 
 // Formata número brasileiro para WhatsApp
 function formatBrazilNumber(raw) {
@@ -91,8 +95,18 @@ async function start() {
       if (!msg?.message || msg.key.fromMe) return;
       const remoteJid = msg.key.remoteJid;
       const text = msg.message.conversation || msg.message.extendedTextMessage?.text || '';
-      if (text?.toLowerCase().includes('oi')) {
-        await sock.sendMessage(remoteJid, { text: 'Olá! Como posso ajudar?' });
+
+      // Auto-resposta opcional (desativada por padrão)
+      if (AUTO_REPLY) {
+        const now = Date.now();
+        const last = lastReplyAt.get(remoteJid) || 0;
+        if (now - last > AUTO_REPLY_WINDOW_MS) {
+          const lower = (text || '').toLowerCase();
+          if (lower.includes('oi') || lower.includes('olá') || lower.includes('ola')) {
+            await sock.sendMessage(remoteJid, { text: 'Olá! Como posso ajudar?' });
+            lastReplyAt.set(remoteJid, now);
+          }
+        }
       }
     } catch (e) { console.error(e); }
   });
