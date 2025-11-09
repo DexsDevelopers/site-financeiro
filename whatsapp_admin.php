@@ -54,6 +54,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->bindValue(':off', $offset, PDO::PARAM_INT);
             $stmt->execute();
             $destinatarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            // Deduplicação por número canônico no lote
+            $seen = [];
             foreach ($destinatarios as $row) {
                 // Prioriza E.164; se não existir, tenta normalizar BR
                 $toRaw = $row['telefone_e164'] ?? $row['telefone'] ?? '';
@@ -64,6 +66,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $logs[] = ['id'=>$row['id'],'status'=>'ignorado_invalid_number','raw'=>$toRaw];
                     continue;
                 }
+                // Dedup por dígitos E.164 (sem +)
+                $canon = preg_replace('/\D+/', '', $to);
+                if (isset($seen[$canon])) {
+                    $logs[] = ['id'=>$row['id'],'status'=>'duplicate_in_batch','to'=>$to];
+                    continue;
+                }
+                $seen[$canon] = true;
 
                 // Opcional: testar se número está registrado
                 $check = wpp_test_number($to);

@@ -31,7 +31,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else { // send
         $text = trim($_POST['text'] ?? '');
         if ($normalizedTo && $text) {
-            $resultado = wpp_send_message($normalizedTo, $text);
+            // Primeiro valida se o número está registrado
+            $chk = wpp_test_number($normalizedTo);
+            if (empty($chk['ok'])) {
+                // Retorna o próprio resultado do check para o usuário entender o motivo
+                $resultado = $chk;
+            } else {
+                $resultado = wpp_send_message($normalizedTo, $text);
+            }
         } else {
             $resultado = ['ok' => false, 'error' => 'Preencha telefone e mensagem.'];
         }
