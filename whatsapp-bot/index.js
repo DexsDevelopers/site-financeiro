@@ -2,7 +2,9 @@
  * - Exibe QR no console para logar
  * - Endpoints:
  *   GET  /status
+ *   GET  /qr
  *   POST /send  { to: "55DDDNUMERO", text: "mensagem" }  Header: x-api-token
+ *   POST /check { to: "55DDDNUMERO" } Header: x-api-token
  */
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, Browsers } = require('@whiskeysockets/baileys');
 const qrcode = require('qrcode-terminal');
@@ -24,13 +26,12 @@ let isReady = false;
 let lastQR = null;
 
 async function start() {
-  // Usa a versão mais recente do WhatsApp Web suportada pelo Baileys
   const { version, isLatest } = await fetchLatestBaileysVersion();
   console.log(`WhatsApp Web version: ${version?.join('.')} (latest=${isLatest})`);
+
   const { state, saveCreds } = await useMultiFileAuthState('./auth');
   sock = makeWASocket({
     auth: state,
-    // printQRInTerminal removido (deprecated). O QR é tratado no evento connection.update
     logger: pino({ level: 'silent' }),
     version,
     browser: Browsers.appropriate('Desktop')
@@ -39,16 +40,18 @@ async function start() {
   sock.ev.on('creds.update', saveCreds);
   sock.ev.on('connection.update', (update) => {
     const { connection, lastDisconnect, qr } = update;
+
     if (qr) {
       lastQR = qr;
-      // ASCII no console para debug rápido
       qrcode.generate(qr, { small: true });
       console.log('Abra http://localhost:' + PORT + '/qr para escanear o QR em alta qualidade.');
     }
+
     if (connection === 'open') {
       isReady = true;
       console.log('✅ Conectado ao WhatsApp');
     }
+
     if (connection === 'close') {
       isReady = false;
       const code = lastDisconnect?.error?.output?.statusCode;
@@ -73,7 +76,7 @@ async function start() {
           hint = 'Tentando reconectar...';
       }
 
-      if (code !== DisconnectReason.loggedOut && code !== 401 && code !== 405) {
+      if (![DisconnectReason.loggedOut, 401, 405].includes(code)) {
         console.log(`♻️ Reconectando... ${code || ''} ${hint}`);
         start().catch(console.error);
       } else {
@@ -87,11 +90,7 @@ async function start() {
       const msg = m.messages?.[0];
       if (!msg?.message || msg.key.fromMe) return;
       const remoteJid = msg.key.remoteJid;
-      const text =
-        msg.message.conversation ||
-        msg.message.extendedTextMessage?.text ||
-        '';
-      // Auto-reply simples (ajuste como quiser)
+      const text = msg.message.conversation || msg.message.extendedTextMessage?.text || '';
       if (text?.toLowerCase().includes('oi')) {
         await sock.sendMessage(remoteJid, { text: 'Olá! Como posso ajudar?' });
       }
@@ -99,16 +98,17 @@ async function start() {
   });
 }
 
-// Middleware simples de autenticação por header
+// Middleware de autenticação
 function auth(req, res, next) {
   const token = req.headers['x-api-token'];
-  if (!API_TOKEN || token !== API_TOKEN) {
-    return res.status(401).json({ ok: false, error: 'unauthorized' });
-  }
+  if (!API_TOKEN || token !== API_TOKEN) return res.status(401).json({ ok: false, error: 'unauthorized' });
   next();
 }
 
+// Status do bot
 app.get('/status', (req, res) => res.json({ ok: true, ready: isReady }));
+
+// QR Code em alta qualidade
 app.get('/qr', async (req, res) => {
   if (!lastQR) return res.status(404).send('<html><body style="background:#111;color:#eee;font-family:sans-serif"><h3>Nenhum QR disponível</h3><p>Tente reiniciar e aguarde o QR aparecer.</p></body></html>');
   try {
@@ -125,52 +125,59 @@ app.get('/qr', async (req, res) => {
     res.status(500).send('Falha ao gerar QR');
   }
 });
+
+// Envio de mensagens
 app.post('/send', auth, async (req, res) => {
   try {
     if (!isReady) return res.status(503).json({ ok: false, error: 'not_ready' });
+
     let { to, text } = req.body || {};
     if (!to || !text) return res.status(400).json({ ok: false, error: 'missing_params' });
 
-    // Normaliza: somente dígitos e monta JID
     const digits = String(to).replace(/\D+/g, '');
-    const jid = `${digits}@s.whatsapp.net`;
+    if (digits.length < 10) return res.status(400).json({ ok: false, error: 'invalid_number', to: digits });
 
-    // Verifica se número existe antes de enviar
+    const jid = `${digits}@s.whatsapp.net`;
+    console.log(`[SEND] Preparando para enviar mensagem`);
+    console.log(`Número original: ${to}`);
+    console.log(`Número limpo: ${digits}`);
+    console.log(`JID usado: ${jid}`);
+
     const check = await sock.onWhatsApp(jid);
     const exists = Array.isArray(check) ? !!check[0]?.exists : !!check?.exists;
     if (!exists) return res.status(400).json({ ok: false, error: 'number_not_registered', to: digits });
 
-    console.log('[SEND]', { to, digits, jid, len: digits.length });
     await sock.sendMessage(jid, { text });
+    console.log(`[SEND] Mensagem enviada para ${digits}`);
     res.json({ ok: true, to: digits });
   } catch (e) {
-    console.error(e);
+    console.error('[SEND] Erro ao enviar mensagem:', e);
     res.status(500).json({ ok: false, error: e.message });
   }
 });
 
-// Verificar se número está registrado no WhatsApp
+// Verificação se número está no WhatsApp
 app.post('/check', auth, async (req, res) => {
   try {
     if (!isReady) return res.status(503).json({ ok: false, error: 'not_ready' });
+
     const { to } = req.body || {};
     if (!to) return res.status(400).json({ ok: false, error: 'missing_params' });
+
     const digits = String(to).replace(/\D+/g, '');
     if (!digits || digits.length < 10) return res.status(400).json({ ok: false, error: 'invalid_number' });
+
     const jid = `${digits}@s.whatsapp.net`;
     const resCheck = await sock.onWhatsApp(jid);
     const exists = Array.isArray(resCheck) ? !!resCheck[0]?.exists : !!resCheck?.exists;
-    if (!exists) {
-      return res.json({ ok: false, error: 'number_not_registered', to: digits });
-    }
+
+    if (!exists) return res.json({ ok: false, error: 'number_not_registered', to: digits });
     res.json({ ok: true, to: digits });
   } catch (e) {
-    console.error(e);
+    console.error('[CHECK] Erro:', e);
     res.status(500).json({ ok: false, error: e.message });
   }
 });
 
 app.listen(PORT, () => console.log(`API WhatsApp rodando em http://localhost:${PORT}`));
 start().catch(console.error);
-
-
