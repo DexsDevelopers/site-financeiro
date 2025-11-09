@@ -4,6 +4,25 @@ require_once 'templates/header.php';
 require_once 'includes/whatsapp_client.php';
 require_once 'includes/db_connect.php';
 
+// Restringe a página a administradores
+try {
+    $uid = !empty($_SESSION['user']['id']) ? (int)$_SESSION['user']['id'] : (int)($_SESSION['user_id'] ?? 0);
+    $stmtAdm = $pdo->prepare("SELECT tipo FROM usuarios WHERE id = ? LIMIT 1");
+    $stmtAdm->execute([$uid]);
+    $tipoUser = $stmtAdm->fetchColumn();
+    if ($tipoUser !== 'admin') {
+        http_response_code(403);
+        echo '<div class="alert alert-danger m-3">Acesso negado. Esta página é restrita a administradores.</div>';
+        require_once 'templates/footer.php';
+        exit;
+    }
+} catch (Throwable $e) {
+    http_response_code(500);
+    echo '<div class="alert alert-danger m-3">Erro ao verificar permissões.</div>';
+    require_once 'templates/footer.php';
+    exit;
+}
+
 $info = ['total'=>0,'com_tel'=>0];
 try {
     $info['total'] = (int)$pdo->query("SELECT COUNT(*) FROM usuarios")->fetchColumn();

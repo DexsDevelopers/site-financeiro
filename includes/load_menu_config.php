@@ -77,6 +77,34 @@ if (!in_array('whatsapp_admin.php', $menu_config['ordem_paginas']['sistema'], tr
     $menu_config['ordem_paginas']['sistema'][] = 'whatsapp_admin.php';
 }
 
+// Exibir 'whatsapp_admin.php' apenas para administradores
+try {
+    $stmtTipo = $pdo->prepare("SELECT tipo FROM usuarios WHERE id = ? LIMIT 1");
+    $stmtTipo->execute([$userId]);
+    $tipo = $stmtTipo->fetchColumn();
+    if ($tipo !== 'admin') {
+        // Remove da lista se não for admin
+        $menu_config['paginas_visiveis']['sistema'] = array_values(array_filter(
+            $menu_config['paginas_visiveis']['sistema'],
+            fn($p) => $p !== 'whatsapp_admin.php'
+        ));
+        $menu_config['ordem_paginas']['sistema'] = array_values(array_filter(
+            $menu_config['ordem_paginas']['sistema'],
+            fn($p) => $p !== 'whatsapp_admin.php'
+        ));
+    }
+} catch (Throwable $e) {
+    // Em erro, por segurança, oculta a página admin
+    $menu_config['paginas_visiveis']['sistema'] = array_values(array_filter(
+        $menu_config['paginas_visiveis']['sistema'],
+        fn($p) => $p !== 'whatsapp_admin.php'
+    ));
+    $menu_config['ordem_paginas']['sistema'] = array_values(array_filter(
+        $menu_config['ordem_paginas']['sistema'],
+        fn($p) => $p !== 'whatsapp_admin.php'
+    ));
+}
+
 // Salvar na sessão para uso no header
 $_SESSION['menu_personalizado'] = $menu_config;
 
