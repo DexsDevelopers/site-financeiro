@@ -124,7 +124,28 @@ app.get('/qr', async (req, res) => {
   }
 });
 
-// Envio de mensagens robusto
+// Resolve JID preferindo LID mapeado pelo onWhatsApp (Baileys v7+)
+async function resolveJidFromPhone(digits) {
+  // Tentativa inicial usando PN JID
+  const pnJid = `${digits}@s.whatsapp.net`;
+  try {
+    const res = await sock.onWhatsApp(pnJid);
+    if (Array.isArray(res) && res.length > 0) {
+      const item = res[0];
+      const mapped = item?.jid || pnJid; // pode vir ...@lid
+      const exists = !!item?.exists || !!item?.isBusiness || !!item?.isEnterprise;
+      return { exists, pnJid, mappedJid: mapped };
+    }
+    // Alguns ambientes retornam objeto único
+    const exists = !!res?.exists;
+    const mapped = res?.jid || pnJid;
+    return { exists, pnJid, mappedJid: mapped };
+  } catch (e) {
+    return { exists: false, pnJid, mappedJid: pnJid, error: e?.message || String(e) };
+  }
+}
+
+// Envio de mensagens robusto (com suporte a LID)
 app.post('/send', auth, async (req, res) => {
   try {
     if (!isReady) return res.status(503).json({ ok: false, error: 'not_ready' });
@@ -133,19 +154,22 @@ app.post('/send', auth, async (req, res) => {
     if (!to || !text) return res.status(400).json({ ok: false, error: 'missing_params' });
 
     const digits = formatBrazilNumber(to);
-    const jid = `${digits}@s.whatsapp.net`;
-    console.log(`[SEND] Preparando para enviar mensagem para ${digits}`);
+    const { exists, pnJid, mappedJid, error } = await resolveJidFromPhone(digits);
+    if (!exists) {
+      return res.status(400).json({ ok: false, error: 'number_not_registered', to: digits, pnJid, mappedJid, detail: error });
+    }
+    console.log(`[SEND] Preparando para enviar mensagem`, { digits, pnJid, mappedJid });
 
     try {
-      await sock.sendMessage(jid, { text });
-      console.log(`[SEND] ✅ Mensagem enviada para ${digits}`);
-      return res.json({ ok: true, to: digits });
+      await sock.sendMessage(mappedJid, { text });
+      console.log(`[SEND] ✅ Mensagem enviada`, { digits, mappedJid });
+      return res.json({ ok: true, to: digits, jid: mappedJid });
     } catch (err) {
-      console.error(`[SEND] ❌ Falha ao enviar para ${digits}:`, err?.message || err);
+      console.error(`[SEND] ❌ Falha ao enviar`, digits, mappedJid, err?.message || err);
 
       // Detecta erro de número inexistente
       if (err?.output?.statusCode === 400 || err?.message?.includes('not a WhatsApp user')) {
-        return res.status(400).json({ ok: false, error: 'number_not_registered', to: digits });
+        return res.status(400).json({ ok: false, error: 'number_not_registered', to: digits, jid: mappedJid });
       }
 
       return res.status(500).json({ ok: false, error: err.message || 'unknown_error' });
@@ -156,7 +180,7 @@ app.post('/send', auth, async (req, res) => {
   }
 });
 
-// Check prático de número
+// Check prático de número (retorna JID mapeado/LID quando existir)
 app.post('/check', auth, async (req, res) => {
   try {
     if (!isReady) return res.status(503).json({ ok: false, error: 'not_ready' });
@@ -165,16 +189,11 @@ app.post('/check', auth, async (req, res) => {
     if (!to) return res.status(400).json({ ok: false, error: 'missing_params' });
 
     const digits = formatBrazilNumber(to);
-    const jid = `${digits}@s.whatsapp.net`;
-
-    try {
-      // Tenta enviar mensagem vazia para testar
-      await sock.sendMessage(jid, { text: '.' });
-      return res.json({ ok: true, to: digits, jid });
-    } catch (err) {
-      console.log(`[CHECK] Número não registrado ou bloqueado: ${digits}`);
-      return res.status(400).json({ ok: false, error: 'number_not_registered', to: digits });
+    const { exists, pnJid, mappedJid, error } = await resolveJidFromPhone(digits);
+    if (!exists) {
+      return res.status(400).json({ ok: false, error: 'number_not_registered', to: digits, pnJid, mappedJid, detail: error });
     }
+    return res.json({ ok: true, to: digits, jid: mappedJid });
   } catch (e) {
     console.error('[CHECK] Erro geral:', e);
     res.status(500).json({ ok: false, error: e.message });
