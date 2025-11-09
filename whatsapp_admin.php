@@ -55,21 +55,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute();
             $destinatarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
             foreach ($destinatarios as $row) {
-                // Normalização robusta: prioriza E.164; caso contrário, tenta BR (55 + 11 dígitos)
-                $toE164 = (string)($row['telefone_e164'] ?? '');
-                $toDigits = preg_replace('/\D+/', '', ltrim($toE164, '+'));
-                if ($toDigits === '') {
-                    $raw = preg_replace('/\D+/', '', (string)($row['telefone'] ?? ''));
-                    // Remove zero à esquerda acidental
-                    $raw = ltrim($raw, '0');
-                    if (strlen($raw) === 11) { $toDigits = '55'.$raw; }
+                // Prioriza E.164; se não existir, tenta normalizar BR
+                $toRaw = $row['telefone_e164'] ?? $row['telefone'] ?? '';
+                $to = wpp_normalize_number($toRaw);
+
+                if (!$to) {
+                    $falhas++;
+                    $logs[] = ['id'=>$row['id'],'status'=>'ignorado_invalid_number','raw'=>$toRaw];
+                    continue;
                 }
-                // Validação mínima: 12+ dígitos (ex.: 55 + 11 = 13)
-                if (strlen($toDigits) < 12) { $falhas++; $logs[] = ['id'=>$row['id'],'status'=>'ignorado_len','raw'=>$row['telefone'] ?? null,'e164'=>$row['telefone_e164'] ?? null]; continue; }
-                if ($dryRun) { $enviados++; $logs[] = ['id'=>$row['id'],'to'=>$toDigits,'status'=>'dry']; continue; }
-                $resp = wpp_send_message($toDigits, $mensagem);
+
+                // Opcional: testar se número está registrado
+                $check = wpp_test_number($to);
+                if (empty($check['ok'])) {
+                    $falhas++;
+                    $logs[] = ['id'=>$row['id'],'status'=>'not_registered','to'=>$to,'error'=>$check['error'] ?? 'unknown'];
+                    continue;
+                }
+
+                if ($dryRun) { $enviados++; $logs[] = ['id'=>$row['id'],'to'=>$to,'status'=>'dry']; continue; }
+
+                // Envio real
+                $resp = wpp_send_message($to, $mensagem);
                 if (!empty($resp['ok'])) { $enviados++; $logs[] = ['id'=>$row['id'],'to'=>$to,'ok'=>true]; }
-                else { $falhas++; $logs[] = ['id'=>$row['id'],'to'=>$toDigits,'ok'=>false,'err'=>$resp['error'] ?? 'erro']; }
+                else { $falhas++; $logs[] = ['id'=>$row['id'],'to'=>$to,'ok'=>false,'error'=>$resp['error'] ?? 'erro_desconhecido']; }
                 usleep(200000); // 200ms entre envios
             }
             $resultado = ['ok'=>true,'enviados'=>$enviados,'falhas'=>$falhas,'processados'=>count($destinatarios),'logs'=>$logs];

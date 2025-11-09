@@ -142,6 +142,27 @@ app.post('/send', auth, async (req, res) => {
   }
 });
 
+// Verificar se número está registrado no WhatsApp
+app.post('/check', auth, async (req, res) => {
+  try {
+    if (!isReady) return res.status(503).json({ ok: false, error: 'not_ready' });
+    const { to } = req.body || {};
+    if (!to) return res.status(400).json({ ok: false, error: 'missing_params' });
+    const digits = String(to).replace(/\D+/g, '');
+    if (!digits || digits.length < 10) return res.status(400).json({ ok: false, error: 'invalid_number' });
+    const jid = `${digits}@s.whatsapp.net`;
+    const resCheck = await sock.onWhatsApp(jid);
+    const exists = Array.isArray(resCheck) ? !!resCheck[0]?.exists : !!resCheck?.exists;
+    if (!exists) {
+      return res.json({ ok: false, error: 'number_not_registered', to: digits });
+    }
+    res.json({ ok: true, to: digits });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 app.listen(PORT, () => console.log(`API WhatsApp rodando em http://localhost:${PORT}`));
 start().catch(console.error);
 
