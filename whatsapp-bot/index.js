@@ -4,8 +4,9 @@
  *   GET  /status
  *   POST /send  { to: "55DDDNUMERO", text: "mensagem" }  Header: x-api-token
  */
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, Browsers } = require('@whiskeysockets/baileys');
 const qrcode = require('qrcode-terminal');
+const QRCodeImg = require('qrcode');
 const express = require('express');
 const cors = require('cors');
 const pino = require('pino');
@@ -20,19 +21,30 @@ const API_TOKEN = process.env.API_TOKEN || 'troque-este-token';
 
 let sock;
 let isReady = false;
+let lastQR = null;
 
 async function start() {
+  // Usa a versão mais recente do WhatsApp Web suportada pelo Baileys
+  const { version, isLatest } = await fetchLatestBaileysVersion();
+  console.log(`WhatsApp Web version: ${version?.join('.')} (latest=${isLatest})`);
   const { state, saveCreds } = await useMultiFileAuthState('./auth');
   sock = makeWASocket({
     auth: state,
     // printQRInTerminal removido (deprecated). O QR é tratado no evento connection.update
-    logger: pino({ level: 'silent' })
+    logger: pino({ level: 'silent' }),
+    version,
+    browser: Browsers.appropriate('Desktop')
   });
 
   sock.ev.on('creds.update', saveCreds);
   sock.ev.on('connection.update', (update) => {
     const { connection, lastDisconnect, qr } = update;
-    if (qr) qrcode.generate(qr, { small: true });
+    if (qr) {
+      lastQR = qr;
+      // ASCII no console para debug rápido
+      qrcode.generate(qr, { small: true });
+      console.log('Abra http://localhost:' + PORT + '/qr para escanear o QR em alta qualidade.');
+    }
     if (connection === 'open') {
       isReady = true;
       console.log('✅ Conectado ao WhatsApp');
@@ -97,6 +109,22 @@ function auth(req, res, next) {
 }
 
 app.get('/status', (req, res) => res.json({ ok: true, ready: isReady }));
+app.get('/qr', async (req, res) => {
+  if (!lastQR) return res.status(404).send('<html><body style="background:#111;color:#eee;font-family:sans-serif"><h3>Nenhum QR disponível</h3><p>Tente reiniciar e aguarde o QR aparecer.</p></body></html>');
+  try {
+    const dataUrl = await QRCodeImg.toDataURL(lastQR, { scale: 8, margin: 1 });
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.end(`<html><body style="background:#0f0f10;color:#eee;font-family:system-ui;margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh">
+      <div style="text-align:center">
+        <h3 style="margin:0 0 12px">Escaneie o QR Code</h3>
+        <img src="${dataUrl}" style="image-rendering: pixelated; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,.5)" />
+        <p style="opacity:.7">Se não conectar, remova “Aparelhos conectados” no WhatsApp e tente novamente.</p>
+      </div>
+    </body></html>`);
+  } catch (e) {
+    res.status(500).send('Falha ao gerar QR');
+  }
+});
 app.post('/send', auth, async (req, res) => {
   try {
     if (!isReady) return res.status(503).json({ ok: false, error: 'not_ready' });
