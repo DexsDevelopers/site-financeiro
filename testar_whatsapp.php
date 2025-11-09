@@ -19,28 +19,32 @@ $action = $_POST['action'] ?? 'send';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $toRaw = trim($_POST['to'] ?? '');
-    // Normaliza via cliente (mesma lógica do envio)
-    $normalizedTo = wpp_normalize_number($toRaw);
+    $text = trim($_POST['text'] ?? '');
 
-    if ($action === 'check') {
-        if ($normalizedTo) {
-            $resultado = wpp_test_number($normalizedTo);
+    // Normaliza número e força DDI
+    $normalizedTo = wpp_normalize_number($toRaw);
+    if ($normalizedTo && strlen(preg_replace('/\D+/', '', $normalizedTo)) === 11) {
+        $normalizedTo = '55' . preg_replace('/\D+/', '', $normalizedTo); // BR fix
+    }
+
+    if (!$normalizedTo) {
+        $resultado = ['ok' => false, 'error' => 'Número inválido. Use +55DDDNNNNNNN ou 55DDDNNNNNNN.'];
+    } elseif ($action === 'check') {
+        // Apenas verifica se número existe
+        $resultado = wpp_test_number($normalizedTo);
+    } else { 
+        // Send
+        if ($text === '') {
+            $resultado = ['ok' => false, 'error' => 'Preencha a mensagem.'];
         } else {
-            $resultado = ['ok' => false, 'error' => 'invalid_number'];
-        }
-    } else { // send
-        $text = trim($_POST['text'] ?? '');
-        if ($normalizedTo && $text) {
-            // Primeiro valida se o número está registrado
+            // Testa se número existe antes de enviar
             $chk = wpp_test_number($normalizedTo);
             if (empty($chk['ok'])) {
-                // Retorna o próprio resultado do check para o usuário entender o motivo
-                $resultado = $chk;
+                $resultado = $chk; // retorna motivo da falha
             } else {
                 $resultado = wpp_send_message($normalizedTo, $text);
+                if (!empty($resultado['ok'])) $resultado['to_normalized'] = $normalizedTo;
             }
-        } else {
-            $resultado = ['ok' => false, 'error' => 'Preencha telefone e mensagem.'];
         }
     }
 }
@@ -53,10 +57,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <main class="container-fluid p-0">
     <div class="card card-glass">
         <div class="card-body p-4">
-            <div class="row g-3 mb-2">
+            <div class="row g-3 mb-3">
                 <div class="col-md-6">
                     <div class="alert <?php echo (!empty($status['ready'])) ? 'alert-success' : 'alert-warning'; ?> p-2 mb-0">
-                        Bot: <code><?php echo htmlspecialchars($cfg['base']); ?></code> — Status: <?php echo (!empty($status['ready'])) ? 'pronto' : 'aguardando'; ?>
+                        Bot: <code><?php echo htmlspecialchars($cfg['base']); ?></code> — Status: <?php echo (!empty($status['ready'])) ? 'pronto ✅' : 'aguardando ⚠️'; ?>
                     </div>
                 </div>
             </div>
@@ -85,11 +89,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="mt-3">
                     <?php if (!empty($resultado['ok'])): ?>
                         <div class="alert alert-success">
-                            <?php echo ($action === 'check') ? 'Número registrado no WhatsApp.' : 'Mensagem enviada com sucesso.'; ?>
+                            <?php
+                                if ($action === 'check') echo 'Número registrado no WhatsApp ✅';
+                                else echo 'Mensagem enviada com sucesso ✅';
+                            ?>
                         </div>
                     <?php else: ?>
                         <div class="alert alert-danger">
-                            Falha: <?php echo htmlspecialchars($resultado['error'] ?? 'erro'); ?>
+                            Falha: <?php echo htmlspecialchars($resultado['error'] ?? 'erro desconhecido'); ?>
                         </div>
                     <?php endif; ?>
                     <pre class="mt-2 p-2 bg-dark text-white rounded" style="white-space: pre-wrap;"><?php echo htmlspecialchars(json_encode($resultado, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)); ?></pre>
@@ -100,5 +107,3 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </main>
 
 <?php require_once 'templates/footer.php'; ?>
-
-
