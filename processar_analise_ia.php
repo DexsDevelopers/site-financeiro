@@ -150,11 +150,19 @@ curl_close($ch);
 // Verificar erro 429
 if ($http_code === 429) {
     http_response_code(429);
+    $rateLimitInfo = [];
+    try {
+        if (isset($rateLimiter) && $rateLimiter !== null) {
+            $rateLimitInfo = $rateLimiter->getUsageStats($userId, 'gemini');
+        }
+    } catch (Exception $e) {
+        // Ignora erro ao obter stats
+    }
     echo json_encode([
         'success' => false,
         'message' => 'Limite de requisições excedido na API do Gemini. Aguarde alguns minutos antes de tentar novamente.',
         'retry_after' => 60,
-        'rate_limit_info' => $rateLimiter->getUsageStats($userId, 'gemini')
+        'rate_limit_info' => $rateLimitInfo
     ]);
     exit();
 }
