@@ -102,7 +102,7 @@ try {
     <div class="col-6 col-md-3">
         <div class="admin-card text-center">
             <div class="card-body py-3">
-                <i class="bi bi-people-fill fs-2 text-primary mb-2"></i>
+                <i class="bi bi-people-fill fs-2 mb-2" style="color: var(--admin-accent);"></i>
                 <h5 class="mb-1"><?php echo $estatisticas['total']; ?></h5>
                 <small class="text-muted">Total de Usuários</small>
             </div>
@@ -111,7 +111,7 @@ try {
     <div class="col-6 col-md-3">
         <div class="admin-card text-center">
             <div class="card-body py-3">
-                <i class="bi bi-activity fs-2 text-success mb-2"></i>
+                <i class="bi bi-activity fs-2 mb-2" style="color: #00b894;"></i>
                 <h5 class="mb-1"><?php echo $estatisticas['ativos_24h']; ?></h5>
                 <small class="text-muted">Ativos (24h)</small>
             </div>
@@ -120,7 +120,7 @@ try {
     <div class="col-6 col-md-3">
         <div class="admin-card text-center">
             <div class="card-body py-3">
-                <i class="bi bi-calendar-week fs-2 text-info mb-2"></i>
+                <i class="bi bi-calendar-week fs-2 mb-2" style="color: #0984e3;"></i>
                 <h5 class="mb-1"><?php echo $estatisticas['ativos_7d']; ?></h5>
                 <small class="text-muted">Ativos (7 dias)</small>
             </div>
@@ -129,7 +129,7 @@ try {
     <div class="col-6 col-md-3">
         <div class="admin-card text-center">
             <div class="card-body py-3">
-                <i class="bi bi-person-x-fill fs-2 text-warning mb-2"></i>
+                <i class="bi bi-person-x-fill fs-2 mb-2" style="color: #f9a826;"></i>
                 <h5 class="mb-1"><?php echo $estatisticas['inativos']; ?></h5>
                 <small class="text-muted">Inativos (30+ dias)</small>
             </div>
@@ -141,7 +141,7 @@ try {
 <div class="admin-card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0">
-            <i class="bi bi-graph-up-arrow me-2 text-success"></i>
+            <i class="bi bi-graph-up-arrow me-2" style="color: #00b894;"></i>
             Usuários Ativos nas Últimas 24 Horas
             <span class="badge bg-success ms-2"><?php echo count($usuariosAtivos24h); ?></span>
         </h5>
