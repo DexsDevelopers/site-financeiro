@@ -10,9 +10,26 @@ class RateLimiter {
     private $maxRequestsPerHour = 30;   // Máximo de 30 requisições por hora
     private $retryAfterSeconds = 60;    // Tempo mínimo entre requisições (segundos)
 
+    private $tableExists = false;
+
     public function __construct(PDO $pdo) {
         $this->pdo = $pdo;
-        $this->createTableIfNotExists();
+        $this->tableExists = $this->checkTableExists();
+        if (!$this->tableExists) {
+            $this->createTableIfNotExists();
+        }
+    }
+
+    /**
+     * Verifica se a tabela existe
+     */
+    private function checkTableExists(): bool {
+        try {
+            $stmt = $this->pdo->query("SHOW TABLES LIKE 'rate_limit_ia'");
+            return $stmt->rowCount() > 0;
+        } catch (PDOException $e) {
+            return false;
+        }
     }
 
     /**
@@ -20,6 +37,7 @@ class RateLimiter {
      */
     private function createTableIfNotExists() {
         try {
+            // Primeiro tenta sem foreign key (pode falhar se a tabela usuarios não existir)
             $this->pdo->exec("
                 CREATE TABLE IF NOT EXISTS rate_limit_ia (
                     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -28,13 +46,27 @@ class RateLimiter {
                     timestamp_request DATETIME DEFAULT CURRENT_TIMESTAMP,
                     ip_address VARCHAR(45),
                     INDEX idx_usuario_timestamp (id_usuario, timestamp_request),
-                    INDEX idx_timestamp (timestamp_request),
-                    FOREIGN KEY (id_usuario) REFERENCES usuarios(id) ON DELETE CASCADE
+                    INDEX idx_timestamp (timestamp_request)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             ");
+            
+            // Tenta adicionar foreign key depois (pode falhar, mas não é crítico)
+            try {
+                $this->pdo->exec("
+                    ALTER TABLE rate_limit_ia 
+                    ADD CONSTRAINT fk_rate_limit_usuario 
+                    FOREIGN KEY (id_usuario) REFERENCES usuarios(id) ON DELETE CASCADE
+                ");
+            } catch (PDOException $e) {
+                // Foreign key pode já existir ou tabela usuarios pode não existir ainda
+                // Não é crítico, continuar sem foreign key
+            }
+            
+            $this->tableExists = true;
         } catch (PDOException $e) {
-            // Tabela pode já existir, ignorar erro
-            error_log("Rate Limiter: " . $e->getMessage());
+            // Se falhar, continuar sem rate limiting (modo degradado)
+            error_log("Rate Limiter: Erro ao criar tabela - " . $e->getMessage());
+            $this->tableExists = false;
         }
     }
 
@@ -45,6 +77,16 @@ class RateLimiter {
      * @return array ['allowed' => bool, 'retry_after' => int, 'message' => string]
      */
     public function checkRateLimit(int $userId, string $tipo = 'gemini'): array {
+        // Se a tabela não existe, permite a requisição (modo degradado)
+        if (!$this->tableExists) {
+            return [
+                'allowed' => true,
+                'retry_after' => 0,
+                'message' => '',
+                'limit_type' => null
+            ];
+        }
+        
         try {
             $now = date('Y-m-d H:i:s');
             $ipAddress = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
@@ -142,6 +184,10 @@ class RateLimiter {
      * Registra uma requisição no banco de dados
      */
     private function recordRequest(int $userId, string $tipo, string $ipAddress) {
+        if (!$this->tableExists) {
+            return; // Se a tabela não existe, não tenta registrar
+        }
+        
         try {
             $stmt = $this->pdo->prepare("
                 INSERT INTO rate_limit_ia (id_usuario, tipo_requisicao, ip_address)
@@ -150,6 +196,8 @@ class RateLimiter {
             $stmt->execute([$userId, $tipo, $ipAddress]);
         } catch (PDOException $e) {
             error_log("Rate Limiter Record Error: " . $e->getMessage());
+            // Se falhar ao registrar, marca tabela como não existente para evitar mais tentativas
+            $this->tableExists = false;
         }
     }
 
@@ -157,6 +205,10 @@ class RateLimiter {
      * Limpa requisições antigas (mais de 1 hora)
      */
     private function cleanOldRequests() {
+        if (!$this->tableExists) {
+            return; // Se a tabela não existe, não tenta limpar
+        }
+        
         try {
             $stmt = $this->pdo->prepare("
                 DELETE FROM rate_limit_ia
@@ -172,6 +224,17 @@ class RateLimiter {
      * Obtém estatísticas de uso para um usuário
      */
     public function getUsageStats(int $userId, string $tipo = 'gemini'): array {
+        if (!$this->tableExists) {
+            return [
+                'requests_last_minute' => 0,
+                'requests_last_hour' => 0,
+                'limit_per_minute' => $this->maxRequestsPerMinute,
+                'limit_per_hour' => $this->maxRequestsPerHour,
+                'remaining_minute' => $this->maxRequestsPerMinute,
+                'remaining_hour' => $this->maxRequestsPerHour
+            ];
+        }
+        
         try {
             $now = date('Y-m-d H:i:s');
 

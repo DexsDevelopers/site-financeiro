@@ -33,20 +33,26 @@ if (empty($pergunta_usuario)) {
     exit();
 }
 
-// Verificar rate limiting
-$rateLimiter = new RateLimiter($pdo);
-$rateLimitCheck = $rateLimiter->checkRateLimit($userId, 'gemini');
+// Verificar rate limiting (com tratamento de erro)
+try {
+    $rateLimiter = new RateLimiter($pdo);
+    $rateLimitCheck = $rateLimiter->checkRateLimit($userId, 'gemini');
 
-if (!$rateLimitCheck['allowed']) {
-    http_response_code(429);
-    echo json_encode([
-        'success' => false,
-        'message' => $rateLimitCheck['message'],
-        'retry_after' => $rateLimitCheck['retry_after'],
-        'limit_type' => $rateLimitCheck['limit_type'],
-        'rate_limit_info' => $rateLimiter->getUsageStats($userId, 'gemini')
-    ]);
-    exit();
+    if (!$rateLimitCheck['allowed']) {
+        http_response_code(429);
+        echo json_encode([
+            'success' => false,
+            'message' => $rateLimitCheck['message'],
+            'retry_after' => $rateLimitCheck['retry_after'],
+            'limit_type' => $rateLimitCheck['limit_type'],
+            'rate_limit_info' => $rateLimiter->getUsageStats($userId, 'gemini')
+        ]);
+        exit();
+    }
+} catch (Exception $e) {
+    // Se houver erro no rate limiter, continua sem rate limiting (modo degradado)
+    error_log("Rate Limiter Error: " . $e->getMessage());
+    // Continua com a requisição normalmente
 }
 
 // =================================================================================
@@ -185,11 +191,19 @@ if ($functionCall) {
         // Verificar erro 429 na segunda chamada
         if ($http_code_2 === 429) {
             http_response_code(429);
+            $rateLimitInfo = [];
+            try {
+                if (isset($rateLimiter)) {
+                    $rateLimitInfo = $rateLimiter->getUsageStats($userId, 'gemini');
+                }
+            } catch (Exception $e) {
+                // Ignora erro ao obter stats
+            }
             echo json_encode([
                 'success' => false,
                 'message' => 'Limite de requisições excedido na API do Gemini. Aguarde alguns minutos antes de tentar novamente.',
                 'retry_after' => 60,
-                'rate_limit_info' => $rateLimiter->getUsageStats($userId, 'gemini')
+                'rate_limit_info' => $rateLimitInfo
             ]);
             exit();
         }

@@ -22,19 +22,25 @@ if (empty($texto_usuario)) {
     exit(json_encode(['success' => false, 'message' => 'Nenhum texto fornecido.']));
 }
 
-// Verificar rate limiting
-$rateLimiter = new RateLimiter($pdo);
-$rateLimitCheck = $rateLimiter->checkRateLimit($userId, 'gemini');
+// Verificar rate limiting (com tratamento de erro)
+try {
+    $rateLimiter = new RateLimiter($pdo);
+    $rateLimitCheck = $rateLimiter->checkRateLimit($userId, 'gemini');
 
-if (!$rateLimitCheck['allowed']) {
-    http_response_code(429);
-    exit(json_encode([
-        'success' => false,
-        'message' => $rateLimitCheck['message'],
-        'retry_after' => $rateLimitCheck['retry_after'],
-        'limit_type' => $rateLimitCheck['limit_type'],
-        'rate_limit_info' => $rateLimiter->getUsageStats($userId, 'gemini')
-    ]));
+    if (!$rateLimitCheck['allowed']) {
+        http_response_code(429);
+        exit(json_encode([
+            'success' => false,
+            'message' => $rateLimitCheck['message'],
+            'retry_after' => $rateLimitCheck['retry_after'],
+            'limit_type' => $rateLimitCheck['limit_type'],
+            'rate_limit_info' => $rateLimiter->getUsageStats($userId, 'gemini')
+        ]));
+    }
+} catch (Exception $e) {
+    // Se houver erro no rate limiter, continua sem rate limiting (modo degradado)
+    error_log("Rate Limiter Error: " . $e->getMessage());
+    // Continua com a requisição normalmente
 }
 
 // --- COLETA DE DADOS PARA CONTEXTO DA IA ---
