@@ -11,13 +11,41 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 require_once 'includes/db_connect.php';
-require_once '/home/u853242961/config/config.php';
+require_once 'includes/rate_limiter.php';
+
+// Verificar se o arquivo de config existe (pode não existir em desenvolvimento)
+if (file_exists('/home/u853242961/config/config.php')) {
+    require_once '/home/u853242961/config/config.php';
+} elseif (defined('GEMINI_API_KEY')) {
+    // Já definido no db_connect.php
+} else {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'message' => 'Configuração da API não encontrada.']);
+    exit();
+}
+
 $userId = $_SESSION['user_id'];
 $input = json_decode(file_get_contents('php://input'), true);
 $pergunta_usuario = $input['pergunta'] ?? '';
 if (empty($pergunta_usuario)) {
     http_response_code(400);
     echo json_encode(['success' => false, 'message' => 'Nenhuma pergunta fornecida.']);
+    exit();
+}
+
+// Verificar rate limiting
+$rateLimiter = new RateLimiter($pdo);
+$rateLimitCheck = $rateLimiter->checkRateLimit($userId, 'gemini');
+
+if (!$rateLimitCheck['allowed']) {
+    http_response_code(429);
+    echo json_encode([
+        'success' => false,
+        'message' => $rateLimitCheck['message'],
+        'retry_after' => $rateLimitCheck['retry_after'],
+        'limit_type' => $rateLimitCheck['limit_type'],
+        'rate_limit_info' => $rateLimiter->getUsageStats($userId, 'gemini')
+    ]);
     exit();
 }
 
@@ -104,12 +132,28 @@ $conversationHistory = [['role' => 'user', 'parts' => [['text' => $prompt_inicia
 $data_primeira_chamada = ['contents' => $conversationHistory, 'tools' => $tools, 'tool_config' => ['function_calling_config' => ['mode' => 'ANY']]];
 
 $ch = curl_init($gemini_api_url);
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_POST, true);
 curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data_primeira_chamada));
 curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+curl_setopt($ch, CURLOPT_TIMEOUT, 30);
 $response_string = curl_exec($ch);
-$api_response = json_decode($response_string, true);
+$http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
+
+// Verificar erro 429
+if ($http_code === 429) {
+    http_response_code(429);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Limite de requisições excedido na API do Gemini. Aguarde alguns minutos antes de tentar novamente.',
+        'retry_after' => 60,
+        'rate_limit_info' => $rateLimiter->getUsageStats($userId, 'gemini')
+    ]);
+    exit();
+}
+
+$api_response = json_decode($response_string, true);
 
 $resposta_final_ia = '';
 $functionCall = $api_response['candidates'][0]['content']['parts'][0]['functionCall'] ?? null;
@@ -129,12 +173,28 @@ if ($functionCall) {
         $conversationHistory[] = ['role' => 'tool', 'parts' => [['functionResponse' => ['name' => $functionName, 'response' => $functionResult]]]];
         $data_segunda_chamada = [ 'contents' => $conversationHistory ];
         $ch = curl_init($gemini_api_url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data_segunda_chamada));
         curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
         $response_string_2 = curl_exec($ch);
-        $api_response_2 = json_decode($response_string_2, true);
+        $http_code_2 = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
+        
+        // Verificar erro 429 na segunda chamada
+        if ($http_code_2 === 429) {
+            http_response_code(429);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Limite de requisições excedido na API do Gemini. Aguarde alguns minutos antes de tentar novamente.',
+                'retry_after' => 60,
+                'rate_limit_info' => $rateLimiter->getUsageStats($userId, 'gemini')
+            ]);
+            exit();
+        }
+        
+        $api_response_2 = json_decode($response_string_2, true);
         $resposta_final_ia = $api_response_2['candidates'][0]['content']['parts'][0]['text'] ?? 'Ação concluída, mas não consegui gerar um resumo.';
     }
 } else { $resposta_final_ia = $api_response['candidates'][0]['content']['parts'][0]['text'] ?? 'Não consegui entender sua pergunta.'; }

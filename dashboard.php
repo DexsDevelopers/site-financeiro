@@ -392,8 +392,93 @@ if ($saldoMes > 0) {
         const formNovoLancamento = document.getElementById('formNovoLancamento');
         if(formNovoLancamento){ formNovoLancamento.addEventListener('submit', function(e){ e.preventDefault(); const d = new FormData(formNovoLancamento); const b = formNovoLancamento.querySelector('button[type="submit"]'); b.disabled = true; b.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Salvando...'; fetch('salvar_transacao.php', { method: 'POST', body: d }).then(r => r.ok ? r.json() : r.json().then(e => { throw new Error(e.message || 'Ocorreu um erro.') })).then(d => { if(d.success){ showToast('Sucesso!', d.message); setTimeout(() => { const contaSel = (document.getElementById('selectConta')?.value || 'all'); window.location.href = `dashboard.php?mes=${selectMes.value}&ano=${selectAno.value}&conta=${encodeURIComponent(contaSel)}`; }, 1000); } else { showToast('Erro!', d.message, true); b.disabled = false; b.innerHTML = 'Salvar Lançamento'; } }).catch(e => { console.error('Erro:', e); showToast('Erro!', e.message, true); b.disabled = false; b.innerHTML = 'Salvar Lançamento'; }); }); }
 
+        // --- LANÇAMENTO RÁPIDO COM IA ---
         const formIaRapida = document.getElementById('formIaRapida');
-        if(formIaRapida){ formIaRapida.addEventListener('submit', function(e){ e.preventDefault(); const i = document.getElementById('inputIa'); const b = document.getElementById('btnIaSubmit'); const t = i.value; const contaSel = (document.getElementById('selectConta')?.value || 'all'); const idConta = (contaSel !== 'all') ? parseInt(contaSel) : null; b.disabled = true; b.innerHTML = '<span class="spinner-border spinner-border-sm"></span>'; fetch('processar_ia.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ texto: t, id_conta: idConta }) }).then(r => r.json()).then(d => { if(d.success){ showToast('Sucesso!', d.message); setTimeout(() => { window.location.href = `dashboard.php?mes=${selectMes.value}&ano=${selectAno.value}&conta=${encodeURIComponent(contaSel)}`; }, 1500); } else { showToast('Erro da IA!', d.message, true); b.disabled = false; b.innerHTML = 'Lançar'; } }).catch(e => { console.error('Erro de rede:', e); showToast('Erro de Rede!', 'Não foi possível se conectar ao servidor.', true); b.disabled = false; b.innerHTML = 'Lançar'; }); }); }
+        if(formIaRapida) {
+            formIaRapida.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const inputIa = document.getElementById('inputIa');
+                const btnIaSubmit = document.getElementById('btnIaSubmit');
+                const texto = inputIa.value.trim();
+                const contaSel = (document.getElementById('selectConta')?.value || 'all');
+                const idConta = (contaSel !== 'all') ? parseInt(contaSel) : null;
+                
+                if (!texto) {
+                    showToast('Atenção!', 'Por favor, digite uma descrição para o lançamento.', true);
+                    return;
+                }
+                
+                // Desabilitar botão e mostrar loading
+                btnIaSubmit.disabled = true;
+                const originalText = btnIaSubmit.innerHTML;
+                btnIaSubmit.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Processando...';
+                
+                fetch('processar_ia.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ texto: texto, id_conta: idConta })
+                })
+                .then(response => {
+                    const isRateLimit = response.status === 429;
+                    return response.json().then(data => ({
+                        ...data,
+                        status: response.status,
+                        isRateLimit: isRateLimit
+                    }));
+                })
+                .then(data => {
+                    if(data.success) {
+                        showToast('Sucesso!', data.message || 'Lançamento adicionado pela IA com sucesso!');
+                        inputIa.value = '';
+                        setTimeout(() => {
+                            window.location.href = `dashboard.php?mes=${selectMes.value}&ano=${selectAno.value}&conta=${encodeURIComponent(contaSel)}`;
+                        }, 1500);
+                    } else {
+                        // Tratar erro 429 (Rate Limit)
+                        if(data.isRateLimit || data.status === 429) {
+                            const retryAfter = data.retry_after || 60;
+                            const rateLimitInfo = data.rate_limit_info || {};
+                            let message = data.message || 'Limite de requisições excedido.';
+                            
+                            // Adicionar informações sobre o limite
+                            if(rateLimitInfo.requests_last_minute !== undefined) {
+                                message += ` (${rateLimitInfo.requests_last_minute}/${rateLimitInfo.limit_per_minute} por minuto)`;
+                            }
+                            
+                            showToast('Limite de Requisições', message, true);
+                            
+                            // Desabilitar botão e mostrar contador
+                            btnIaSubmit.disabled = true;
+                            let countdown = Math.ceil(retryAfter);
+                            const countdownInterval = setInterval(() => {
+                                countdown--;
+                                if(countdown > 0) {
+                                    btnIaSubmit.innerHTML = `Aguarde ${countdown}s`;
+                                } else {
+                                    clearInterval(countdownInterval);
+                                    btnIaSubmit.disabled = false;
+                                    btnIaSubmit.innerHTML = originalText;
+                                }
+                            }, 1000);
+                            
+                            // Atualizar mensagem inicial
+                            btnIaSubmit.innerHTML = `Aguarde ${countdown}s`;
+                        } else {
+                            // Outros erros
+                            showToast('Erro da IA', data.message || 'Ocorreu um erro ao processar sua solicitação.', true);
+                            btnIaSubmit.disabled = false;
+                            btnIaSubmit.innerHTML = originalText;
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro de rede:', error);
+                    showToast('Erro de Rede', 'Não foi possível se conectar ao servidor. Verifique sua conexão.', true);
+                    btnIaSubmit.disabled = false;
+                    btnIaSubmit.innerHTML = originalText;
+                });
+            });
+        }
         
         // --- FUNCIONALIDADES DAS TAREFAS ---
         // Marcar tarefa como concluída

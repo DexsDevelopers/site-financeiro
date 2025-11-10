@@ -4,7 +4,8 @@
 session_start();
 header('Content-Type: application/json');
 
-require_once 'includes/db_connect.php'; 
+require_once 'includes/db_connect.php';
+require_once 'includes/rate_limiter.php';
 
 if (!isset($_SESSION['user_id'])) {
     http_response_code(403);
@@ -19,6 +20,21 @@ $userId = $_SESSION['user_id'];
 if (empty($texto_usuario)) {
     http_response_code(400);
     exit(json_encode(['success' => false, 'message' => 'Nenhum texto fornecido.']));
+}
+
+// Verificar rate limiting
+$rateLimiter = new RateLimiter($pdo);
+$rateLimitCheck = $rateLimiter->checkRateLimit($userId, 'gemini');
+
+if (!$rateLimitCheck['allowed']) {
+    http_response_code(429);
+    exit(json_encode([
+        'success' => false,
+        'message' => $rateLimitCheck['message'],
+        'retry_after' => $rateLimitCheck['retry_after'],
+        'limit_type' => $rateLimitCheck['limit_type'],
+        'rate_limit_info' => $rateLimiter->getUsageStats($userId, 'gemini')
+    ]));
 }
 
 // --- COLETA DE DADOS PARA CONTEXTO DA IA ---
@@ -94,55 +110,138 @@ $prompt = "
 // FIM DA ENGENHARIA DE PROMPT
 // ==========================================================
 
-// --- CHAMADA PARA A API DO GEMINI ---
-$gemini_api_url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=' . GEMINI_API_KEY;
-$data = ['contents' => [['parts' => [['text' => $prompt]]]]];
-
-$ch = curl_init($gemini_api_url);
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); 
-curl_setopt($ch, CURLOPT_POST, true);
-curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-curl_setopt($ch, CURLOPT_TIMEOUT, 30); // Timeout de 30 segundos
-$response_string = curl_exec($ch);
-$http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-$curl_error = curl_error($ch);
-curl_close($ch);
-
-// Verificar erros de conectividade
-if ($curl_error) {
-    http_response_code(500);
-    exit(json_encode(['success' => false, 'message' => 'Erro de conexão com o serviço de IA. Tente novamente em alguns instantes.', 'debug' => 'cURL Error: ' . $curl_error]));
-}
-
-if ($http_code !== 200) {
-    // Log detalhado do erro para debug
-    $error_details = '';
-    switch ($http_code) {
-        case 400:
-            $error_details = 'Requisição inválida (400). Verifique o formato dos dados.';
-            break;
-        case 401:
-            $error_details = 'Chave API inválida ou expirada (401).';
-            break;
-        case 403:
-            $error_details = 'Acesso negado (403). Verifique as permissões da API.';
-            break;
-        case 429:
-            $error_details = 'Limite de requisições excedido (429). Aguarde alguns minutos.';
-            break;
-        case 500:
-        case 502:
-        case 503:
-            $error_details = "Erro no servidor da Google ($http_code). Tente novamente em alguns minutos.";
-            break;
-        default:
-            $error_details = "Erro HTTP $http_code desconhecido.";
+// --- FUNÇÃO PARA CHAMAR API GEMINI COM RETRY ---
+function callGeminiAPI(string $prompt, int $maxRetries = 2): array {
+    $gemini_api_url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=' . GEMINI_API_KEY;
+    $data = ['contents' => [['parts' => [['text' => $prompt]]]]];
+    
+    $attempt = 0;
+    $backoffSeconds = 2; // Começa com 2 segundos
+    
+    while ($attempt <= $maxRetries) {
+        $ch = curl_init($gemini_api_url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); 
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        
+        $response_string = curl_exec($ch);
+        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curl_error = curl_error($ch);
+        curl_close($ch);
+        
+        // Verificar erros de conectividade
+        if ($curl_error) {
+            if ($attempt < $maxRetries) {
+                sleep($backoffSeconds);
+                $backoffSeconds *= 2; // Backoff exponencial
+                $attempt++;
+                continue;
+            }
+            return [
+                'success' => false,
+                'http_code' => 0,
+                'message' => 'Erro de conexão com o serviço de IA. Tente novamente em alguns instantes.',
+                'response' => '',
+                'error' => $curl_error
+            ];
+        }
+        
+        // Se sucesso, retorna
+        if ($http_code === 200) {
+            return [
+                'success' => true,
+                'http_code' => 200,
+                'message' => '',
+                'response' => $response_string,
+                'error' => null
+            ];
+        }
+        
+        // Se erro 429 e ainda há tentativas, aguarda e tenta novamente
+        if ($http_code === 429 && $attempt < $maxRetries) {
+            // Tenta extrair o tempo de retry do header Retry-After (se disponível)
+            $retryAfter = $backoffSeconds;
+            sleep($retryAfter);
+            $backoffSeconds *= 2; // Backoff exponencial
+            $attempt++;
+            continue;
+        }
+        
+        // Outros erros ou sem mais tentativas
+        $error_details = '';
+        switch ($http_code) {
+            case 400:
+                $error_details = 'Requisição inválida. Verifique o formato dos dados.';
+                break;
+            case 401:
+                $error_details = 'Chave API inválida ou expirada.';
+                break;
+            case 403:
+                $error_details = 'Acesso negado. Verifique as permissões da API.';
+                break;
+            case 429:
+                // Tenta extrair informação do response
+                $response_data = json_decode($response_string, true);
+                $error_message = $response_data['error']['message'] ?? 'Limite de requisições excedido.';
+                $error_details = "Limite de requisições excedido na API do Gemini. {$error_message} Aguarde alguns minutos antes de tentar novamente.";
+                break;
+            case 500:
+            case 502:
+            case 503:
+                $error_details = "Erro temporário no servidor da Google ($http_code). Tente novamente em alguns minutos.";
+                break;
+            default:
+                $error_details = "Erro HTTP $http_code. Tente novamente mais tarde.";
+        }
+        
+        return [
+            'success' => false,
+            'http_code' => $http_code,
+            'message' => $error_details,
+            'response' => $response_string,
+            'error' => null
+        ];
     }
     
-    http_response_code(500);
-    exit(json_encode(['success' => false, 'message' => $error_details, 'debug' => 'HTTP Code: ' . $http_code, 'response' => substr($response_string, 0, 500)]));
+    return [
+        'success' => false,
+        'http_code' => 429,
+        'message' => 'Não foi possível processar após várias tentativas. Aguarde alguns minutos.',
+        'response' => '',
+        'error' => 'Max retries exceeded'
+    ];
 }
+
+// --- CHAMADA PARA A API DO GEMINI COM RETRY ---
+$apiResult = callGeminiAPI($prompt, 2);
+
+if (!$apiResult['success']) {
+    $http_code = $apiResult['http_code'];
+    
+    // Se for erro 429, retorna código 429 para o cliente
+    if ($http_code === 429) {
+        http_response_code(429);
+        exit(json_encode([
+            'success' => false,
+            'message' => $apiResult['message'],
+            'retry_after' => 60, // Sugere aguardar 60 segundos
+            'rate_limit_info' => $rateLimiter->getUsageStats($userId, 'gemini')
+        ]));
+    }
+    
+    // Outros erros
+    http_response_code($http_code >= 400 && $http_code < 500 ? $http_code : 500);
+    exit(json_encode([
+        'success' => false,
+        'message' => $apiResult['message'],
+        'debug' => 'HTTP Code: ' . $http_code,
+        'response' => substr($apiResult['response'], 0, 500)
+    ]));
+}
+
+$response_string = $apiResult['response'];
 
 $response_data = json_decode($response_string, true);
 $json_text = $response_data['candidates'][0]['content']['parts'][0]['text'] ?? '';
