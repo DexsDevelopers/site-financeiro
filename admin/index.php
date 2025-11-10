@@ -70,11 +70,31 @@ try {
         </h1>
         <p class="text-muted mb-0">Gerencie usuários do sistema financeiro</p>
     </div>
-    <button class="btn btn-admin" data-bs-toggle="modal" data-bs-target="#modalNovoUsuario">
-        <i class="bi bi-person-plus-fill me-2"></i>
-        <span class="d-none d-sm-inline">Adicionar Usuário</span>
-        <span class="d-sm-none">Adicionar</span>
-    </button>
+    <div class="d-flex gap-2">
+        <?php
+        // Verificar se a tabela usuarios_atividade existe
+        $tabelaExiste = false;
+        try {
+            $stmt = $pdo->query("SHOW TABLES LIKE 'usuarios_atividade'");
+            $tabelaExiste = $stmt->rowCount() > 0;
+        } catch (PDOException $e) {
+            $tabelaExiste = false;
+        }
+        
+        if (!$tabelaExiste):
+        ?>
+        <a href="../criar_tabela_usuarios_atividade.php" class="btn btn-warning" target="_blank">
+            <i class="bi bi-database-fill-add me-2"></i>
+            <span class="d-none d-sm-inline">Criar Tabela de Atividade</span>
+            <span class="d-sm-none">Migração</span>
+        </a>
+        <?php endif; ?>
+        <button class="btn btn-admin" data-bs-toggle="modal" data-bs-target="#modalNovoUsuario">
+            <i class="bi bi-person-plus-fill me-2"></i>
+            <span class="d-none d-sm-inline">Adicionar Usuário</span>
+            <span class="d-sm-none">Adicionar</span>
+        </button>
+    </div>
 </div>
 
 <!-- Estatísticas Rápidas -->
