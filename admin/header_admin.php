@@ -46,22 +46,62 @@ $paginaAtual = basename($_SERVER['PHP_SELF']);
     
     <style>
         :root {
+            /* Cores do Site Principal */
+            --admin-accent: #e50914;
+            --admin-accent-600: #c20811;
+            --admin-accent-300: #ff4d55;
+            --admin-accent-100: #ff6b73;
+            --admin-accent-50: #ff8a90;
+            
+            /* Backgrounds do Site Principal */
+            --admin-bg-900: #0d0d0f;
+            --admin-bg-800: #141417;
+            --admin-bg-700: #1c1c20;
+            --admin-bg-600: #242428;
+            --admin-bg-500: #2c2c30;
+            
+            /* Textos do Site Principal */
+            --admin-text-100: #f5f5f1;
+            --admin-text-200: #e8e8e4;
+            --admin-text-300: #dbdbd7;
+            --admin-text-400: #c7c7cb;
+            --admin-text-500: #b3b3b7;
+            
+            /* Bordas do Site Principal */
+            --admin-border: rgba(255,255,255,0.08);
+            --admin-border-light: rgba(255,255,255,0.12);
+            --admin-border-dark: rgba(255,255,255,0.04);
+            
+            /* Sombras do Site Principal */
+            --admin-shadow-sm: 0 2px 8px rgba(0,0,0,0.15);
+            --admin-shadow-md: 0 4px 16px rgba(0,0,0,0.2);
+            --admin-shadow-lg: 0 8px 32px rgba(0,0,0,0.25);
+            --admin-shadow-xl: 0 16px 64px rgba(0,0,0,0.3);
+            --admin-shadow-accent: 0 4px 20px rgba(229,9,20,0.3);
+            
+            /* Layout */
             --admin-sidebar-width: 280px;
             --admin-sidebar-width-mobile: 100%;
-            --admin-bg-color: #0a0a0a;
-            --admin-sidebar-bg: linear-gradient(180deg, #111 0%, #1a1a1a 100%);
-            --admin-card-bg: rgba(24, 24, 24, 0.95);
-            --admin-card-bg-hover: rgba(30, 30, 30, 0.98);
-            --admin-border-color: rgba(255, 255, 255, 0.1);
-            --admin-accent-color: #dc3545;
-            --admin-accent-hover: #ff4757;
-            --admin-accent-light: rgba(220, 53, 69, 0.1);
-            --admin-text-color: #f8f9fa;
-            --admin-text-secondary: #adb5bd;
-            --admin-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            --admin-shadow-hover: 0 12px 40px rgba(220, 53, 69, 0.2);
             --admin-border-radius: 12px;
+            --admin-border-radius-sm: 8px;
+            --admin-border-radius-lg: 16px;
             --admin-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --admin-transition-fast: 0.15s ease;
+            --admin-transition-normal: 0.2s ease;
+            
+            /* Variáveis de compatibilidade */
+            --admin-bg-color: var(--admin-bg-900);
+            --admin-sidebar-bg: linear-gradient(180deg, var(--admin-bg-800) 0%, var(--admin-bg-700) 100%);
+            --admin-card-bg: rgba(28, 28, 32, 0.95);
+            --admin-card-bg-hover: rgba(36, 36, 40, 0.98);
+            --admin-border-color: var(--admin-border);
+            --admin-accent-color: var(--admin-accent);
+            --admin-accent-hover: var(--admin-accent-300);
+            --admin-accent-light: rgba(229, 9, 20, 0.1);
+            --admin-text-color: var(--admin-text-100);
+            --admin-text-secondary: var(--admin-text-400);
+            --admin-shadow: var(--admin-shadow-lg);
+            --admin-shadow-hover: var(--admin-shadow-accent);
         }
 
         * {
@@ -88,15 +128,16 @@ $paginaAtual = basename($_SERVER['PHP_SELF']);
         }
 
         body {
-            font-family: 'Poppins', sans-serif;
-            background: var(--admin-bg-color);
+            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--admin-bg-900);
             background-image: 
-                radial-gradient(circle at 20% 20%, rgba(220, 53, 69, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 80% 80%, rgba(220, 53, 69, 0.05) 0%, transparent 50%);
+                radial-gradient(circle at 20% 20%, rgba(229, 9, 20, 0.12) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(229, 9, 20, 0.06) 0%, transparent 50%);
             background-attachment: fixed;
-            color: var(--admin-text-color);
+            color: var(--admin-text-100);
             min-height: 100vh;
             overflow-x: hidden;
+            line-height: 1.6;
         }
 
         .admin-wrapper {
@@ -192,16 +233,16 @@ $paginaAtual = basename($_SERVER['PHP_SELF']);
 
         .admin-sidebar .nav-link:hover {
             background: var(--admin-accent-light);
-            color: var(--admin-accent-hover);
+            color: var(--admin-accent-300);
             transform: translateX(8px);
-            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.2);
+            box-shadow: var(--admin-shadow-accent);
         }
 
         .admin-sidebar .nav-link.active {
-            background: var(--admin-accent-color);
+            background: var(--admin-accent);
             color: white;
             font-weight: 600;
-            box-shadow: 0 4px 16px rgba(220, 53, 69, 0.3);
+            box-shadow: var(--admin-shadow-accent);
         }
 
         .admin-sidebar .nav-link i {
@@ -213,11 +254,18 @@ $paginaAtual = basename($_SERVER['PHP_SELF']);
         /* === CONTEÚDO PRINCIPAL === */
         .admin-main-content {
             flex: 1;
-            padding: 1.5rem;
+            padding: 1rem;
             min-height: 100vh;
             transition: var(--admin-transition);
             width: 100%;
             margin-left: 0;
+        }
+
+        /* Tablet */
+        @media (min-width: 768px) {
+            .admin-main-content {
+                padding: 1.5rem;
+            }
         }
 
         /* Desktop - Sidebar fixo */
@@ -236,6 +284,16 @@ $paginaAtual = basename($_SERVER['PHP_SELF']);
             .admin-main-content {
                 margin-left: 0;
                 width: calc(100% - var(--admin-sidebar-width));
+                padding: 2rem;
+            }
+        }
+
+        /* Desktop Grande */
+        @media (min-width: 1400px) {
+            .admin-main-content {
+                padding: 2.5rem;
+                max-width: 1600px;
+                margin: 0 auto;
             }
         }
 
@@ -252,9 +310,12 @@ $paginaAtual = basename($_SERVER['PHP_SELF']);
             }
 
         .admin-navbar-mobile .navbar-brand {
-            color: var(--admin-accent-color);
+            color: var(--admin-accent);
             font-weight: 700;
             font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         .admin-navbar-mobile .navbar-toggler {
@@ -270,7 +331,7 @@ $paginaAtual = basename($_SERVER['PHP_SELF']);
         }
 
         .admin-navbar-mobile .navbar-toggler:focus {
-            box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25);
+            box-shadow: 0 0 0 0.25rem rgba(229, 9, 20, 0.25);
         }
 
         /* === CARDS MODERNOS === */
@@ -319,9 +380,16 @@ $paginaAtual = basename($_SERVER['PHP_SELF']);
         }
 
         .admin-card h5 {
-            color: var(--admin-accent-color);
+            color: var(--admin-accent);
             font-weight: 600;
             margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .admin-card h5 i {
+            color: var(--admin-accent-300);
         }
 
         .admin-card p {
@@ -358,9 +426,9 @@ $paginaAtual = basename($_SERVER['PHP_SELF']);
         }
 
         .btn-admin:hover {
-            background: var(--admin-accent-hover);
+            background: var(--admin-accent-300);
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(220, 53, 69, 0.4);
+            box-shadow: var(--admin-shadow-accent);
         }
 
         .btn-admin:active {
@@ -382,9 +450,9 @@ $paginaAtual = basename($_SERVER['PHP_SELF']);
         }
 
         .admin-table thead th {
-            background: rgba(220, 53, 69, 0.1);
-            border-bottom: 2px solid var(--admin-accent-color);
-            color: var(--admin-accent-color);
+            background: var(--admin-accent-light);
+            border-bottom: 2px solid var(--admin-accent);
+            color: var(--admin-accent);
             font-weight: 600;
             padding: 1rem;
             text-transform: uppercase;
@@ -420,11 +488,11 @@ $paginaAtual = basename($_SERVER['PHP_SELF']);
 
         .admin-modal .modal-header {
             border-bottom: 1px solid var(--admin-border-color);
-            background: rgba(220, 53, 69, 0.05);
+            background: var(--admin-accent-light);
         }
 
         .admin-modal .modal-title {
-            color: var(--admin-accent-color);
+            color: var(--admin-accent);
             font-weight: 600;
         }
 
@@ -440,8 +508,8 @@ $paginaAtual = basename($_SERVER['PHP_SELF']);
         .admin-modal .form-control:focus,
         .admin-modal .form-select:focus {
             background: rgba(255, 255, 255, 0.1);
-            border-color: var(--admin-accent-color);
-            box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25);
+            border-color: var(--admin-accent);
+            box-shadow: 0 0 0 0.25rem rgba(229, 9, 20, 0.25);
             color: var(--admin-text-color);
         }
 
@@ -472,8 +540,8 @@ $paginaAtual = basename($_SERVER['PHP_SELF']);
 
         .hover-shadow:hover {
             transform: translateY(-4px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-            border-color: var(--admin-accent-color) !important;
+            box-shadow: var(--admin-shadow-accent);
+            border-color: var(--admin-accent) !important;
         }
 
         #user-cards-mobile .admin-card .card-body {
@@ -911,9 +979,171 @@ $paginaAtual = basename($_SERVER['PHP_SELF']);
         .btn-admin:focus,
         .admin-modal .form-control:focus,
         .admin-modal .form-select:focus {
-            outline: 2px solid var(--admin-accent-color);
+            outline: 2px solid var(--admin-accent);
             outline-offset: 2px;
         }
+
+        /* === FILTROS MODERNOS === */
+        .btn-check:checked + .btn-outline-primary {
+            background: var(--admin-accent);
+            border-color: var(--admin-accent);
+            color: white;
+            box-shadow: var(--admin-shadow-accent);
+        }
+
+        .btn-check:checked + .btn-outline-success {
+            background: #00b894;
+            border-color: #00b894;
+            color: white;
+            box-shadow: 0 4px 20px rgba(0, 184, 148, 0.3);
+        }
+
+        .btn-check:checked + .btn-outline-info {
+            background: #0984e3;
+            border-color: #0984e3;
+            color: white;
+            box-shadow: 0 4px 20px rgba(9, 132, 227, 0.3);
+        }
+
+        .btn-check:checked + .btn-outline-secondary {
+            background: var(--admin-bg-600);
+            border-color: var(--admin-bg-600);
+            color: white;
+        }
+
+        .btn-check:checked + .btn-outline-warning {
+            background: #f9a826;
+            border-color: #f9a826;
+            color: white;
+            box-shadow: 0 4px 20px rgba(249, 168, 38, 0.3);
+        }
+
+        .btn-group .btn {
+            transition: var(--admin-transition);
+        }
+
+        .btn-group .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--admin-shadow-sm);
+        }
+
+        /* === CARDS DE ESTATÍSTICAS === */
+        .admin-card.text-center {
+            transition: var(--admin-transition);
+            cursor: pointer;
+        }
+
+        .admin-card.text-center:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--admin-shadow-accent);
+            border-color: var(--admin-accent);
+        }
+
+        .admin-card.text-center .fs-2 {
+            color: var(--admin-accent);
+            transition: var(--admin-transition);
+        }
+
+        .admin-card.text-center:hover .fs-2 {
+            transform: scale(1.1);
+        }
+
+        /* === INPUT GROUP MODERNO === */
+        .input-group-text {
+            background: var(--admin-bg-700);
+            border: 1px solid var(--admin-border);
+            color: var(--admin-text-300);
+        }
+
+        .form-control {
+            background: var(--admin-bg-700);
+            border: 1px solid var(--admin-border);
+            color: var(--admin-text-100);
+            transition: var(--admin-transition);
+        }
+
+        .form-control:focus {
+            background: var(--admin-bg-600);
+            border-color: var(--admin-accent);
+            box-shadow: 0 0 0 0.25rem rgba(229, 9, 20, 0.25);
+            color: var(--admin-text-100);
+        }
+
+        .form-control::placeholder {
+            color: var(--admin-text-500);
+        }
+
+        /* === BADGES MODERNOS === */
+        .badge {
+            font-weight: 500;
+            padding: 0.35em 0.65em;
+            border-radius: var(--admin-border-radius-sm);
+        }
+
+        .badge.bg-success {
+            background: #00b894 !important;
+        }
+
+        .badge.bg-info {
+            background: #0984e3 !important;
+        }
+
+        .badge.bg-warning {
+            background: #f9a826 !important;
+            color: #000;
+        }
+
+        /* === ALERTAS MODERNOS === */
+        .alert {
+            border: 1px solid var(--admin-border);
+            border-radius: var(--admin-border-radius);
+            backdrop-filter: blur(10px);
+        }
+
+        .alert-info {
+            background: rgba(9, 132, 227, 0.1);
+            border-color: rgba(9, 132, 227, 0.3);
+            color: var(--admin-text-200);
+        }
+
+        /* === RESPONSIVIDADE MELHORADA PARA FILTROS === */
+        @media (max-width: 767.98px) {
+            .btn-group.flex-wrap {
+                flex-direction: column;
+            }
+
+            .btn-group.flex-wrap .btn {
+                width: 100%;
+                margin: 0.25rem 0;
+                border-radius: var(--admin-border-radius) !important;
+            }
+
+            .col-12.col-md-8,
+            .col-12.col-md-4 {
+                margin-bottom: 1rem;
+            }
+        }
+
+        /* === ANIMAÇÕES SUAVES === */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .admin-card {
+            animation: fadeInUp 0.4s ease-out;
+        }
+
+        .admin-card:nth-child(1) { animation-delay: 0.05s; }
+        .admin-card:nth-child(2) { animation-delay: 0.1s; }
+        .admin-card:nth-child(3) { animation-delay: 0.15s; }
+        .admin-card:nth-child(4) { animation-delay: 0.2s; }
     </style>
 </head>
 <body>
