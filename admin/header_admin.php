@@ -327,7 +327,7 @@ $paginaAtual = basename($_SERVER['PHP_SELF']);
 
         .admin-navbar-mobile .navbar-toggler:hover {
             background: var(--admin-accent-light);
-            border-color: var(--admin-accent-color);
+            border-color: var(--admin-accent);
         }
 
         .admin-navbar-mobile .navbar-toggler:focus {
@@ -354,7 +354,7 @@ $paginaAtual = basename($_SERVER['PHP_SELF']);
             left: 0;
             right: 0;
             height: 3px;
-            background: linear-gradient(90deg, var(--admin-accent-color), var(--admin-accent-hover));
+            background: linear-gradient(90deg, var(--admin-accent), var(--admin-accent-300));
             transform: scaleX(0);
             transition: transform 0.3s ease;
         }
@@ -362,7 +362,7 @@ $paginaAtual = basename($_SERVER['PHP_SELF']);
         .admin-card:hover {
             transform: translateY(-8px);
             box-shadow: var(--admin-shadow-hover);
-            border-color: var(--admin-accent-color);
+            border-color: var(--admin-accent);
         }
 
         .admin-card:hover::before {
@@ -529,7 +529,7 @@ $paginaAtual = basename($_SERVER['PHP_SELF']);
 
         #user-cards-mobile .admin-card:hover {
             background: var(--admin-card-bg-hover);
-            border-color: var(--admin-accent-color);
+            border-color: var(--admin-accent);
             box-shadow: var(--admin-shadow-hover);
         }
 
@@ -1110,17 +1110,48 @@ $paginaAtual = basename($_SERVER['PHP_SELF']);
         @media (max-width: 767.98px) {
             .btn-group.flex-wrap {
                 flex-direction: column;
+                gap: 0.5rem;
             }
 
             .btn-group.flex-wrap .btn {
                 width: 100%;
-                margin: 0.25rem 0;
+                margin: 0;
                 border-radius: var(--admin-border-radius) !important;
+                padding: 0.75rem 1rem;
+                font-size: 0.9rem;
             }
 
             .col-12.col-md-8,
             .col-12.col-md-4 {
                 margin-bottom: 1rem;
+            }
+
+            .form-label {
+                font-size: 0.9rem;
+            }
+        }
+
+        /* === CARDS DE ESTATÍSTICAS RESPONSIVOS === */
+        @media (max-width: 575.98px) {
+            .row.g-3 > [class*="col-"] {
+                padding-left: 0.5rem;
+                padding-right: 0.5rem;
+            }
+
+            .admin-card.text-center .card-body {
+                padding: 1rem 0.75rem;
+            }
+
+            .admin-card.text-center .fs-2 {
+                font-size: 1.75rem !important;
+            }
+
+            .admin-card.text-center .h5 {
+                font-size: 0.9rem !important;
+            }
+
+            .admin-card.text-center small {
+                font-size: 0.75rem;
             }
         }
 
