@@ -22,26 +22,35 @@ if (empty($texto_usuario)) {
     exit(json_encode(['success' => false, 'message' => 'Nenhum texto fornecido.']));
 }
 
-// Verificar rate limiting (com tratamento de erro)
-$rateLimiter = null;
-try {
-    $rateLimiter = new RateLimiter($pdo);
-    $rateLimitCheck = $rateLimiter->checkRateLimit($userId, 'gemini');
+// Verificar rate limiting interno (pode ser desabilitado temporariamente para debug)
+// IMPORTANTE: Se você está tendo problemas mesmo com a API funcionando,
+// pode ser que o rate limiting interno esteja bloqueando. 
+// Para desabilitar temporariamente, altere a linha abaixo para: $enableInternalRateLimit = false;
+$enableInternalRateLimit = true; // Altere para false para desabilitar rate limiting interno
 
-    if (!$rateLimitCheck['allowed']) {
-        http_response_code(429);
-        exit(json_encode([
-            'success' => false,
-            'message' => $rateLimitCheck['message'],
-            'retry_after' => $rateLimitCheck['retry_after'],
-            'limit_type' => $rateLimitCheck['limit_type'],
-            'rate_limit_info' => $rateLimiter->getUsageStats($userId, 'gemini')
-        ]));
+$rateLimiter = null;
+if ($enableInternalRateLimit) {
+    try {
+        $rateLimiter = new RateLimiter($pdo);
+        $rateLimitCheck = $rateLimiter->checkRateLimit($userId, 'gemini');
+
+        if (!$rateLimitCheck['allowed']) {
+            http_response_code(429);
+            exit(json_encode([
+                'success' => false,
+                'message' => $rateLimitCheck['message'] . ' (Limite interno do sistema - não é da API)',
+                'retry_after' => $rateLimitCheck['retry_after'],
+                'limit_type' => $rateLimitCheck['limit_type'],
+                'rate_limit_info' => $rateLimiter->getUsageStats($userId, 'gemini'),
+                'internal_rate_limit' => true,
+                'note' => 'Este é o rate limiting interno. Se a API não está no limite, você pode desabilitar temporariamente em processar_ia.php'
+            ]));
+        }
+    } catch (Exception $e) {
+        // Se houver erro no rate limiter, continua sem rate limiting (modo degradado)
+        error_log("Rate Limiter Error: " . $e->getMessage());
+        // Continua com a requisição normalmente
     }
-} catch (Exception $e) {
-    // Se houver erro no rate limiter, continua sem rate limiting (modo degradado)
-    error_log("Rate Limiter Error: " . $e->getMessage());
-    // Continua com a requisição normalmente
 }
 
 // --- COLETA DE DADOS PARA CONTEXTO DA IA ---

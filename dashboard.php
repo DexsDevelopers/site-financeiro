@@ -440,9 +440,32 @@ if ($saldoMes > 0) {
                             const rateLimitInfo = data.rate_limit_info || {};
                             let message = data.message || 'Limite de requisições excedido.';
                             const isQuotaExceeded = data.quota_exceeded === true;
+                            const isInternalRateLimit = data.internal_rate_limit === true;
                             
+                            // Se for rate limit interno, mensagem diferente
+                            if(isInternalRateLimit) {
+                                showToast('Limite Interno do Sistema', message, true);
+                                btnIaSubmit.disabled = true;
+                                let countdown = Math.ceil(retryAfter);
+                                const countdownInterval = setInterval(() => {
+                                    countdown--;
+                                    if(countdown > 0) {
+                                        btnIaSubmit.innerHTML = `Aguarde ${countdown}s (interno)`;
+                                    } else {
+                                        clearInterval(countdownInterval);
+                                        btnIaSubmit.disabled = false;
+                                        btnIaSubmit.innerHTML = originalText;
+                                    }
+                                }, 1000);
+                                btnIaSubmit.innerHTML = `Aguarde ${countdown}s (interno)`;
+                                
+                                // Adicionar informação
+                                if(data.note) {
+                                    console.log('Nota:', data.note);
+                                }
+                            }
                             // Se for cota excedida, não mostrar contador (é um problema mais grave)
-                            if(isQuotaExceeded) {
+                            else if(isQuotaExceeded) {
                                 showToast('Cota da API Excedida', message, true);
                                 btnIaSubmit.disabled = true;
                                 btnIaSubmit.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i> Cota Excedida';
@@ -454,12 +477,13 @@ if ($saldoMes > 0) {
                                     formText.innerHTML = '<span class="text-warning"><i class="bi bi-info-circle me-1"></i>A cota da API foi excedida. Use o formulário manual abaixo para adicionar transações.</span>';
                                 }
                             } else {
+                                // Rate limit temporário da API
                                 // Adicionar informações sobre o limite
                                 if(rateLimitInfo.requests_last_minute !== undefined) {
                                     message += ` (${rateLimitInfo.requests_last_minute}/${rateLimitInfo.limit_per_minute} por minuto)`;
                                 }
                                 
-                                showToast('Limite de Requisições', message, true);
+                                showToast('Limite Temporário da API', message, true);
                                 
                                 // Desabilitar botão e mostrar contador
                                 btnIaSubmit.disabled = true;
