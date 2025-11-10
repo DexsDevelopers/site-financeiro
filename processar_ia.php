@@ -128,13 +128,21 @@ $prompt = "
 
 // --- FUNÇÃO PARA CHAMAR API GEMINI COM RETRY ---
 function callGeminiAPI(string $prompt, int $maxRetries = 2): array {
-    $gemini_api_url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=' . GEMINI_API_KEY;
-    $data = ['contents' => [['parts' => [['text' => $prompt]]]]];
+    // Tentar primeiro com gemini-2.0-flash-exp, se falhar, tentar com gemini-1.5-flash
+    $models = [
+        'gemini-2.0-flash-exp',
+        'gemini-1.5-flash-latest' // Fallback para modelo mais estável
+    ];
     
     $attempt = 0;
     $backoffSeconds = 2; // Começa com 2 segundos
+    $currentModelIndex = 0;
     
-    while ($attempt <= $maxRetries) {
+    while ($attempt <= $maxRetries && $currentModelIndex < count($models)) {
+        $model = $models[$currentModelIndex];
+        $gemini_api_url = 'https://generativelanguage.googleapis.com/v1beta/models/' . $model . ':generateContent?key=' . GEMINI_API_KEY;
+        $data = ['contents' => [['parts' => [['text' => $prompt]]]]];
+    
         $ch = curl_init($gemini_api_url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); 
         curl_setopt($ch, CURLOPT_POST, true);
@@ -160,7 +168,8 @@ function callGeminiAPI(string $prompt, int $maxRetries = 2): array {
                 'http_code' => 0,
                 'message' => 'Erro de conexão com o serviço de IA. Tente novamente em alguns instantes.',
                 'response' => '',
-                'error' => $curl_error
+                'error' => $curl_error,
+                'model_used' => $model
             ];
         }
         
@@ -171,19 +180,114 @@ function callGeminiAPI(string $prompt, int $maxRetries = 2): array {
                 'http_code' => 200,
                 'message' => '',
                 'response' => $response_string,
-                'error' => null
+                'error' => null,
+                'model_used' => $model
             ];
         }
         
-        // Se erro 429 e ainda há tentativas, aguarda e tenta novamente
-        if ($http_code === 429 && $attempt < $maxRetries) {
-            // Tenta extrair o tempo de retry do header Retry-After (se disponível)
-            $retryAfter = $backoffSeconds;
-            sleep($retryAfter);
-            $backoffSeconds *= 2; // Backoff exponencial
-            $attempt++;
-            continue;
+        // Se erro 429, analisar o tipo de erro
+        if ($http_code === 429) {
+            $response_data = json_decode($response_string, true);
+            $error_message = $response_data['error']['message'] ?? '';
+            
+            // Verificar se é cota excedida com limit: 0 (plano gratuito sem cota)
+            $isQuotaExceeded = (
+                stripos($error_message, 'limit: 0') !== false ||
+                stripos($error_message, 'free_tier') !== false ||
+                (stripos($error_message, 'quota exceeded') !== false && stripos($error_message, 'free_tier') !== false)
+            );
+            
+            // Se for cota excedida com limit: 0, tentar modelo alternativo
+            if ($isQuotaExceeded && $currentModelIndex < count($models) - 1) {
+                $currentModelIndex++;
+                $attempt = 0; // Reset tentativas para novo modelo
+                continue; // Tenta com próximo modelo
+            }
+            
+            // Extrair tempo de retry da mensagem de erro
+            $retryAfterSeconds = $backoffSeconds;
+            if (preg_match('/retry in ([\d.]+)s/i', $error_message, $matches)) {
+                $retryAfterSeconds = (int)ceil((float)$matches[1]);
+            } elseif (preg_match('/Please retry in ([\d.]+)s/i', $error_message, $matches)) {
+                $retryAfterSeconds = (int)ceil((float)$matches[1]);
+            }
+            
+            // Se ainda há tentativas e não é cota excedida definitiva, aguarda e tenta novamente
+            if ($attempt < $maxRetries && !$isQuotaExceeded) {
+                sleep(min($retryAfterSeconds, 30)); // Máximo de 30 segundos
+                $backoffSeconds *= 2; // Backoff exponencial
+                $attempt++;
+                continue;
+            }
         }
+        
+        // Outros erros ou sem mais tentativas
+        $error_details = '';
+        switch ($http_code) {
+            case 400:
+                $error_details = 'Requisição inválida. Verifique o formato dos dados.';
+                break;
+            case 401:
+                $error_details = 'Chave API inválida ou expirada.';
+                break;
+            case 403:
+                $error_details = 'Acesso negado. Verifique as permissões da API.';
+                break;
+            case 429:
+                // Tenta extrair informação do response
+                $response_data = json_decode($response_string, true);
+                $error_message = $response_data['error']['message'] ?? 'Limite de requisições excedido.';
+                
+                // Verificação mais precisa de cota excedida
+                $isQuotaExceeded = (
+                    stripos($error_message, 'quota exceeded') !== false || 
+                    stripos($error_message, 'limit: 0') !== false ||
+                    stripos($error_message, 'free_tier') !== false ||
+                    (stripos($error_message, 'quota') !== false && stripos($error_message, 'exceeded') !== false)
+                );
+                
+                // Extrair tempo de retry
+                $retryAfterSeconds = 60;
+                if (preg_match('/retry in ([\d.]+)s/i', $error_message, $matches)) {
+                    $retryAfterSeconds = (int)ceil((float)$matches[1]);
+                }
+                
+                if ($isQuotaExceeded) {
+                    $error_details = "A cota gratuita da API do Gemini foi excedida. {$error_message} Por favor, aguarde algumas horas ou considere atualizar seu plano. Você ainda pode adicionar transações manualmente.";
+                } else {
+                    // Rate limit temporário - mensagem mais otimista
+                    $error_details = "Limite de requisições temporário na API do Gemini. {$error_message} Aguarde {$retryAfterSeconds} segundos e tente novamente.";
+                }
+                break;
+            case 500:
+            case 502:
+            case 503:
+                $error_details = "Erro temporário no servidor da Google ($http_code). Tente novamente em alguns minutos.";
+                break;
+            default:
+                $error_details = "Erro HTTP $http_code. Tente novamente mais tarde.";
+        }
+        
+        return [
+            'success' => false,
+            'http_code' => $http_code,
+            'message' => $error_details,
+            'response' => $response_string,
+            'error' => null,
+            'model_used' => $model,
+            'retry_after_seconds' => $retryAfterSeconds ?? 60
+        ];
+    }
+    
+    // Se chegou aqui, tentou todos os modelos e falhou
+    return [
+        'success' => false,
+        'http_code' => 429,
+        'message' => 'Não foi possível processar após várias tentativas. A cota da API pode estar excedida. Aguarde algumas horas ou use o formulário manual.',
+        'response' => '',
+        'error' => 'Max retries exceeded for all models'
+    ];
+}
         
         // Outros erros ou sem mais tentativas
         $error_details = '';
