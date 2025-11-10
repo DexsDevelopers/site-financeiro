@@ -118,7 +118,6 @@ try {
 </div>
 
 <!-- Dashboard de Usuários Ativos (24h) -->
-<?php if (!empty($usuariosAtivos24h)): ?>
 <div class="admin-card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0">
@@ -126,12 +125,15 @@ try {
             Usuários Ativos nas Últimas 24 Horas
             <span class="badge bg-success ms-2"><?php echo count($usuariosAtivos24h); ?></span>
         </h5>
+        <?php if (!empty($usuariosAtivos24h)): ?>
         <a href="?filtro=ativos_24h" class="btn btn-sm btn-outline-success">
             <i class="bi bi-funnel-fill me-1"></i>
             Ver Todos
         </a>
+        <?php endif; ?>
     </div>
     <div class="card-body">
+        <?php if (!empty($usuariosAtivos24h)): ?>
         <div class="row g-2">
             <?php foreach (array_slice($usuariosAtivos24h, 0, 12) as $user): ?>
             <div class="col-6 col-md-4 col-lg-3 col-xl-2">
@@ -176,9 +178,15 @@ try {
             </a>
         </div>
         <?php endif; ?>
+        <?php else: ?>
+        <div class="text-center py-4">
+            <i class="bi bi-people fs-1 text-muted mb-3 d-block"></i>
+            <p class="text-muted mb-0">Nenhum usuário ativo nas últimas 24 horas</p>
+            <small class="text-muted">Os usuários que acessarem o sistema aparecerão aqui</small>
+        </div>
+        <?php endif; ?>
     </div>
 </div>
-<?php endif; ?>
 
 <!-- Filtros de Usuários -->
 <div class="admin-card mb-4">
