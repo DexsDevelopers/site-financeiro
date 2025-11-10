@@ -21,6 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 require_once 'includes/db_connect.php';
 require_once 'includes/remember_me_manager.php';
+require_once 'includes/atividade_manager.php';
 
 $usuario_form = trim($_POST['usuario'] ?? '');
 $senha_form = $_POST['senha'] ?? '';
@@ -56,6 +57,20 @@ try {
         $_SESSION['user_type'] = $user['tipo'];
 
         error_log("LOGIN_PROCESS: Login bem-sucedido para usuário ID: " . $user['id']);
+
+        // ===== REGISTRAR ATIVIDADE DE LOGIN =====
+        try {
+            $atividadeManager = new AtividadeManager($pdo);
+            $atividadeManager->registrarAtividade(
+                $user['id'],
+                'login',
+                'login.php',
+                ['lembrar_me' => $lembrar_me]
+            );
+        } catch (Exception $e) {
+            error_log("LOGIN_PROCESS: Erro ao registrar atividade: " . $e->getMessage());
+            // Não impede o login se falhar
+        }
 
         // ===== CRIAR TOKEN DE LEMBRANÇA SE SOLICITADO =====
         // IMPORTANTE: Fazer isso ANTES de enviar a resposta JSON

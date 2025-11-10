@@ -1,13 +1,61 @@
 <?php
-// /admin/index.php (Versão Final Organizada e Moderna)
+// /admin/index.php (Versão Final Organizada e Moderna com Filtros de Atividade)
 
 require_once 'header_admin.php';
+require_once '../includes/atividade_manager.php';
+
+$atividadeManager = new AtividadeManager($pdo);
+$estatisticas = $atividadeManager->getEstatisticas();
+
+// Filtros
+$filtro = $_GET['filtro'] ?? 'todos'; // todos, ativos_24h, ativos_7d, ativos_30d, inativos
+$busca = trim($_GET['busca'] ?? '');
 
 try {
-    // A query agora busca também o telefone, em uma única consulta.
-    $stmt = $pdo->prepare("SELECT id, usuario, nome_completo, data_criacao, telefone FROM usuarios WHERE tipo = 'usuario' ORDER BY data_criacao DESC");
-    $stmt->execute();
+    // Query base
+    $sql = "SELECT id, usuario, nome_completo, data_criacao, telefone, ultimo_acesso 
+            FROM usuarios 
+            WHERE tipo = 'usuario'";
+    
+    $params = [];
+    
+    // Aplicar filtros
+    switch ($filtro) {
+        case 'ativos_24h':
+            $sql .= " AND ultimo_acesso >= DATE_SUB(NOW(), INTERVAL 24 HOUR)";
+            break;
+        case 'ativos_7d':
+            $sql .= " AND ultimo_acesso >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
+            break;
+        case 'ativos_30d':
+            $sql .= " AND ultimo_acesso >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
+            break;
+        case 'inativos':
+            $sql .= " AND (ultimo_acesso IS NULL OR ultimo_acesso < DATE_SUB(NOW(), INTERVAL 30 DAY))";
+            break;
+    }
+    
+    // Busca por nome ou usuário
+    if (!empty($busca)) {
+        $sql .= " AND (nome_completo LIKE ? OR usuario LIKE ?)";
+        $params[] = "%{$busca}%";
+        $params[] = "%{$busca}%";
+    }
+    
+    // Ordenação
+    if ($filtro === 'todos' || $filtro === 'inativos') {
+        $sql .= " ORDER BY data_criacao DESC";
+    } else {
+        $sql .= " ORDER BY ultimo_acesso DESC";
+    }
+    
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
     $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Usuários ativos nas últimas 24h para o dashboard
+    $usuariosAtivos24h = $atividadeManager->getUsuariosAtivos(24);
+    
 } catch (PDOException $e) {
     die("Erro ao buscar usuários: " . $e->getMessage());
 }
@@ -35,7 +83,7 @@ try {
         <div class="admin-card text-center">
             <div class="card-body py-3">
                 <i class="bi bi-people-fill fs-2 text-primary mb-2"></i>
-                <h5 class="mb-1"><?php echo count($usuarios); ?></h5>
+                <h5 class="mb-1"><?php echo $estatisticas['total']; ?></h5>
                 <small class="text-muted">Total de Usuários</small>
             </div>
         </div>
@@ -43,29 +91,193 @@ try {
     <div class="col-6 col-md-3">
         <div class="admin-card text-center">
             <div class="card-body py-3">
-                <i class="bi bi-person-check-fill fs-2 text-success mb-2"></i>
-                <h5 class="mb-1"><?php echo count(array_filter($usuarios, function($u) { return !empty($u['telefone']); })); ?></h5>
-                <small class="text-muted">Com Telefone</small>
+                <i class="bi bi-activity fs-2 text-success mb-2"></i>
+                <h5 class="mb-1"><?php echo $estatisticas['ativos_24h']; ?></h5>
+                <small class="text-muted">Ativos (24h)</small>
             </div>
         </div>
     </div>
     <div class="col-6 col-md-3">
         <div class="admin-card text-center">
             <div class="card-body py-3">
-                <i class="bi bi-calendar-check-fill fs-2 text-info mb-2"></i>
-                <h5 class="mb-1"><?php echo count(array_filter($usuarios, function($u) { return date('Y-m', strtotime($u['data_criacao'])) == date('Y-m'); })); ?></h5>
-                <small class="text-muted">Este Mês</small>
+                <i class="bi bi-calendar-week fs-2 text-info mb-2"></i>
+                <h5 class="mb-1"><?php echo $estatisticas['ativos_7d']; ?></h5>
+                <small class="text-muted">Ativos (7 dias)</small>
             </div>
         </div>
     </div>
     <div class="col-6 col-md-3">
         <div class="admin-card text-center">
             <div class="card-body py-3">
-                <i class="bi bi-shield-check-fill fs-2 text-warning mb-2"></i>
-                <h5 class="mb-1"><?php echo count($usuarios); ?></h5>
-                <small class="text-muted">Usuários Ativos</small>
+                <i class="bi bi-person-x-fill fs-2 text-warning mb-2"></i>
+                <h5 class="mb-1"><?php echo $estatisticas['inativos']; ?></h5>
+                <small class="text-muted">Inativos (30+ dias)</small>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- Dashboard de Usuários Ativos (24h) -->
+<?php if (!empty($usuariosAtivos24h)): ?>
+<div class="admin-card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            <i class="bi bi-graph-up-arrow me-2 text-success"></i>
+            Usuários Ativos nas Últimas 24 Horas
+            <span class="badge bg-success ms-2"><?php echo count($usuariosAtivos24h); ?></span>
+        </h5>
+        <a href="?filtro=ativos_24h" class="btn btn-sm btn-outline-success">
+            <i class="bi bi-funnel-fill me-1"></i>
+            Ver Todos
+        </a>
+    </div>
+    <div class="card-body">
+        <div class="row g-2">
+            <?php foreach (array_slice($usuariosAtivos24h, 0, 12) as $user): ?>
+            <div class="col-6 col-md-4 col-lg-3 col-xl-2">
+                <div class="text-center p-3 border rounded hover-shadow" style="transition: all 0.3s;">
+                    <div class="avatar-sm bg-success rounded-circle d-inline-flex align-items-center justify-content-center mb-2 position-relative" style="width: 50px; height: 50px;">
+                        <i class="bi bi-person-fill text-white"></i>
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">
+                            <i class="bi bi-circle-fill"></i>
+                        </span>
+                    </div>
+                    <div class="small fw-bold text-truncate" title="<?php echo htmlspecialchars($user['nome_completo']); ?>">
+                        <?php echo htmlspecialchars($user['nome_completo']); ?>
+                    </div>
+                    <div class="small text-muted">
+                        <?php 
+                        $horasAtras = round((time() - strtotime($user['ultimo_acesso'])) / 3600);
+                        $minutosAtras = round((time() - strtotime($user['ultimo_acesso'])) / 60);
+                        if ($minutosAtras < 60) {
+                            echo $minutosAtras < 1 ? 'Agora' : ($minutosAtras . 'min atrás');
+                        } else {
+                            echo $horasAtras . 'h atrás';
+                        }
+                        ?>
+                    </div>
+                    <?php if (!empty($user['telefone'])): ?>
+                    <div class="mt-1">
+                        <small class="badge bg-info">
+                            <i class="bi bi-telephone-fill"></i>
+                            <?php echo htmlspecialchars($user['telefone']); ?>
+                        </small>
+                    </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+        <?php if (count($usuariosAtivos24h) > 12): ?>
+        <div class="text-center mt-3">
+            <a href="?filtro=ativos_24h" class="btn btn-sm btn-outline-success">
+                <i class="bi bi-arrow-right me-1"></i>
+                Ver mais <?php echo count($usuariosAtivos24h) - 12; ?> usuários ativos
+            </a>
+        </div>
+        <?php endif; ?>
+    </div>
+</div>
+<?php endif; ?>
+
+<!-- Filtros de Usuários -->
+<div class="admin-card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="bi bi-funnel-fill me-2"></i>
+            Filtros
+        </h5>
+    </div>
+    <div class="card-body">
+        <form method="GET" action="" class="row g-3">
+            <div class="col-12">
+                <label class="form-label fw-bold">Filtrar por Status:</label>
+                <div class="btn-group w-100 flex-wrap" role="group">
+                    <input type="radio" class="btn-check" name="filtro" id="filtro-todos" value="todos" <?php echo $filtro === 'todos' ? 'checked' : ''; ?>>
+                    <label class="btn btn-outline-primary" for="filtro-todos">
+                        <i class="bi bi-people-fill me-1"></i>
+                        Todos
+                    </label>
+
+                    <input type="radio" class="btn-check" name="filtro" id="filtro-ativos-24h" value="ativos_24h" <?php echo $filtro === 'ativos_24h' ? 'checked' : ''; ?>>
+                    <label class="btn btn-outline-success" for="filtro-ativos-24h">
+                        <i class="bi bi-activity me-1"></i>
+                        Ativos (24h)
+                        <span class="badge bg-success ms-1"><?php echo $estatisticas['ativos_24h']; ?></span>
+                    </label>
+
+                    <input type="radio" class="btn-check" name="filtro" id="filtro-ativos-7d" value="ativos_7d" <?php echo $filtro === 'ativos_7d' ? 'checked' : ''; ?>>
+                    <label class="btn btn-outline-info" for="filtro-ativos-7d">
+                        <i class="bi bi-calendar-week me-1"></i>
+                        Ativos (7 dias)
+                        <span class="badge bg-info ms-1"><?php echo $estatisticas['ativos_7d']; ?></span>
+                    </label>
+
+                    <input type="radio" class="btn-check" name="filtro" id="filtro-ativos-30d" value="ativos_30d" <?php echo $filtro === 'ativos_30d' ? 'checked' : ''; ?>>
+                    <label class="btn btn-outline-secondary" for="filtro-ativos-30d">
+                        <i class="bi bi-calendar-month me-1"></i>
+                        Ativos (30 dias)
+                        <span class="badge bg-secondary ms-1"><?php echo $estatisticas['ativos_30d']; ?></span>
+                    </label>
+
+                    <input type="radio" class="btn-check" name="filtro" id="filtro-inativos" value="inativos" <?php echo $filtro === 'inativos' ? 'checked' : ''; ?>>
+                    <label class="btn btn-outline-warning" for="filtro-inativos">
+                        <i class="bi bi-person-x-fill me-1"></i>
+                        Inativos
+                        <span class="badge bg-warning ms-1"><?php echo $estatisticas['inativos']; ?></span>
+                    </label>
+                </div>
+            </div>
+            <div class="col-12 col-md-8">
+                <label for="busca" class="form-label fw-bold">Buscar por Nome ou Usuário:</label>
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text" class="form-control" id="busca" name="busca" 
+                           placeholder="Digite o nome ou usuário..." 
+                           value="<?php echo htmlspecialchars($busca); ?>">
+                    <?php if (!empty($busca)): ?>
+                    <a href="?" class="btn btn-outline-secondary" title="Limpar busca">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <div class="col-12 col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-admin w-100">
+                    <i class="bi bi-funnel-fill me-1"></i>
+                    Aplicar Filtros
+                </button>
+            </div>
+        </form>
+        <?php if ($filtro !== 'todos' || !empty($busca)): ?>
+        <div class="mt-3">
+            <div class="alert alert-info d-flex align-items-center mb-0">
+                <i class="bi bi-info-circle-fill me-2"></i>
+                <div>
+                    <strong>Filtros ativos:</strong>
+                    <?php 
+                    $filtrosAtivos = [];
+                    if ($filtro !== 'todos') {
+                        $labels = [
+                            'ativos_24h' => 'Ativos (24h)',
+                            'ativos_7d' => 'Ativos (7 dias)',
+                            'ativos_30d' => 'Ativos (30 dias)',
+                            'inativos' => 'Inativos'
+                        ];
+                        $filtrosAtivos[] = $labels[$filtro] ?? $filtro;
+                    }
+                    if (!empty($busca)) {
+                        $filtrosAtivos[] = 'Busca: "' . htmlspecialchars($busca) . '"';
+                    }
+                    echo implode(' • ', $filtrosAtivos);
+                    ?>
+                    <span class="badge bg-primary ms-2"><?php echo count($usuarios); ?> resultado(s)</span>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -115,6 +327,10 @@ try {
                                 <i class="bi bi-calendar-fill me-1"></i>
                                 Data de Criação
                             </th>
+                            <th class="border-0">
+                                <i class="bi bi-clock-history me-1"></i>
+                                Último Acesso
+                            </th>
                             <th class="border-0 text-end">
                                 <i class="bi bi-gear-fill me-1"></i>
                                 Ações
@@ -124,7 +340,7 @@ try {
                 <tbody id="user-table-body">
                         <?php if (empty($usuarios)): ?>
                             <tr id="no-users-row">
-                                <td colspan="5" class="text-center py-5">
+                                <td colspan="6" class="text-center py-5">
                                     <div class="d-flex flex-column align-items-center">
                                         <i class="bi bi-people fs-1 text-muted mb-3"></i>
                                         <h6 class="text-muted mb-2">Nenhum usuário cadastrado</h6>
@@ -170,6 +386,50 @@ try {
                                             <span class="d-block"><?php echo date('d/m/Y', strtotime($user['data_criacao'])); ?></span>
                                             <small class="text-muted"><?php echo date('H:i', strtotime($user['data_criacao'])); ?></small>
                                         </div>
+                                    </td>
+                                    <td>
+                                        <?php if (!empty($user['ultimo_acesso'])): ?>
+                                            <?php
+                                            $ultimoAcesso = strtotime($user['ultimo_acesso']);
+                                            $agora = time();
+                                            $diferenca = $agora - $ultimoAcesso;
+                                            $horasAtras = round($diferenca / 3600);
+                                            $minutosAtras = round($diferenca / 60);
+                                            
+                                            if ($minutosAtras < 60) {
+                                                $statusClass = 'success';
+                                                $statusText = $minutosAtras < 1 ? 'Agora' : ($minutosAtras . 'min atrás');
+                                            } elseif ($horasAtras < 24) {
+                                                $statusClass = 'success';
+                                                $statusText = $horasAtras . 'h atrás';
+                                            } elseif ($horasAtras < 168) { // 7 dias
+                                                $statusClass = 'info';
+                                                $statusText = round($horasAtras / 24) . ' dias atrás';
+                                            } elseif ($horasAtras < 720) { // 30 dias
+                                                $statusClass = 'warning';
+                                                $statusText = round($horasAtras / 24) . ' dias atrás';
+                                            } else {
+                                                $statusClass = 'danger';
+                                                $statusText = round($horasAtras / 24) . ' dias atrás';
+                                            }
+                                            ?>
+                                            <div>
+                                                <span class="badge bg-<?php echo $statusClass; ?> mb-1">
+                                                    <i class="bi bi-circle-fill"></i>
+                                                    <?php echo $statusText; ?>
+                                                </span>
+                                                <div>
+                                                    <small class="text-muted">
+                                                        <?php echo date('d/m/Y H:i', $ultimoAcesso); ?>
+                                                    </small>
+                                                </div>
+                                            </div>
+                                        <?php else: ?>
+                                            <span class="badge bg-secondary">
+                                                <i class="bi bi-x-circle-fill me-1"></i>
+                                                Nunca acessou
+                                            </span>
+                                        <?php endif; ?>
                                     </td>
                                     <td class="text-end">
                                         <div class="btn-group btn-group-sm" role="group">
@@ -266,6 +526,52 @@ try {
                                                     <small class="fw-bold"><?php echo date('d/m/Y', strtotime($user['data_criacao'])); ?></small>
                                                     <br>
                                                     <small class="text-muted"><?php echo date('H:i', strtotime($user['data_criacao'])); ?></small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-12">
+                                            <div class="d-flex align-items-center">
+                                                <i class="bi bi-clock-history text-muted me-2"></i>
+                                                <div class="flex-grow-1">
+                                                    <small class="text-muted d-block">Último Acesso</small>
+                                                    <?php if (!empty($user['ultimo_acesso'])): ?>
+                                                        <?php
+                                                        $ultimoAcesso = strtotime($user['ultimo_acesso']);
+                                                        $agora = time();
+                                                        $diferenca = $agora - $ultimoAcesso;
+                                                        $horasAtras = round($diferenca / 3600);
+                                                        $minutosAtras = round($diferenca / 60);
+                                                        
+                                                        if ($minutosAtras < 60) {
+                                                            $statusClass = 'success';
+                                                            $statusText = $minutosAtras < 1 ? 'Agora' : ($minutosAtras . 'min atrás');
+                                                        } elseif ($horasAtras < 24) {
+                                                            $statusClass = 'success';
+                                                            $statusText = $horasAtras . 'h atrás';
+                                                        } elseif ($horasAtras < 168) {
+                                                            $statusClass = 'info';
+                                                            $statusText = round($horasAtras / 24) . ' dias atrás';
+                                                        } elseif ($horasAtras < 720) {
+                                                            $statusClass = 'warning';
+                                                            $statusText = round($horasAtras / 24) . ' dias atrás';
+                                                        } else {
+                                                            $statusClass = 'danger';
+                                                            $statusText = round($horasAtras / 24) . ' dias atrás';
+                                                        }
+                                                        ?>
+                                                        <span class="badge bg-<?php echo $statusClass; ?> me-2">
+                                                            <i class="bi bi-circle-fill"></i>
+                                                            <?php echo $statusText; ?>
+                                                        </span>
+                                                        <small class="text-muted">
+                                                            <?php echo date('d/m/Y H:i', $ultimoAcesso); ?>
+                                                        </small>
+                                                    <?php else: ?>
+                                                        <span class="badge bg-secondary">
+                                                            <i class="bi bi-x-circle-fill me-1"></i>
+                                                            Nunca acessou
+                                                        </span>
+                                                    <?php endif; ?>
                                                 </div>
                                             </div>
                                         </div>

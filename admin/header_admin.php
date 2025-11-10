@@ -465,6 +465,17 @@ $paginaAtual = basename($_SERVER['PHP_SELF']);
             box-shadow: var(--admin-shadow-hover);
         }
 
+        /* Hover shadow para cards de usuários ativos */
+        .hover-shadow {
+            transition: all 0.3s ease;
+        }
+
+        .hover-shadow:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            border-color: var(--admin-accent-color) !important;
+        }
+
         #user-cards-mobile .admin-card .card-body {
             padding: 1rem;
         }
