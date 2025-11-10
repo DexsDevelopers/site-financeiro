@@ -198,25 +198,38 @@ function callGeminiAPI(string $prompt, int $maxRetries = 2): array {
                 $error_message = $response_data['error']['message'] ?? '';
                 $error_details = $response_data['error'] ?? [];
                 
-                // Verificar se é cota excedida com limit: 0
-                $isQuotaExceeded = (
-                    stripos($error_message, 'limit: 0') !== false ||
-                    (stripos($error_message, 'free_tier') !== false && stripos($error_message, 'quota exceeded') !== false) ||
-                    (isset($error_details['details']) && is_array($error_details['details']))
-                );
+                // Verificar se é cota excedida com limit: 0 (baseado no erro real recebido)
+                $isQuotaExceeded = false;
+                $hasLimitZero = stripos($error_message, 'limit: 0') !== false;
                 
-                // Verificar violations
-                if (isset($error_details['details'])) {
+                // Verificar violations no formato exato do erro (QuotaFailure com violations)
+                if (isset($error_details['details']) && is_array($error_details['details'])) {
                     foreach ($error_details['details'] as $detail) {
-                        if (isset($detail['violations'])) {
-                            foreach ($detail['violations'] as $violation) {
-                                if (isset($violation['quotaMetric']) && stripos($violation['quotaMetric'], 'free_tier') !== false) {
-                                    $isQuotaExceeded = true;
-                                    break 2;
+                        // Verificar se é QuotaFailure (tipo do erro que o usuário recebeu)
+                        if (isset($detail['@type']) && stripos($detail['@type'], 'QuotaFailure') !== false) {
+                            if (isset($detail['violations']) && is_array($detail['violations'])) {
+                                foreach ($detail['violations'] as $violation) {
+                                    // Verificar se é free_tier (indicador de plano gratuito)
+                                    if (isset($violation['quotaMetric']) && 
+                                        stripos($violation['quotaMetric'], 'free_tier') !== false) {
+                                        $isQuotaExceeded = true;
+                                        break 2;
+                                    }
                                 }
                             }
                         }
                     }
+                }
+                
+                // Se a mensagem menciona "limit: 0", é definitivamente cota excedida do plano gratuito
+                if ($hasLimitZero) {
+                    $isQuotaExceeded = true;
+                }
+                
+                // Verificação adicional na mensagem de erro
+                if (stripos($error_message, 'free_tier') !== false && 
+                    stripos($error_message, 'quota exceeded') !== false) {
+                    $isQuotaExceeded = true;
                 }
                 
                 // Extrair tempo de retry
@@ -227,8 +240,9 @@ function callGeminiAPI(string $prompt, int $maxRetries = 2): array {
                     $retryAfterSeconds = (int)ceil((float)$matches[1]);
                 }
                 
-                // Se for cota excedida e há modelo alternativo, tenta próximo modelo
-                if ($isQuotaExceeded && $currentModelIndex < count($models) - 1) {
+                // Se for cota excedida com limit: 0, não tenta modelo alternativo (todos estão sem cota)
+                // Se for cota excedida sem limit: 0 explícito, pode tentar modelo alternativo
+                if ($isQuotaExceeded && !$hasLimitZero && $currentModelIndex < count($models) - 1) {
                     $currentModelIndex++;
                     break; // Sai do loop de tentativas e tenta próximo modelo
                 }
@@ -244,8 +258,17 @@ function callGeminiAPI(string $prompt, int $maxRetries = 2): array {
                 // Se chegou aqui, é cota excedida definitiva ou sem mais tentativas
                 $error_details_msg = '';
                 if ($isQuotaExceeded) {
-                    $error_details_msg = "A cota gratuita da API do Gemini foi excedida (limit: 0). {$error_message} Por favor, aguarde algumas horas ou considere atualizar seu plano. Você ainda pode adicionar transações manualmente.";
+                    if ($hasLimitZero) {
+                        // Cota excedida com limit: 0 - plano gratuito sem cota disponível
+                        $error_details_msg = "A cota gratuita da API do Gemini foi excedida (limit: 0). O plano gratuito atingiu seu limite diário/mensal. Aguarde algumas horas para a cota ser resetada ou considere atualizar seu plano na Google Cloud. Você ainda pode adicionar transações manualmente usando o formulário abaixo.";
+                        $retryAfterSeconds = max($retryAfterSeconds, 3600); // Mínimo 1 hora
+                    } else {
+                        // Cota excedida mas sem limit: 0 explícito
+                        $error_details_msg = "A cota da API do Gemini foi excedida. {$error_message} Por favor, aguarde algumas horas ou considere atualizar seu plano. Você ainda pode adicionar transações manualmente.";
+                        $retryAfterSeconds = max($retryAfterSeconds, 1800); // Mínimo 30 minutos
+                    }
                 } else {
+                    // Rate limit temporário (não é cota excedida)
                     $error_details_msg = "Limite de requisições temporário na API do Gemini. {$error_message} Aguarde {$retryAfterSeconds} segundos e tente novamente.";
                 }
                 
