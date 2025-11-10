@@ -23,6 +23,7 @@ if (empty($texto_usuario)) {
 }
 
 // Verificar rate limiting (com tratamento de erro)
+$rateLimiter = null;
 try {
     $rateLimiter = new RateLimiter($pdo);
     $rateLimitCheck = $rateLimiter->checkRateLimit($userId, 'gemini');
