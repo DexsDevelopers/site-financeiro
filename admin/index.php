@@ -83,7 +83,7 @@ try {
         
         if (!$tabelaExiste):
         ?>
-        <a href="../criar_tabela_usuarios_atividade.php" class="btn btn-warning" target="_blank">
+        <a href="criar_tabela_atividade.php" class="btn btn-warning">
             <i class="bi bi-database-fill-add me-2"></i>
             <span class="d-none d-sm-inline">Criar Tabela de Atividade</span>
             <span class="d-sm-none">Migração</span>
