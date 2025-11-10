@@ -193,15 +193,19 @@ function callGeminiAPI(string $prompt, int $maxRetries = 2): array {
                 $response_data = json_decode($response_string, true);
                 $error_message = $response_data['error']['message'] ?? 'Limite de requisições excedido.';
                 
-                // Verificar se é erro de cota excedida
-                $isQuotaExceeded = stripos($error_message, 'quota') !== false || 
-                                  stripos($error_message, 'limit: 0') !== false ||
-                                  stripos($error_message, 'free_tier') !== false;
+                // Verificação mais precisa de cota excedida
+                $isQuotaExceeded = (
+                    stripos($error_message, 'quota exceeded') !== false || 
+                    stripos($error_message, 'limit: 0') !== false ||
+                    stripos($error_message, 'free_tier') !== false ||
+                    (stripos($error_message, 'quota') !== false && stripos($error_message, 'exceeded') !== false)
+                );
                 
                 if ($isQuotaExceeded) {
                     $error_details = "A cota gratuita da API do Gemini foi excedida. {$error_message} Por favor, aguarde algumas horas ou considere atualizar seu plano. Você ainda pode adicionar transações manualmente.";
                 } else {
-                    $error_details = "Limite de requisições excedido na API do Gemini. {$error_message} Aguarde alguns minutos antes de tentar novamente.";
+                    // Rate limit temporário - mensagem mais otimista
+                    $error_details = "Limite de requisições temporário na API do Gemini. {$error_message} Aguarde alguns segundos e tente novamente.";
                 }
                 break;
             case 500:
@@ -251,19 +255,38 @@ if (!$apiResult['success']) {
         
         // Verificar se é erro de cota excedida
         $errorMessage = $apiResult['message'];
-        $isQuotaExceeded = stripos($errorMessage, 'quota') !== false || 
-                          stripos($errorMessage, 'limit: 0') !== false;
+        $responseData = json_decode($apiResult['response'], true);
+        $apiErrorMessage = $responseData['error']['message'] ?? $errorMessage;
         
+        // Detecção mais precisa de cota excedida
+        $isQuotaExceeded = (
+            stripos($apiErrorMessage, 'quota exceeded') !== false || 
+            stripos($apiErrorMessage, 'limit: 0') !== false ||
+            stripos($apiErrorMessage, 'free_tier') !== false ||
+            stripos($apiErrorMessage, 'quota') !== false && stripos($apiErrorMessage, 'exceeded') !== false
+        );
+        
+        // Se não for cota excedida, pode ser rate limit temporário
         if ($isQuotaExceeded) {
             $errorMessage = 'A cota gratuita da API do Gemini foi excedida. Por favor, aguarde algumas horas ou considere atualizar seu plano na Google Cloud. Você ainda pode adicionar transações manualmente usando o formulário abaixo.';
+            $retryAfter = 3600; // 1 hora para cota excedida
+        } else {
+            // Rate limit temporário - tentar novamente em menos tempo
+            $retryAfter = 30; // 30 segundos para rate limit temporário
+            $errorMessage = "Limite de requisições temporário. {$apiErrorMessage} Aguarde alguns segundos e tente novamente.";
         }
         
         exit(json_encode([
             'success' => false,
             'message' => $errorMessage,
-            'retry_after' => 60, // Sugere aguardar 60 segundos
+            'retry_after' => $retryAfter,
             'rate_limit_info' => $rateLimitInfo,
-            'quota_exceeded' => $isQuotaExceeded
+            'quota_exceeded' => $isQuotaExceeded,
+            'api_error' => $apiErrorMessage,
+            'debug' => [
+                'http_code' => $http_code,
+                'response_preview' => substr($apiResult['response'], 0, 200)
+            ]
         ]));
     }
     
