@@ -434,35 +434,50 @@ if ($saldoMes > 0) {
                             window.location.href = `dashboard.php?mes=${selectMes.value}&ano=${selectAno.value}&conta=${encodeURIComponent(contaSel)}`;
                         }, 1500);
                     } else {
-                        // Tratar erro 429 (Rate Limit)
+                        // Tratar erro 429 (Rate Limit ou Cota Excedida)
                         if(data.isRateLimit || data.status === 429) {
                             const retryAfter = data.retry_after || 60;
                             const rateLimitInfo = data.rate_limit_info || {};
                             let message = data.message || 'Limite de requisições excedido.';
+                            const isQuotaExceeded = data.quota_exceeded === true;
                             
-                            // Adicionar informações sobre o limite
-                            if(rateLimitInfo.requests_last_minute !== undefined) {
-                                message += ` (${rateLimitInfo.requests_last_minute}/${rateLimitInfo.limit_per_minute} por minuto)`;
-                            }
-                            
-                            showToast('Limite de Requisições', message, true);
-                            
-                            // Desabilitar botão e mostrar contador
-                            btnIaSubmit.disabled = true;
-                            let countdown = Math.ceil(retryAfter);
-                            const countdownInterval = setInterval(() => {
-                                countdown--;
-                                if(countdown > 0) {
-                                    btnIaSubmit.innerHTML = `Aguarde ${countdown}s`;
-                                } else {
-                                    clearInterval(countdownInterval);
-                                    btnIaSubmit.disabled = false;
-                                    btnIaSubmit.innerHTML = originalText;
+                            // Se for cota excedida, não mostrar contador (é um problema mais grave)
+                            if(isQuotaExceeded) {
+                                showToast('Cota da API Excedida', message, true);
+                                btnIaSubmit.disabled = true;
+                                btnIaSubmit.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i> Cota Excedida';
+                                btnIaSubmit.style.opacity = '0.6';
+                                
+                                // Adicionar mensagem informativa abaixo do botão
+                                const formText = document.querySelector('#formIaRapida .form-text');
+                                if(formText) {
+                                    formText.innerHTML = '<span class="text-warning"><i class="bi bi-info-circle me-1"></i>A cota da API foi excedida. Use o formulário manual abaixo para adicionar transações.</span>';
                                 }
-                            }, 1000);
-                            
-                            // Atualizar mensagem inicial
-                            btnIaSubmit.innerHTML = `Aguarde ${countdown}s`;
+                            } else {
+                                // Adicionar informações sobre o limite
+                                if(rateLimitInfo.requests_last_minute !== undefined) {
+                                    message += ` (${rateLimitInfo.requests_last_minute}/${rateLimitInfo.limit_per_minute} por minuto)`;
+                                }
+                                
+                                showToast('Limite de Requisições', message, true);
+                                
+                                // Desabilitar botão e mostrar contador
+                                btnIaSubmit.disabled = true;
+                                let countdown = Math.ceil(retryAfter);
+                                const countdownInterval = setInterval(() => {
+                                    countdown--;
+                                    if(countdown > 0) {
+                                        btnIaSubmit.innerHTML = `Aguarde ${countdown}s`;
+                                    } else {
+                                        clearInterval(countdownInterval);
+                                        btnIaSubmit.disabled = false;
+                                        btnIaSubmit.innerHTML = originalText;
+                                    }
+                                }, 1000);
+                                
+                                // Atualizar mensagem inicial
+                                btnIaSubmit.innerHTML = `Aguarde ${countdown}s`;
+                            }
                         } else {
                             // Outros erros
                             showToast('Erro da IA', data.message || 'Ocorreu um erro ao processar sua solicitação.', true);
