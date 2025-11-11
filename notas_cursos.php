@@ -200,60 +200,184 @@ $stats = [
     .priority-media { background: #ffc107; }
     .priority-baixa { background: #28a745; }
     
-    /* Mapa Mental Styles - Canvas Customizado */
+    /* Mapa Mental Styles - Canvas Customizado Moderno */
     #mindmap-container {
         width: 100%;
         height: 600px;
-        border: 1px solid var(--border-color, #333);
-        border-radius: 12px;
-        background: var(--card-background, #1a1a1a);
+        min-height: 400px;
+        border: 2px solid var(--border-color, #333);
+        border-radius: 16px;
+        background: linear-gradient(135deg, #1a1a1a 0%, #2d1b1b 100%);
         position: relative;
         overflow: hidden;
-        cursor: move;
+        cursor: grab;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        transition: all 0.3s ease;
+    }
+    
+    #mindmap-container:active {
+        cursor: grabbing;
+    }
+    
+    #mindmap-container:hover {
+        border-color: var(--accent-red, #dc3545);
+        box-shadow: 0 12px 40px rgba(229, 9, 20, 0.3);
     }
     
     #mindmap-canvas {
         width: 100%;
         height: 100%;
         display: block;
+        touch-action: none;
     }
     
     .mindmap-controls {
         position: absolute;
-        top: 10px;
-        right: 10px;
+        top: 15px;
+        right: 15px;
         z-index: 1000;
         display: flex;
-        gap: 5px;
-        background: rgba(26, 26, 26, 0.9);
-        padding: 8px;
+        flex-direction: column;
+        gap: 8px;
+        background: rgba(26, 26, 26, 0.95);
+        backdrop-filter: blur(10px);
+        padding: 12px;
+        border-radius: 12px;
+        border: 1px solid rgba(229, 9, 20, 0.3);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    }
+    
+    .mindmap-controls button {
+        min-width: 120px;
+        transition: all 0.3s ease;
         border-radius: 8px;
-        border: 1px solid var(--border-color, #333);
+        font-weight: 600;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+    
+    .mindmap-controls button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    }
+    
+    .mindmap-controls button:active {
+        transform: translateY(0);
     }
     
     .mindmap-node {
         cursor: pointer;
         user-select: none;
+        transition: all 0.2s ease;
+    }
+    
+    .mindmap-node:hover {
+        transform: scale(1.05);
     }
     
     .mindmap-toolbar {
-        background: var(--card-background, #1a1a1a);
+        background: linear-gradient(135deg, rgba(26, 26, 26, 0.95) 0%, rgba(45, 27, 27, 0.95) 100%);
         border: 1px solid var(--border-color, #333);
-        border-radius: 8px;
+        border-radius: 12px;
         padding: 1rem;
         margin-bottom: 1rem;
+        backdrop-filter: blur(10px);
     }
     
     .node-edit-input {
         position: absolute;
-        background: rgba(26, 26, 26, 0.95);
+        background: rgba(26, 26, 26, 0.98);
         border: 2px solid #dc3545;
-        border-radius: 4px;
-        padding: 4px 8px;
+        border-radius: 8px;
+        padding: 8px 12px;
         color: #fff;
         font-size: 14px;
         z-index: 10000;
-        min-width: 150px;
+        min-width: 200px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    }
+    
+    /* Responsividade Mobile */
+    @media (max-width: 768px) {
+        #mindmap-container {
+            height: 500px;
+            min-height: 350px;
+        }
+        
+        .mindmap-controls {
+            top: 10px;
+            right: 10px;
+            padding: 8px;
+            flex-direction: row;
+            flex-wrap: wrap;
+            max-width: calc(100% - 20px);
+        }
+        
+        .mindmap-controls button {
+            min-width: auto;
+            flex: 1;
+            font-size: 0.875rem;
+            padding: 6px 10px;
+        }
+        
+        .mindmap-controls button i {
+            margin-right: 0 !important;
+        }
+        
+        .mindmap-controls button span {
+            display: none;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        #mindmap-container {
+            height: 400px;
+            min-height: 300px;
+        }
+        
+        .mindmap-controls {
+            position: relative;
+            top: auto;
+            right: auto;
+            margin-top: 10px;
+            width: 100%;
+            justify-content: center;
+        }
+    }
+    
+    /* Indicador de zoom */
+    .zoom-indicator {
+        position: absolute;
+        bottom: 15px;
+        left: 15px;
+        background: rgba(26, 26, 26, 0.9);
+        backdrop-filter: blur(10px);
+        padding: 8px 12px;
+        border-radius: 8px;
+        color: #fff;
+        font-size: 0.875rem;
+        border: 1px solid rgba(229, 9, 20, 0.3);
+        z-index: 1000;
+    }
+    
+    /* Loading overlay */
+    .mindmap-loading {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(26, 26, 26, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2000;
+        border-radius: 16px;
+    }
+    
+    .mindmap-loading .spinner-border {
+        width: 3rem;
+        height: 3rem;
+        border-width: 0.3em;
     }
 </style>
 
@@ -646,24 +770,33 @@ $stats = [
                     <label class="form-label fw-semibold">Título do Mapa Mental</label>
                     <input type="text" id="mapa-titulo" class="form-control" placeholder="Ex: Estrutura de Dados">
                 </div>
-                <div class="alert alert-info mb-3">
-                    <small>
-                        <i class="bi bi-info-circle me-1"></i>
-                        <strong>Dicas:</strong> Clique no canvas para adicionar nó | Clique em um nó para editar | Arraste para mover | Clique com botão direito para excluir
-                    </small>
+                <div class="alert alert-info mb-3 border-0" style="background: linear-gradient(135deg, rgba(13, 110, 253, 0.1) 0%, rgba(13, 110, 253, 0.05) 100%); border-left: 4px solid #0d6efd !important;">
+                    <div class="d-flex align-items-start">
+                        <i class="bi bi-info-circle me-2 fs-5"></i>
+                        <div>
+                            <strong class="d-block mb-1">Como usar:</strong>
+                            <small class="d-block mb-1">• <strong>Duplo clique</strong> no canvas para adicionar nó</small>
+                            <small class="d-block mb-1">• <strong>Duplo clique</strong> no nó para editar texto</small>
+                            <small class="d-block mb-1">• <strong>Arraste</strong> para mover nós</small>
+                            <small class="d-block">• <strong>Botão direito</strong> para excluir nó</small>
+                        </div>
+                    </div>
                 </div>
                 <div id="mindmap-container">
                     <canvas id="mindmap-canvas"></canvas>
+                    <div class="zoom-indicator" id="zoom-indicator" style="display: none;">
+                        <i class="bi bi-zoom-in me-1"></i><span id="zoom-value">100%</span>
+                    </div>
                 </div>
                 <div class="mindmap-controls">
                     <button class="btn btn-sm btn-primary" onclick="adicionarNoMapa()" title="Adicionar Nó">
-                        <i class="bi bi-plus-circle me-1"></i>Adicionar
+                        <i class="bi bi-plus-circle me-1"></i><span>Adicionar</span>
                     </button>
                     <button class="btn btn-sm btn-warning" onclick="limparMapa()" title="Limpar">
-                        <i class="bi bi-arrow-counterclockwise me-1"></i>Limpar
+                        <i class="bi bi-arrow-counterclockwise me-1"></i><span>Limpar</span>
                     </button>
                     <button class="btn btn-sm btn-success" onclick="salvarMapaMental()" title="Salvar">
-                        <i class="bi bi-save me-1"></i>Salvar
+                        <i class="bi bi-save me-1"></i><span>Salvar</span>
                     </button>
                 </div>
             </div>
@@ -724,14 +857,25 @@ class MindMap {
     
     setupCanvas() {
         const container = this.canvas.parentElement;
-        this.canvas.width = container.clientWidth;
-        this.canvas.height = container.clientHeight;
+        const dpr = window.devicePixelRatio || 1;
         
-        // Ajustar canvas quando redimensionar
-        window.addEventListener('resize', () => {
-            this.canvas.width = container.clientWidth;
-            this.canvas.height = container.clientHeight;
+        const resize = () => {
+            const rect = container.getBoundingClientRect();
+            this.canvas.width = rect.width * dpr;
+            this.canvas.height = rect.height * dpr;
+            this.canvas.style.width = rect.width + 'px';
+            this.canvas.style.height = rect.height + 'px';
+            this.ctx.scale(dpr, dpr);
             this.draw();
+        };
+        
+        resize();
+        
+        // Debounce resize para performance
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(resize, 250);
         });
     }
     
@@ -740,9 +884,15 @@ class MindMap {
         this.canvas.addEventListener('mousedown', (e) => this.onMouseDown(e));
         this.canvas.addEventListener('mousemove', (e) => this.onMouseMove(e));
         this.canvas.addEventListener('mouseup', (e) => this.onMouseUp(e));
+        this.canvas.addEventListener('mouseleave', (e) => this.onMouseLeave(e));
         this.canvas.addEventListener('dblclick', (e) => this.onDoubleClick(e));
         this.canvas.addEventListener('contextmenu', (e) => this.onRightClick(e));
-        this.canvas.addEventListener('wheel', (e) => this.onWheel(e));
+        this.canvas.addEventListener('wheel', (e) => this.onWheel(e), { passive: false });
+        
+        // Touch events para mobile
+        this.canvas.addEventListener('touchstart', (e) => this.onTouchStart(e), { passive: false });
+        this.canvas.addEventListener('touchmove', (e) => this.onTouchMove(e), { passive: false });
+        this.canvas.addEventListener('touchend', (e) => this.onTouchEnd(e));
     }
     
     addDefaultNode() {
@@ -755,15 +905,31 @@ class MindMap {
         const node = {
             id: this.nodeIdCounter++,
             text: text || 'Novo Nó',
-            x: x || this.canvas.width / 2,
-            y: y || this.canvas.height / 2,
-            width: 120,
-            height: 40,
+            x: x || (this.canvas.width / (window.devicePixelRatio || 1)) / 2,
+            y: y || (this.canvas.height / (window.devicePixelRatio || 1)) / 2,
+            width: 0, // Será calculado
+            height: 50,
             isCentral: isCentral,
-            color: isCentral ? '#dc3545' : '#6c757d'
+            color: isCentral ? this.colors.central.bg : this.colors.node.bg,
+            borderColor: isCentral ? this.colors.central.border : this.colors.node.border,
+            textColor: isCentral ? this.colors.central.text : this.colors.node.text,
+            hover: false,
+            pulse: 0
         };
+        
+        // Calcular largura baseada no texto
+        this.ctx.font = isCentral ? 'bold 16px Arial' : '14px Arial';
+        const metrics = this.ctx.measureText(node.text);
+        node.width = Math.max(120, metrics.width + 30);
+        
         this.nodes.push(node);
-        this.draw();
+        
+        // Animação de entrada
+        node.pulse = 1;
+        setTimeout(() => {
+            node.pulse = 0;
+        }, 300);
+        
         return node;
     }
     
@@ -783,13 +949,17 @@ class MindMap {
     }
     
     getNodeAt(x, y) {
+        // Ajustar coordenadas para o offset e scale
+        const adjustedX = (x - this.offset.x) / this.scale;
+        const adjustedY = (y - this.offset.y) / this.scale;
+        
         for (let i = this.nodes.length - 1; i >= 0; i--) {
             const node = this.nodes[i];
-            const nodeX = (node.x - this.offset.x) * this.scale;
-            const nodeY = (node.y - this.offset.y) * this.scale;
+            const nodeWidth = node.width * (node.hover ? 1.05 : 1);
+            const nodeHeight = node.height * (node.hover ? 1.05 : 1);
             
-            if (x >= nodeX - node.width/2 && x <= nodeX + node.width/2 &&
-                y >= nodeY - node.height/2 && y <= nodeY + node.height/2) {
+            if (adjustedX >= node.x - nodeWidth/2 && adjustedX <= node.x + nodeWidth/2 &&
+                adjustedY >= node.y - nodeHeight/2 && adjustedY <= node.y + nodeHeight/2) {
                 return node;
             }
         }
@@ -813,18 +983,77 @@ class MindMap {
     }
     
     onMouseMove(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left) / this.scale;
+        const y = (e.clientY - rect.top) / this.scale;
+        
         if (this.dragging && this.selectedNode) {
-            const rect = this.canvas.getBoundingClientRect();
-            const x = (e.clientX - rect.left) / this.scale;
-            const y = (e.clientY - rect.top) / this.scale;
-            
             this.selectedNode.x = x - this.dragOffset.x;
             this.selectedNode.y = y - this.dragOffset.y;
-            this.draw();
+        } else {
+            // Verificar hover
+            const node = this.getNodeAt(x, y);
+            if (node !== this.hoveredNode) {
+                if (this.hoveredNode) {
+                    this.hoveredNode.hover = false;
+                }
+                this.hoveredNode = node;
+                if (node) {
+                    node.hover = true;
+                    this.canvas.style.cursor = 'pointer';
+                } else {
+                    this.canvas.style.cursor = 'grab';
+                }
+            }
         }
     }
     
     onMouseUp(e) {
+        this.dragging = false;
+        this.canvas.style.cursor = 'grab';
+    }
+    
+    onMouseLeave(e) {
+        if (this.hoveredNode) {
+            this.hoveredNode.hover = false;
+            this.hoveredNode = null;
+        }
+        this.dragging = false;
+    }
+    
+    // Touch events para mobile
+    onTouchStart(e) {
+        e.preventDefault();
+        if (e.touches.length === 1) {
+            const touch = e.touches[0];
+            const rect = this.canvas.getBoundingClientRect();
+            const x = (touch.clientX - rect.left) / this.scale;
+            const y = (touch.clientY - rect.top) / this.scale;
+            
+            const node = this.getNodeAt(x, y);
+            if (node) {
+                this.selectedNode = node;
+                this.dragging = true;
+                this.dragOffset.x = x - node.x;
+                this.dragOffset.y = y - node.y;
+            }
+        }
+    }
+    
+    onTouchMove(e) {
+        e.preventDefault();
+        if (this.dragging && this.selectedNode && e.touches.length === 1) {
+            const touch = e.touches[0];
+            const rect = this.canvas.getBoundingClientRect();
+            const x = (touch.clientX - rect.left) / this.scale;
+            const y = (touch.clientY - rect.top) / this.scale;
+            
+            this.selectedNode.x = x - this.dragOffset.x;
+            this.selectedNode.y = y - this.dragOffset.y;
+        }
+    }
+    
+    onTouchEnd(e) {
         this.dragging = false;
     }
     
@@ -871,16 +1100,48 @@ class MindMap {
     
     onWheel(e) {
         e.preventDefault();
-        const delta = e.deltaY > 0 ? 0.9 : 1.1;
-        this.scale = Math.max(0.5, Math.min(2, this.scale * delta));
-        this.draw();
+        const now = Date.now();
+        if (now - this.lastZoomTime < 50) return; // Throttle zoom
+        this.lastZoomTime = now;
+        
+        const rect = this.canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        
+        const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+        const newScale = Math.max(0.5, Math.min(2, this.scale * zoomFactor));
+        
+        // Zoom em direção ao mouse
+        const scaleChange = newScale / this.scale;
+        this.offset.x = mouseX - (mouseX - this.offset.x) * scaleChange;
+        this.offset.y = mouseY - (mouseY - this.offset.y) * scaleChange;
+        
+        this.scale = newScale;
+        
+        // Atualizar indicador de zoom
+        const zoomIndicator = document.getElementById('zoom-indicator');
+        const zoomValue = document.getElementById('zoom-value');
+        if (zoomIndicator && zoomValue) {
+            zoomIndicator.style.display = 'block';
+            zoomValue.textContent = Math.round(this.scale * 100) + '%';
+            setTimeout(() => {
+                zoomIndicator.style.display = 'none';
+            }, 2000);
+        }
     }
     
     draw() {
+        const dpr = window.devicePixelRatio || 1;
+        const width = this.canvas.width / dpr;
+        const height = this.canvas.height / dpr;
+        
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.ctx.save();
         this.ctx.translate(this.offset.x, this.offset.y);
         this.ctx.scale(this.scale, this.scale);
+        
+        // Grid de fundo sutil
+        this.drawGrid(width, height);
         
         // Desenhar arestas
         this.edges.forEach(edge => {
@@ -891,76 +1152,175 @@ class MindMap {
             }
         });
         
-        // Desenhar nós
-        this.nodes.forEach(node => {
+        // Desenhar nós (central primeiro)
+        const centralNodes = this.nodes.filter(n => n.isCentral);
+        const otherNodes = this.nodes.filter(n => !n.isCentral);
+        [...centralNodes, ...otherNodes].forEach(node => {
             this.drawNode(node);
         });
         
         this.ctx.restore();
     }
     
+    drawGrid(width, height) {
+        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+        this.ctx.lineWidth = 1;
+        
+        const gridSize = 50;
+        const startX = -this.offset.x % gridSize;
+        const startY = -this.offset.y % gridSize;
+        
+        for (let x = startX; x < width; x += gridSize) {
+            this.ctx.beginPath();
+            this.ctx.moveTo(x, 0);
+            this.ctx.lineTo(x, height);
+            this.ctx.stroke();
+        }
+        
+        for (let y = startY; y < height; y += gridSize) {
+            this.ctx.beginPath();
+            this.ctx.moveTo(0, y);
+            this.ctx.lineTo(width, y);
+            this.ctx.stroke();
+        }
+    }
+    
     drawEdge(fromNode, toNode) {
-        this.ctx.strokeStyle = '#dc3545';
-        this.ctx.lineWidth = 2;
+        const isHovered = fromNode.hover || toNode.hover;
+        const edgeColor = isHovered ? this.colors.edgeHover : this.colors.edge;
+        
+        // Gradiente para a linha
+        const gradient = this.ctx.createLinearGradient(
+            fromNode.x, fromNode.y,
+            toNode.x, toNode.y
+        );
+        gradient.addColorStop(0, edgeColor);
+        gradient.addColorStop(1, edgeColor + '80');
+        
+        this.ctx.strokeStyle = gradient;
+        this.ctx.lineWidth = isHovered ? 3 : 2;
+        this.ctx.shadowBlur = isHovered ? 8 : 4;
+        this.ctx.shadowColor = edgeColor + '40';
+        
+        // Linha curva suave
         this.ctx.beginPath();
+        const midX = (fromNode.x + toNode.x) / 2;
+        const midY = (fromNode.y + toNode.y) / 2;
+        const cpX = midX + (toNode.y - fromNode.y) * 0.2;
+        const cpY = midY - (toNode.x - fromNode.x) * 0.2;
+        
         this.ctx.moveTo(fromNode.x, fromNode.y);
-        this.ctx.lineTo(toNode.x, toNode.y);
+        this.ctx.quadraticCurveTo(cpX, cpY, toNode.x, toNode.y);
         this.ctx.stroke();
         
-        // Seta
-        const angle = Math.atan2(toNode.y - fromNode.y, toNode.x - fromNode.x);
-        const arrowLength = 10;
+        // Seta moderna
+        const angle = Math.atan2(toNode.y - cpY, toNode.x - cpX);
+        const arrowLength = 12;
         const arrowAngle = Math.PI / 6;
+        const arrowX = toNode.x - Math.cos(angle) * (toNode.width / 2 + 5);
+        const arrowY = toNode.y - Math.sin(angle) * (toNode.height / 2 + 5);
         
         this.ctx.beginPath();
-        this.ctx.moveTo(toNode.x, toNode.y);
+        this.ctx.moveTo(arrowX, arrowY);
         this.ctx.lineTo(
-            toNode.x - arrowLength * Math.cos(angle - arrowAngle),
-            toNode.y - arrowLength * Math.sin(angle - arrowAngle)
+            arrowX - arrowLength * Math.cos(angle - arrowAngle),
+            arrowY - arrowLength * Math.sin(angle - arrowAngle)
         );
         this.ctx.lineTo(
-            toNode.x - arrowLength * Math.cos(angle + arrowAngle),
-            toNode.y - arrowLength * Math.sin(angle + arrowAngle)
+            arrowX - arrowLength * Math.cos(angle + arrowAngle),
+            arrowY - arrowLength * Math.sin(angle + arrowAngle)
         );
         this.ctx.closePath();
-        this.ctx.fillStyle = '#dc3545';
+        this.ctx.fillStyle = edgeColor;
         this.ctx.fill();
+        
+        this.ctx.shadowBlur = 0;
     }
     
     drawNode(node) {
-        // Sombra
-        this.ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-        this.ctx.shadowBlur = 5;
-        this.ctx.shadowOffsetX = 2;
-        this.ctx.shadowOffsetY = 2;
+        const scale = node.hover ? 1.05 : (1 + node.pulse * 0.1);
+        const currentWidth = node.width * scale;
+        const currentHeight = node.height * scale;
         
-        // Retângulo do nó
-        this.ctx.fillStyle = node.color;
-        this.ctx.strokeStyle = node.isCentral ? '#c82333' : '#5a6268';
-        this.ctx.lineWidth = 2;
+        // Sombra moderna
+        this.ctx.shadowColor = node.hover ? 'rgba(229, 9, 20, 0.4)' : 'rgba(0, 0, 0, 0.3)';
+        this.ctx.shadowBlur = node.hover ? 15 : 8;
+        this.ctx.shadowOffsetX = 0;
+        this.ctx.shadowOffsetY = node.hover ? 4 : 2;
         
-        this.ctx.fillRect(
-            node.x - node.width / 2,
-            node.y - node.height / 2,
-            node.width,
-            node.height
+        // Gradiente de fundo
+        const gradient = this.ctx.createLinearGradient(
+            node.x - currentWidth / 2, node.y - currentHeight / 2,
+            node.x + currentWidth / 2, node.y + currentHeight / 2
         );
-        this.ctx.strokeRect(
-            node.x - node.width / 2,
-            node.y - node.height / 2,
-            node.width,
-            node.height
+        
+        if (node.hover) {
+            gradient.addColorStop(0, this.colors.hover.bg);
+            gradient.addColorStop(1, this.colors.hover.bg + 'dd');
+        } else {
+            gradient.addColorStop(0, node.color);
+            gradient.addColorStop(1, node.color + 'dd');
+        }
+        
+        this.ctx.fillStyle = gradient;
+        this.ctx.strokeStyle = node.hover ? this.colors.hover.border : node.borderColor;
+        this.ctx.lineWidth = node.hover ? 3 : 2;
+        
+        // Retângulo arredondado
+        const radius = 12;
+        this.ctx.beginPath();
+        this.ctx.roundRect(
+            node.x - currentWidth / 2,
+            node.y - currentHeight / 2,
+            currentWidth,
+            currentHeight,
+            radius
         );
+        this.ctx.fill();
+        this.ctx.stroke();
         
         // Resetar sombra
         this.ctx.shadowColor = 'transparent';
+        this.ctx.shadowBlur = 0;
         
-        // Texto
-        this.ctx.fillStyle = '#fff';
-        this.ctx.font = node.isCentral ? 'bold 14px Arial' : '13px Arial';
+        // Texto com sombra
+        this.ctx.fillStyle = node.hover ? this.colors.hover.text : node.textColor;
+        this.ctx.font = node.isCentral ? 'bold 16px Arial' : '14px Arial';
         this.ctx.textAlign = 'center';
         this.ctx.textBaseline = 'middle';
-        this.ctx.fillText(node.text, node.x, node.y);
+        
+        // Sombra no texto para melhor legibilidade
+        this.ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+        this.ctx.shadowBlur = 2;
+        this.ctx.shadowOffsetX = 1;
+        this.ctx.shadowOffsetY = 1;
+        
+        // Quebrar texto se muito longo
+        const maxWidth = currentWidth - 20;
+        const words = node.text.split(' ');
+        let line = '';
+        let y = node.y - (words.length > 1 ? 8 : 0);
+        
+        for (let i = 0; i < words.length; i++) {
+            const testLine = line + words[i] + ' ';
+            const metrics = this.ctx.measureText(testLine);
+            if (metrics.width > maxWidth && i > 0) {
+                this.ctx.fillText(line, node.x, y);
+                line = words[i] + ' ';
+                y += 18;
+            } else {
+                line = testLine;
+            }
+        }
+        this.ctx.fillText(line, node.x, y);
+        
+        this.ctx.shadowColor = 'transparent';
+        this.ctx.shadowBlur = 0;
+        
+        // Reduzir pulse
+        if (node.pulse > 0) {
+            node.pulse *= 0.9;
+        }
     }
     
     getData() {
@@ -996,7 +1356,15 @@ class MindMap {
         this.nodes = [];
         this.edges = [];
         this.nodeIdCounter = 1;
+        this.hoveredNode = null;
+        this.selectedNode = null;
         this.addDefaultNode();
+    }
+    
+    destroy() {
+        this.stopAnimation();
+        this.nodes = [];
+        this.edges = [];
     }
 }
 
