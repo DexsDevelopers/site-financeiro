@@ -15,6 +15,46 @@ if (!isset($_SESSION['user_id'])) {
 
 require_once 'includes/db_connect.php';
 
+// Função auxiliar para criar tabelas se não existirem
+function criarTabelasAcademiaSeNecessario($pdo) {
+    try {
+        // Tabela exercicios
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS exercicios (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                id_usuario INT NOT NULL,
+                nome_exercicio VARCHAR(100) NOT NULL,
+                data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (id_usuario) REFERENCES usuarios(id) ON DELETE CASCADE,
+                UNIQUE KEY unique_exercicio_usuario (id_usuario, nome_exercicio),
+                INDEX idx_usuario (id_usuario)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+        
+        // Tabela rotina_exercicios
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS rotina_exercicios (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                id_rotina_dia INT NOT NULL,
+                id_exercicio INT NOT NULL,
+                series_sugeridas INT NULL,
+                repeticoes_sugeridas VARCHAR(50) NULL,
+                ordem INT DEFAULT 0,
+                FOREIGN KEY (id_rotina_dia) REFERENCES rotina_dias(id) ON DELETE CASCADE,
+                FOREIGN KEY (id_exercicio) REFERENCES exercicios(id) ON DELETE CASCADE,
+                INDEX idx_rotina_dia (id_rotina_dia),
+                INDEX idx_exercicio (id_exercicio)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+    } catch (PDOException $e) {
+        // Ignora se já existir
+        error_log("Erro ao criar tabelas (pode ser que já existam): " . $e->getMessage());
+    }
+}
+
+// Criar tabelas se necessário
+criarTabelasAcademiaSeNecessario($pdo);
+
 $userId = $_SESSION['user_id'];
 $id_rotina_dia = $_POST['id_rotina_dia'] ?? 0;
 $nome_exercicio = trim($_POST['nome_exercicio'] ?? '');
