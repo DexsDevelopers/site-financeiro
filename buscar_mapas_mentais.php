@@ -27,6 +27,16 @@ try {
     $stmt->execute([$userId]);
     $mapas = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
+    // Garantir que dados seja sempre uma string JSON válida
+    foreach ($mapas as &$mapa) {
+        if (is_array($mapa['dados'])) {
+            $mapa['dados'] = json_encode($mapa['dados']);
+        } elseif (empty($mapa['dados'])) {
+            $mapa['dados'] = '{"nodes":[],"edges":[]}';
+        }
+    }
+    unset($mapa);
+    
     echo json_encode(['success' => true, 'mapas' => $mapas]);
 } catch (PDOException $e) {
     echo json_encode(['success' => false, 'message' => 'Erro no banco de dados: ' . $e->getMessage()]);

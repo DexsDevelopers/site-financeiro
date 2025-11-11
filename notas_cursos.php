@@ -1108,22 +1108,70 @@ class MindMap {
         
         if (node) {
             // Editar nó existente
-            setTimeout(() => {
-                const novoTexto = prompt('Editar texto do nó:', node.text || '');
-                if (novoTexto !== null && novoTexto.trim() !== '') {
-                    node.text = novoTexto.trim();
+            this.editarNo(node);
+        } else {
+            // Adicionar novo nó
+            this.adicionarNo(adjustedX, adjustedY);
+        }
+    }
+    
+    editarNo(node) {
+        // Usar SweetAlert2 se disponível, senão prompt
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Editar Nó',
+                input: 'text',
+                inputValue: node.text || '',
+                inputPlaceholder: 'Digite o texto do nó',
+                showCancelButton: true,
+                confirmButtonText: 'Salvar',
+                cancelButtonText: 'Cancelar',
+                inputValidator: (value) => {
+                    if (!value || !value.trim()) {
+                        return 'O texto não pode estar vazio!';
+                    }
+                }
+            }).then((result) => {
+                if (result.isConfirmed && result.value && result.value.trim()) {
+                    node.text = result.value.trim();
                     // Recalcular largura
                     this.ctx.font = node.isCentral ? 'bold 16px Arial' : '14px Arial';
                     const metrics = this.ctx.measureText(node.text);
                     node.width = Math.max(120, metrics.width + 30);
+                    showToast('Sucesso!', 'Nó editado com sucesso!', false);
                 }
-            }, 100);
+            });
         } else {
-            // Adicionar novo nó
-            setTimeout(() => {
-                const novoTexto = prompt('Digite o texto do novo nó:', 'Novo Nó');
-                if (novoTexto !== null && novoTexto.trim() !== '') {
-                    const newNode = this.addNode(novoTexto.trim(), adjustedX, adjustedY);
+            // Fallback para prompt
+            const novoTexto = prompt('Editar texto do nó:', node.text || '');
+            if (novoTexto !== null && novoTexto.trim() !== '') {
+                node.text = novoTexto.trim();
+                this.ctx.font = node.isCentral ? 'bold 16px Arial' : '14px Arial';
+                const metrics = this.ctx.measureText(node.text);
+                node.width = Math.max(120, metrics.width + 30);
+            }
+        }
+    }
+    
+    adicionarNo(x, y) {
+        // Usar SweetAlert2 se disponível, senão prompt
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Adicionar Novo Nó',
+                input: 'text',
+                inputValue: 'Novo Nó',
+                inputPlaceholder: 'Digite o texto do novo nó',
+                showCancelButton: true,
+                confirmButtonText: 'Adicionar',
+                cancelButtonText: 'Cancelar',
+                inputValidator: (value) => {
+                    if (!value || !value.trim()) {
+                        return 'O texto não pode estar vazio!';
+                    }
+                }
+            }).then((result) => {
+                if (result.isConfirmed && result.value && result.value.trim()) {
+                    const newNode = this.addNode(result.value.trim(), x, y);
                     // Conectar ao nó central se existir
                     const centralNode = this.nodes.find(n => n.isCentral);
                     if (centralNode && centralNode.id !== newNode.id) {
@@ -1131,7 +1179,18 @@ class MindMap {
                     }
                     showToast('Sucesso!', 'Nó adicionado com sucesso!', false);
                 }
-            }, 100);
+            });
+        } else {
+            // Fallback para prompt
+            const novoTexto = prompt('Digite o texto do novo nó:', 'Novo Nó');
+            if (novoTexto !== null && novoTexto.trim() !== '') {
+                const newNode = this.addNode(novoTexto.trim(), x, y);
+                const centralNode = this.nodes.find(n => n.isCentral);
+                if (centralNode && centralNode.id !== newNode.id) {
+                    this.addEdge(centralNode.id, newNode.id);
+                }
+                showToast('Sucesso!', 'Nó adicionado com sucesso!', false);
+            }
         }
     }
     
@@ -1362,7 +1421,8 @@ class MindMap {
         
         // Quebrar texto se muito longo
         const maxWidth = currentWidth - 20;
-        const words = node.text.split(' ');
+        const textToDraw = node.text || 'Nó sem texto';
+        const words = textToDraw.split(' ');
         let line = '';
         let y = node.y - (words.length > 1 ? 8 : 0);
         
@@ -1370,14 +1430,16 @@ class MindMap {
             const testLine = line + words[i] + ' ';
             const metrics = this.ctx.measureText(testLine);
             if (metrics.width > maxWidth && i > 0) {
-                this.ctx.fillText(line, node.x, y);
+                this.ctx.fillText(line.trim(), node.x, y);
                 line = words[i] + ' ';
                 y += 18;
             } else {
                 line = testLine;
             }
         }
-        this.ctx.fillText(line, node.x, y);
+        if (line.trim()) {
+            this.ctx.fillText(line.trim(), node.x, y);
+        }
         
         this.ctx.shadowColor = 'transparent';
         this.ctx.shadowBlur = 0;
@@ -1722,32 +1784,24 @@ function adicionarNoMapa() {
         return;
     }
     
-    setTimeout(() => {
-        const novoTexto = prompt('Digite o texto do novo nó:', 'Novo Nó');
-        if (novoTexto !== null && novoTexto.trim() !== '') {
-            const dpr = window.devicePixelRatio || 1;
-            const canvasWidth = mindMapInstance.canvas.width / dpr;
-            const canvasHeight = mindMapInstance.canvas.height / dpr;
-            const centralNode = mindMapInstance.nodes.find(n => n.isCentral);
-            
-            let x, y;
-            if (centralNode) {
-                // Posicionar ao lado do nó central
-                x = centralNode.x + 180;
-                y = centralNode.y;
-            } else {
-                // Se não houver nó central, posicionar no centro
-                x = canvasWidth / 2 + 150;
-                y = canvasHeight / 2;
-            }
-            
-            const newNode = mindMapInstance.addNode(novoTexto.trim(), x, y);
-            if (centralNode && centralNode.id !== newNode.id) {
-                mindMapInstance.addEdge(centralNode.id, newNode.id);
-            }
-            showToast('Sucesso!', 'Nó adicionado com sucesso!', false);
-        }
-    }, 100);
+    const dpr = window.devicePixelRatio || 1;
+    const canvasWidth = mindMapInstance.canvas.width / dpr;
+    const canvasHeight = mindMapInstance.canvas.height / dpr;
+    const centralNode = mindMapInstance.nodes.find(n => n.isCentral);
+    
+    let x, y;
+    if (centralNode) {
+        // Posicionar ao lado do nó central
+        x = centralNode.x + 180;
+        y = centralNode.y;
+    } else {
+        // Se não houver nó central, posicionar no centro
+        x = canvasWidth / 2 + 150;
+        y = canvasHeight / 2;
+    }
+    
+    // Usar método do MindMap para adicionar nó
+    mindMapInstance.adicionarNo(x, y);
 }
 
 function limparMapa() {
