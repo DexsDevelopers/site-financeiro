@@ -1894,10 +1894,11 @@ function visualizarMapa(id, titulo, dadosJson) {
             } catch (e) {
                 // Se falhar, tentar parsear novamente (pode estar duplamente encodado)
                 try {
-                    dados = JSON.parse(JSON.parse(dadosJson));
+                    const parsed = JSON.parse(dadosJson);
+                    dados = typeof parsed === 'string' ? JSON.parse(parsed) : parsed;
                 } catch (e2) {
-                    console.error('Erro ao parsear dados:', e2);
-                    showToast('Erro!', 'Formato de dados inválido', true);
+                    console.error('Erro ao parsear dados:', e2, 'Dados recebidos:', dadosJson);
+                    showToast('Erro!', 'Formato de dados inválido. Tente recriar o mapa.', true);
                     return;
                 }
             }
@@ -1906,9 +1907,30 @@ function visualizarMapa(id, titulo, dadosJson) {
         }
         
         // Validar dados
-        if (!dados || (!dados.nodes && !Array.isArray(dados))) {
-            console.error('Dados inválidos:', dados);
+        if (!dados) {
+            console.error('Dados nulos ou indefinidos');
             showToast('Erro!', 'Dados do mapa mental inválidos', true);
+            return;
+        }
+        
+        // Se dados não tiver estrutura esperada, tentar converter
+        if (!dados.nodes) {
+            // Pode ser que os dados estejam em formato diferente
+            if (Array.isArray(dados)) {
+                dados = { nodes: dados, edges: [] };
+            } else if (dados.data) {
+                dados = dados.data;
+            } else {
+                console.error('Dados inválidos:', dados);
+                showToast('Erro!', 'Formato de dados não reconhecido', true);
+                return;
+            }
+        }
+        
+        // Garantir que nodes seja array
+        if (!Array.isArray(dados.nodes)) {
+            console.error('Nodes não é array:', dados.nodes);
+            showToast('Erro!', 'Estrutura de dados inválida', true);
             return;
         }
         
