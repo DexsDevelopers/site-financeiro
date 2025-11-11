@@ -387,12 +387,24 @@ document.addEventListener('DOMContentLoaded', function() {
             const formData = new FormData(form);
             const button = form.querySelector('button[type="submit"]');
             button.disabled = true;
-            fetch('adicionar_exercicio_rotina.php', { method: 'POST', body: formData }).then(res => res.json()).then(data => {
+            fetch('adicionar_exercicio_rotina.php', { method: 'POST', body: formData })
+            .then(res => res.json())
+            .then(data => {
                 if (data.success) {
                     showToast('Sucesso!', data.message);
+                    form.reset();
                     setTimeout(() => window.location.reload(), 1000);
-                } else { showToast('Erro!', data.message, true); }
-            }).finally(() => { button.disabled = false; });
+                } else {
+                    const errorMsg = data.debug ? `${data.message} (Debug: ${data.debug})` : data.message;
+                    showToast('Erro!', errorMsg, true);
+                    console.error('Erro ao adicionar exercício:', data);
+                }
+            })
+            .catch(error => {
+                showToast('Erro!', 'Erro de conexão. Verifique sua internet.', true);
+                console.error('Erro de rede:', error);
+            })
+            .finally(() => { button.disabled = false; });
         }
     });
 

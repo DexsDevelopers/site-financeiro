@@ -29,6 +29,23 @@ if (empty($id_rotina_dia) || empty($nome_exercicio)) {
 }
 
 try {
+    // Verificar se o id_rotina_dia existe e pertence ao usuário
+    $stmt_verificar_dia = $pdo->prepare("
+        SELECT rd.id 
+        FROM rotina_dias rd 
+        JOIN rotinas r ON rd.id_rotina = r.id 
+        WHERE rd.id = ? AND r.id_usuario = ?
+    ");
+    $stmt_verificar_dia->execute([$id_rotina_dia, $userId]);
+    $dia_valido = $stmt_verificar_dia->fetch();
+    
+    if (!$dia_valido) {
+        http_response_code(400);
+        $response['message'] = 'Dia da rotina não encontrado ou não pertence ao usuário.';
+        echo json_encode($response);
+        exit();
+    }
+    
     $pdo->beginTransaction();
 
     // 1. Verifica se o exercício já existe no "dicionário" do usuário.
@@ -43,9 +60,14 @@ try {
         $exercicioId = $pdo->lastInsertId();
     }
 
-    // 3. Insere o exercício na rotina daquele dia.
-    $stmt_insert = $pdo->prepare("INSERT INTO rotina_exercicios (id_rotina_dia, id_exercicio, series_sugeridas, repeticoes_sugeridas) VALUES (?, ?, ?, ?)");
-    $stmt_insert->execute([$id_rotina_dia, $exercicioId, $series, $repeticoes]);
+    // 3. Buscar ordem máxima para adicionar no final
+    $stmt_ordem = $pdo->prepare("SELECT COALESCE(MAX(ordem), 0) + 1 as nova_ordem FROM rotina_exercicios WHERE id_rotina_dia = ?");
+    $stmt_ordem->execute([$id_rotina_dia]);
+    $nova_ordem = $stmt_ordem->fetchColumn();
+
+    // 4. Insere o exercício na rotina daquele dia.
+    $stmt_insert = $pdo->prepare("INSERT INTO rotina_exercicios (id_rotina_dia, id_exercicio, series_sugeridas, repeticoes_sugeridas, ordem) VALUES (?, ?, ?, ?, ?)");
+    $stmt_insert->execute([$id_rotina_dia, $exercicioId, $series, $repeticoes, $nova_ordem]);
     $newRotinaExercicioId = $pdo->lastInsertId();
 
     $pdo->commit();
@@ -63,7 +85,23 @@ try {
 } catch (PDOException $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
     http_response_code(500);
-    $response['message'] = 'Erro no banco de dados.';
+    $errorMessage = $e->getMessage();
+    
+    // Log do erro completo para debug
+    error_log("Erro ao adicionar exercício: " . $errorMessage);
+    
+    // Mensagem mais amigável baseada no tipo de erro
+    if (strpos($errorMessage, "doesn't exist") !== false || strpos($errorMessage, "Unknown table") !== false) {
+        $response['message'] = 'Tabela não encontrada no banco de dados. Execute o script de criação de tabelas.';
+    } elseif (strpos($errorMessage, "Column not found") !== false || strpos($errorMessage, "Unknown column") !== false) {
+        $response['message'] = 'Estrutura da tabela incompatível. Verifique se todas as colunas existem.';
+    } elseif (strpos($errorMessage, "foreign key") !== false) {
+        $response['message'] = 'Erro de referência. Verifique se o dia da rotina existe.';
+    } else {
+        $response['message'] = 'Erro no banco de dados: ' . $errorMessage;
+    }
+    
+    $response['debug'] = $errorMessage; // Para debug em desenvolvimento
     echo json_encode($response);
 }
 ?>
