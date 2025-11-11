@@ -1436,21 +1436,21 @@ class MindMap {
         const textToDraw = node.text || 'Nó sem texto';
         const words = textToDraw.split(' ');
         let line = '';
-        let y = node.y - (words.length > 1 ? 8 : 0);
+        let textY = node.y - (words.length > 1 ? 8 : 0);
         
         for (let i = 0; i < words.length; i++) {
             const testLine = line + words[i] + ' ';
             const metrics = this.ctx.measureText(testLine);
             if (metrics.width > maxWidth && i > 0) {
-                this.ctx.fillText(line.trim(), node.x, y);
+                this.ctx.fillText(line.trim(), node.x, textY);
                 line = words[i] + ' ';
-                y += 18;
+                textY += 18;
             } else {
                 line = testLine;
             }
         }
         if (line.trim()) {
-            this.ctx.fillText(line.trim(), node.x, y);
+            this.ctx.fillText(line.trim(), node.x, textY);
         }
         
         this.ctx.shadowColor = 'transparent';
