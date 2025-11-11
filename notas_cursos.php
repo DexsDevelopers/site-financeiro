@@ -1194,50 +1194,59 @@ class MindMap {
             try {
                 Swal.fire({
                     title: 'Editar Nó',
-                    html: '<input type="text" id="swal-input-text" class="swal2-input" value="' + textoAtual.replace(/"/g, '&quot;') + '" placeholder="Digite o texto do nó" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">',
+                    input: 'text',
+                    inputValue: textoAtual,
+                    inputPlaceholder: 'Digite o texto do nó',
                     showCancelButton: true,
                     confirmButtonText: 'Salvar',
                     cancelButtonText: 'Cancelar',
-                    focusConfirm: false,
-                    didOpen: () => {
-                        const input = document.getElementById('swal-input-text');
-                        if (input) {
-                            input.focus();
-                            input.select();
-                            // Permitir Enter para confirmar
-                            input.addEventListener('keypress', function(e) {
-                                if (e.key === 'Enter') {
-                                    Swal.clickConfirm();
-                                }
-                            });
+                    allowOutsideClick: true,
+                    allowEscapeKey: true,
+                    showLoaderOnConfirm: false,
+                    inputValidator: (value) => {
+                        if (!value || !value.trim()) {
+                            return 'O texto não pode estar vazio!';
                         }
+                        return null;
                     },
-                    preConfirm: () => {
-                        const input = document.getElementById('swal-input-text');
-                        const value = input ? input.value.trim() : '';
-                        if (!value) {
-                            Swal.showValidationMessage('O texto não pode estar vazio!');
-                            return false;
+                    customClass: {
+                        popup: 'swal2-popup-modal',
+                        container: 'swal2-container-modal'
+                    },
+                    didOpen: () => {
+                        // Garantir que o modal do SweetAlert2 fique acima do modal do Bootstrap
+                        const swalContainer = document.querySelector('.swal2-container');
+                        if (swalContainer) {
+                            swalContainer.style.zIndex = '10000';
                         }
-                        return value;
+                        const swalPopup = document.querySelector('.swal2-popup');
+                        if (swalPopup) {
+                            swalPopup.style.zIndex = '10001';
+                        }
                     }
                 }).then((result) => {
                     console.log('Resultado do SweetAlert2:', result);
-                    if (result.isConfirmed && result.value && result.value.trim()) {
-                        const novoTexto = result.value.trim();
-                        console.log('Atualizando texto do nó de "' + textoAtual + '" para "' + novoTexto + '"');
-                        node.text = novoTexto;
-                        // Recalcular largura
-                        self.ctx.font = node.isCentral ? 'bold 16px Arial' : '14px Arial';
-                        const metrics = self.ctx.measureText(node.text);
-                        node.width = Math.max(120, metrics.width + 30);
-                        console.log('Nó atualizado:', node);
-                        // Forçar redesenho
-                        if (self.draw) {
-                            self.draw();
-                        }
-                        if (typeof showToast === 'function') {
-                            showToast('Sucesso!', 'Nó editado com sucesso!', false);
+                    if (result.isConfirmed && result.value !== undefined && result.value !== null) {
+                        const novoTexto = String(result.value).trim();
+                        if (novoTexto) {
+                            console.log('Atualizando texto do nó de "' + textoAtual + '" para "' + novoTexto + '"');
+                            node.text = novoTexto;
+                            // Recalcular largura
+                            if (self.ctx) {
+                                self.ctx.font = node.isCentral ? 'bold 16px Arial' : '14px Arial';
+                                const metrics = self.ctx.measureText(node.text);
+                                node.width = Math.max(120, metrics.width + 30);
+                            } else {
+                                node.width = Math.max(120, (node.text.length * 8) + 30);
+                            }
+                            console.log('Nó atualizado:', node);
+                            // Forçar redesenho
+                            if (self.draw) {
+                                self.draw();
+                            }
+                            if (typeof showToast === 'function') {
+                                showToast('Sucesso!', 'Nó editado com sucesso!', false);
+                            }
                         }
                     }
                 }).catch((error) => {
@@ -1264,9 +1273,13 @@ class MindMap {
         if (novoTexto !== null && novoTexto.trim() !== '') {
             console.log('Atualizando texto do nó via prompt de "' + textoAtual + '" para "' + novoTexto.trim() + '"');
             node.text = novoTexto.trim();
-            self.ctx.font = node.isCentral ? 'bold 16px Arial' : '14px Arial';
-            const metrics = self.ctx.measureText(node.text);
-            node.width = Math.max(120, metrics.width + 30);
+            if (self.ctx) {
+                self.ctx.font = node.isCentral ? 'bold 16px Arial' : '14px Arial';
+                const metrics = self.ctx.measureText(node.text);
+                node.width = Math.max(120, metrics.width + 30);
+            } else {
+                node.width = Math.max(120, (node.text.length * 8) + 30);
+            }
             // Forçar redesenho
             if (self.draw) {
                 self.draw();
