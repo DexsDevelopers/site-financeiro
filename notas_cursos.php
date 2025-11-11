@@ -2013,6 +2013,59 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // Event listeners para botões do mapa mental (substituindo onclick inline)
+    const btnAdicionarNoMapa = document.getElementById('btn-adicionar-no-mapa');
+    if (btnAdicionarNoMapa) {
+        btnAdicionarNoMapa.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (typeof window.adicionarNoMapa === 'function') {
+                window.adicionarNoMapa();
+            } else {
+                console.error('Função adicionarNoMapa não encontrada');
+                alert('Erro: Função não carregada. Recarregue a página.');
+            }
+        });
+    }
+    
+    const btnLimparMapa = document.getElementById('btn-limpar-mapa');
+    if (btnLimparMapa) {
+        btnLimparMapa.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (typeof window.limparMapa === 'function') {
+                window.limparMapa();
+            } else {
+                console.error('Função limparMapa não encontrada');
+                alert('Erro: Função não carregada. Recarregue a página.');
+            }
+        });
+    }
+    
+    const btnSalvarMapaToolbar = document.getElementById('btn-salvar-mapa-toolbar');
+    if (btnSalvarMapaToolbar) {
+        btnSalvarMapaToolbar.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (typeof window.salvarMapaMental === 'function') {
+                window.salvarMapaMental();
+            } else {
+                console.error('Função salvarMapaMental não encontrada');
+                alert('Erro: Função não carregada. Recarregue a página.');
+            }
+        });
+    }
+    
+    const btnSalvarMapaFooter = document.getElementById('btn-salvar-mapa-footer');
+    if (btnSalvarMapaFooter) {
+        btnSalvarMapaFooter.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (typeof window.salvarMapaMental === 'function') {
+                window.salvarMapaMental();
+            } else {
+                console.error('Função salvarMapaMental não encontrada');
+                alert('Erro: Função não carregada. Recarregue a página.');
+            }
+        });
+    }
+    
     // Inicializar mapa mental quando modal abrir
     const modalNovoMapa = document.getElementById('modalNovoMapa');
     if (modalNovoMapa) {
