@@ -1189,201 +1189,75 @@ class MindMap {
         const self = this;
         const textoAtual = node.text || '';
         
-        // Tentar usar SweetAlert2 primeiro, mas sempre ter fallback
-        if (typeof Swal !== 'undefined' && Swal.fire) {
-            try {
-                Swal.fire({
-                    title: 'Editar Nó',
-                    input: 'text',
-                    inputValue: textoAtual,
-                    inputPlaceholder: 'Digite o texto do nó',
-                    showCancelButton: true,
-                    confirmButtonText: 'Salvar',
-                    cancelButtonText: 'Cancelar',
-                    allowOutsideClick: true,
-                    allowEscapeKey: true,
-                    showLoaderOnConfirm: false,
-                    inputValidator: (value) => {
-                        if (!value || !value.trim()) {
-                            return 'O texto não pode estar vazio!';
-                        }
-                        return null;
-                    },
-                    customClass: {
-                        popup: 'swal2-popup-modal',
-                        container: 'swal2-container-modal'
-                    },
-                    didOpen: () => {
-                        // Garantir que o modal do SweetAlert2 fique acima do modal do Bootstrap
-                        const swalContainer = document.querySelector('.swal2-container');
-                        if (swalContainer) {
-                            swalContainer.style.zIndex = '10000';
-                        }
-                        const swalPopup = document.querySelector('.swal2-popup');
-                        if (swalPopup) {
-                            swalPopup.style.zIndex = '10001';
-                        }
-                    }
-                }).then((result) => {
-                    console.log('Resultado do SweetAlert2:', result);
-                    if (result.isConfirmed && result.value !== undefined && result.value !== null) {
-                        const novoTexto = String(result.value).trim();
-                        if (novoTexto) {
-                            console.log('Atualizando texto do nó de "' + textoAtual + '" para "' + novoTexto + '"');
-                            node.text = novoTexto;
-                            // Recalcular largura
-                            if (self.ctx) {
-                                self.ctx.font = node.isCentral ? 'bold 16px Arial' : '14px Arial';
-                                const metrics = self.ctx.measureText(node.text);
-                                node.width = Math.max(120, metrics.width + 30);
-                            } else {
-                                node.width = Math.max(120, (node.text.length * 8) + 30);
-                            }
-                            console.log('Nó atualizado:', node);
-                            // Forçar redesenho
-                            if (self.draw) {
-                                self.draw();
-                            }
-                            if (typeof showToast === 'function') {
-                                showToast('Sucesso!', 'Nó editado com sucesso!', false);
-                            }
-                        }
-                    }
-                }).catch((error) => {
-                    console.error('Erro no SweetAlert2:', error);
-                    // Fallback para prompt
-                    self._editarNoComPrompt(node);
-                });
-            } catch (error) {
-                console.error('Erro ao usar SweetAlert2:', error);
-                // Fallback para prompt
-                self._editarNoComPrompt(node);
+        // Usar prompt nativo diretamente - mais confiável dentro de modais do Bootstrap
+        // O SweetAlert2 pode ter problemas de z-index e foco dentro de modais
+        const novoTexto = prompt('Editar texto do nó:\n\n(Deixe vazio para cancelar)', textoAtual);
+        
+        if (novoTexto !== null) {
+            const textoLimpo = novoTexto.trim();
+            if (textoLimpo && textoLimpo !== textoAtual) {
+                console.log('Atualizando texto do nó de "' + textoAtual + '" para "' + textoLimpo + '"');
+                node.text = textoLimpo;
+                // Recalcular largura
+                if (self.ctx) {
+                    self.ctx.font = node.isCentral ? 'bold 16px Arial' : '14px Arial';
+                    const metrics = self.ctx.measureText(node.text);
+                    node.width = Math.max(120, metrics.width + 30);
+                } else {
+                    node.width = Math.max(120, (node.text.length * 8) + 30);
+                }
+                console.log('Nó atualizado:', node);
+                // Forçar redesenho
+                if (self.draw) {
+                    self.draw();
+                }
+                if (typeof showToast === 'function') {
+                    showToast('Sucesso!', 'Nó editado com sucesso!', false);
+                }
+            } else if (textoLimpo === '') {
+                console.log('Edição cancelada - texto vazio');
+            } else {
+                console.log('Texto não alterado');
             }
         } else {
-            console.log('SweetAlert2 não disponível, usando prompt');
-            // Fallback para prompt
-            this._editarNoComPrompt(node);
+            console.log('Edição cancelada pelo usuário');
         }
     }
     
-    _editarNoComPrompt(node) {
-        const self = this;
-        const textoAtual = node.text || '';
-        const novoTexto = prompt('Editar texto do nó:', textoAtual);
-        if (novoTexto !== null && novoTexto.trim() !== '') {
-            console.log('Atualizando texto do nó via prompt de "' + textoAtual + '" para "' + novoTexto.trim() + '"');
-            node.text = novoTexto.trim();
-            if (self.ctx) {
-                self.ctx.font = node.isCentral ? 'bold 16px Arial' : '14px Arial';
-                const metrics = self.ctx.measureText(node.text);
-                node.width = Math.max(120, metrics.width + 30);
-            } else {
-                node.width = Math.max(120, (node.text.length * 8) + 30);
-            }
-            // Forçar redesenho
-            if (self.draw) {
-                self.draw();
-            }
-        }
-    }
     
     adicionarNo(x, y) {
         console.log('adicionarNo chamado em x:', x, 'y:', y);
         // Guardar referência do this
         const self = this;
         
-        // Tentar usar SweetAlert2 primeiro, mas sempre ter fallback
-        if (typeof Swal !== 'undefined' && Swal.fire) {
-            try {
-                Swal.fire({
-                    title: 'Adicionar Novo Nó',
-                    input: 'text',
-                    inputValue: 'Novo Nó',
-                    inputPlaceholder: 'Digite o texto do novo nó',
-                    showCancelButton: true,
-                    confirmButtonText: 'Adicionar',
-                    cancelButtonText: 'Cancelar',
-                    allowOutsideClick: true,
-                    allowEscapeKey: true,
-                    showLoaderOnConfirm: false,
-                    inputValidator: (value) => {
-                        if (!value || !value.trim()) {
-                            return 'O texto não pode estar vazio!';
-                        }
-                        return null;
-                    },
-                    customClass: {
-                        popup: 'swal2-popup-modal',
-                        container: 'swal2-container-modal'
-                    },
-                    didOpen: () => {
-                        // Garantir que o modal do SweetAlert2 fique acima do modal do Bootstrap
-                        const swalContainer = document.querySelector('.swal2-container');
-                        if (swalContainer) {
-                            swalContainer.style.zIndex = '10000';
-                        }
-                        const swalPopup = document.querySelector('.swal2-popup');
-                        if (swalPopup) {
-                            swalPopup.style.zIndex = '10001';
-                        }
-                    }
-                }).then((result) => {
-                    console.log('Resultado do SweetAlert2 (adicionar):', result);
-                    if (result.isConfirmed && result.value !== undefined && result.value !== null) {
-                        const texto = String(result.value).trim();
-                        if (texto) {
-                            console.log('Adicionando nó com texto:', texto, 'em x:', x, 'y:', y);
-                            const newNode = self.addNode(texto, x, y);
-                            console.log('Nó adicionado:', newNode);
-                            // Conectar ao nó central se existir
-                            const centralNode = self.nodes.find(n => n.isCentral);
-                            if (centralNode && centralNode.id !== newNode.id) {
-                                self.addEdge(centralNode.id, newNode.id);
-                                console.log('Conectado ao nó central:', centralNode.id);
-                            }
-                            // Forçar redesenho
-                            if (self.draw) {
-                                self.draw();
-                            }
-                            if (typeof showToast === 'function') {
-                                showToast('Sucesso!', 'Nó adicionado com sucesso!', false);
-                            }
-                        }
-                    }
-                }).catch((error) => {
-                    console.error('Erro no SweetAlert2 (adicionar):', error);
-                    // Fallback para prompt
-                    self._adicionarNoComPrompt(x, y);
-                });
-            } catch (error) {
-                console.error('Erro ao usar SweetAlert2 (adicionar):', error);
-                // Fallback para prompt
-                this._adicionarNoComPrompt(x, y);
+        // Usar prompt nativo diretamente - mais confiável dentro de modais do Bootstrap
+        // O SweetAlert2 pode ter problemas de z-index e foco dentro de modais
+        const texto = prompt('Digite o texto do novo nó:\n\n(Deixe vazio para cancelar)', 'Novo Nó');
+        
+        if (texto !== null) {
+            const textoLimpo = texto.trim();
+            if (textoLimpo) {
+                console.log('Adicionando nó com texto:', textoLimpo, 'em x:', x, 'y:', y);
+                const newNode = self.addNode(textoLimpo, x, y);
+                console.log('Nó adicionado:', newNode);
+                // Conectar ao nó central se existir
+                const centralNode = self.nodes.find(n => n.isCentral);
+                if (centralNode && centralNode.id !== newNode.id) {
+                    self.addEdge(centralNode.id, newNode.id);
+                    console.log('Conectado ao nó central:', centralNode.id);
+                }
+                // Forçar redesenho
+                if (self.draw) {
+                    self.draw();
+                }
+                if (typeof showToast === 'function') {
+                    showToast('Sucesso!', 'Nó adicionado com sucesso!', false);
+                }
+            } else {
+                console.log('Adição cancelada - texto vazio');
             }
         } else {
-            console.log('SweetAlert2 não disponível, usando prompt');
-            // Fallback para prompt
-            this._adicionarNoComPrompt(x, y);
-        }
-    }
-    
-    _adicionarNoComPrompt(x, y) {
-        const self = this;
-        const novoTexto = prompt('Digite o texto do novo nó:', 'Novo Nó');
-        if (novoTexto !== null && novoTexto.trim() !== '') {
-            console.log('Adicionando nó via prompt com texto:', novoTexto.trim(), 'em x:', x, 'y:', y);
-            const newNode = self.addNode(novoTexto.trim(), x, y);
-            const centralNode = self.nodes.find(n => n.isCentral);
-            if (centralNode && centralNode.id !== newNode.id) {
-                self.addEdge(centralNode.id, newNode.id);
-            }
-            // Forçar redesenho
-            if (self.draw) {
-                self.draw();
-            }
-            if (typeof showToast === 'function') {
-                showToast('Sucesso!', 'Nó adicionado com sucesso!', false);
-            }
+            console.log('Adição cancelada pelo usuário');
         }
     }
     
