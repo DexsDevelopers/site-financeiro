@@ -1116,6 +1116,9 @@ class MindMap {
     }
     
     editarNo(node) {
+        // Guardar referência do this
+        const self = this;
+        
         // Usar SweetAlert2 se disponível, senão prompt
         if (typeof Swal !== 'undefined') {
             Swal.fire({
@@ -1135,10 +1138,12 @@ class MindMap {
                 if (result.isConfirmed && result.value && result.value.trim()) {
                     node.text = result.value.trim();
                     // Recalcular largura
-                    this.ctx.font = node.isCentral ? 'bold 16px Arial' : '14px Arial';
-                    const metrics = this.ctx.measureText(node.text);
+                    self.ctx.font = node.isCentral ? 'bold 16px Arial' : '14px Arial';
+                    const metrics = self.ctx.measureText(node.text);
                     node.width = Math.max(120, metrics.width + 30);
-                    showToast('Sucesso!', 'Nó editado com sucesso!', false);
+                    if (typeof showToast === 'function') {
+                        showToast('Sucesso!', 'Nó editado com sucesso!', false);
+                    }
                 }
             });
         } else {
@@ -1146,14 +1151,17 @@ class MindMap {
             const novoTexto = prompt('Editar texto do nó:', node.text || '');
             if (novoTexto !== null && novoTexto.trim() !== '') {
                 node.text = novoTexto.trim();
-                this.ctx.font = node.isCentral ? 'bold 16px Arial' : '14px Arial';
-                const metrics = this.ctx.measureText(node.text);
+                self.ctx.font = node.isCentral ? 'bold 16px Arial' : '14px Arial';
+                const metrics = self.ctx.measureText(node.text);
                 node.width = Math.max(120, metrics.width + 30);
             }
         }
     }
     
     adicionarNo(x, y) {
+        // Guardar referência do this
+        const self = this;
+        
         // Usar SweetAlert2 se disponível, senão prompt
         if (typeof Swal !== 'undefined') {
             Swal.fire({
@@ -1171,25 +1179,29 @@ class MindMap {
                 }
             }).then((result) => {
                 if (result.isConfirmed && result.value && result.value.trim()) {
-                    const newNode = this.addNode(result.value.trim(), x, y);
+                    const newNode = self.addNode(result.value.trim(), x, y);
                     // Conectar ao nó central se existir
-                    const centralNode = this.nodes.find(n => n.isCentral);
+                    const centralNode = self.nodes.find(n => n.isCentral);
                     if (centralNode && centralNode.id !== newNode.id) {
-                        this.addEdge(centralNode.id, newNode.id);
+                        self.addEdge(centralNode.id, newNode.id);
                     }
-                    showToast('Sucesso!', 'Nó adicionado com sucesso!', false);
+                    if (typeof showToast === 'function') {
+                        showToast('Sucesso!', 'Nó adicionado com sucesso!', false);
+                    }
                 }
             });
         } else {
             // Fallback para prompt
             const novoTexto = prompt('Digite o texto do novo nó:', 'Novo Nó');
             if (novoTexto !== null && novoTexto.trim() !== '') {
-                const newNode = this.addNode(novoTexto.trim(), x, y);
-                const centralNode = this.nodes.find(n => n.isCentral);
+                const newNode = self.addNode(novoTexto.trim(), x, y);
+                const centralNode = self.nodes.find(n => n.isCentral);
                 if (centralNode && centralNode.id !== newNode.id) {
-                    this.addEdge(centralNode.id, newNode.id);
+                    self.addEdge(centralNode.id, newNode.id);
                 }
-                showToast('Sucesso!', 'Nó adicionado com sucesso!', false);
+                if (typeof showToast === 'function') {
+                    showToast('Sucesso!', 'Nó adicionado com sucesso!', false);
+                }
             }
         }
     }
@@ -1779,8 +1791,23 @@ function excluirNota(id) {
 
 // Funções para mapa mental
 function adicionarNoMapa() {
+    console.log('adicionarNoMapa chamado, mindMapInstance:', mindMapInstance);
+    
     if (!mindMapInstance) {
-        showToast('Erro!', 'Mapa mental não inicializado', true);
+        console.error('Mapa mental não inicializado');
+        if (typeof showToast === 'function') {
+            showToast('Erro!', 'Mapa mental não inicializado. Feche e abra o modal novamente.', true);
+        } else {
+            alert('Mapa mental não inicializado. Feche e abra o modal novamente.');
+        }
+        return;
+    }
+    
+    if (!mindMapInstance.canvas) {
+        console.error('Canvas não encontrado');
+        if (typeof showToast === 'function') {
+            showToast('Erro!', 'Canvas do mapa mental não encontrado', true);
+        }
         return;
     }
     
@@ -1800,8 +1827,19 @@ function adicionarNoMapa() {
         y = canvasHeight / 2;
     }
     
+    console.log('Adicionando nó em:', x, y);
+    
     // Usar método do MindMap para adicionar nó
-    mindMapInstance.adicionarNo(x, y);
+    try {
+        mindMapInstance.adicionarNo(x, y);
+    } catch (error) {
+        console.error('Erro ao adicionar nó:', error);
+        if (typeof showToast === 'function') {
+            showToast('Erro!', 'Erro ao adicionar nó: ' + error.message, true);
+        } else {
+            alert('Erro ao adicionar nó: ' + error.message);
+        }
+    }
 }
 
 function limparMapa() {
