@@ -447,7 +447,8 @@ try {
         <div class="rotinas-grid" id="lista-rotinas">
             <?php foreach ($rotinasFixas as $rotina): ?>
             <div class="rotina-item <?php echo $rotina['status_hoje'] === 'concluido' ? 'completed' : ''; ?>" 
-                 data-rotina-id="<?php echo $rotina['id']; ?>">
+                 data-rotina-id="<?php echo $rotina['id']; ?>"
+                 data-controle-id="<?php echo $rotina['controle_id'] ?? ''; ?>">
                 <div class="rotina-header">
                     <div class="rotina-icon" onclick="toggleRotina(<?php echo $rotina['id']; ?>, '<?php echo $rotina['status_hoje'] ?? 'pendente'; ?>')">
                         <i class="bi bi-<?php echo $rotina['status_hoje'] === 'concluido' ? 'check-circle-fill' : 'circle'; ?>"></i>
@@ -608,22 +609,47 @@ document.addEventListener('DOMContentLoaded', function() {
 function toggleRotina(rotinaId, statusAtual) {
     const novoStatus = statusAtual === 'concluido' ? 'pendente' : 'concluido';
     
-    fetch('processar_rotina_diaria.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `rotina_id=${rotinaId}&status=${novoStatus}`
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            window.location.reload();
-        } else {
-            showToast(data.message || 'Erro ao atualizar rotina', 'error');
-        }
-    })
-    .catch(error => {
-        showToast('Erro ao atualizar rotina', 'error');
-    });
+    // Primeiro, buscar o controle_id da rotina
+    const rotinaItem = document.querySelector(`[data-rotina-id="${rotinaId}"]`);
+    const controleId = rotinaItem?.dataset?.controleId;
+    
+    if (!controleId) {
+        // Se não tiver controle_id, criar um novo controle para hoje
+        fetch('processar_rotina_diaria.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `rotina_id=${rotinaId}&status=${novoStatus}&criar_controle=1`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+            } else {
+                showToast(data.message || 'Erro ao atualizar rotina', 'error');
+            }
+        })
+        .catch(error => {
+            showToast('Erro ao atualizar rotina', 'error');
+        });
+    } else {
+        // Usar o controle_id existente
+        fetch('processar_rotina_diaria.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `controle_id=${controleId}&status=${novoStatus}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+            } else {
+                showToast(data.message || 'Erro ao atualizar rotina', 'error');
+            }
+        })
+        .catch(error => {
+            showToast('Erro ao atualizar rotina', 'error');
+        });
+    }
 }
 
 // Editar Rotina

@@ -14,27 +14,57 @@ $userId = $_SESSION['user_id'];
 
 try {
     $controleId = (int)($_POST['controle_id'] ?? 0);
+    $rotinaId = (int)($_POST['rotina_id'] ?? 0);
     $requestedStatus = trim($_POST['status'] ?? 'concluido');
+    $criarControle = isset($_POST['criar_controle']) && $_POST['criar_controle'] == '1';
+    $dataHoje = date('Y-m-d');
     
-    if (!$controleId) {
+    // Se não tem controle_id mas tem rotina_id, buscar ou criar controle
+    if (!$controleId && $rotinaId) {
+        // Buscar controle existente para hoje
+        $stmt = $pdo->prepare("
+            SELECT id, status FROM rotina_controle_diario 
+            WHERE id_rotina_fixa = ? AND id_usuario = ? AND data_execucao = ?
+        ");
+        $stmt->execute([$rotinaId, $userId, $dataHoje]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($row) {
+            $controleId = $row['id'];
+            $statusAtual = $row['status'];
+        } else if ($criarControle) {
+            // Criar novo controle
+            $stmt = $pdo->prepare("
+                INSERT INTO rotina_controle_diario (id_usuario, id_rotina_fixa, data_execucao, status)
+                VALUES (?, ?, ?, ?)
+            ");
+            $novoStatus = $requestedStatus;
+            $stmt->execute([$userId, $rotinaId, $dataHoje, $novoStatus]);
+            $controleId = $pdo->lastInsertId();
+            $statusAtual = 'pendente';
+        } else {
+            http_response_code(404);
+            throw new Exception('Controle diário não encontrado. Tente novamente.');
+        }
+    } else if (!$controleId) {
         http_response_code(400);
-        throw new Exception('ID de controle inválido');
+        throw new Exception('ID de controle ou rotina inválido');
+    } else {
+        // ===== BUSCAR STATUS ATUAL =====
+        $stmt = $pdo->prepare("
+            SELECT status FROM rotina_controle_diario 
+            WHERE id = ? AND id_usuario = ?
+        ");
+        $stmt->execute([$controleId, $userId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$row) {
+            http_response_code(404);
+            throw new Exception('Rotina não encontrada');
+        }
+        
+        $statusAtual = $row['status'];
     }
-    
-    // ===== BUSCAR STATUS ATUAL =====
-    $stmt = $pdo->prepare("
-        SELECT status FROM rotina_controle_diario 
-        WHERE id = ? AND id_usuario = ?
-    ");
-    $stmt->execute([$controleId, $userId]);
-    $row = $stmt->fetch(PDO::FETCH_ASSOC);
-    
-    if (!$row) {
-        http_response_code(404);
-        throw new Exception('Rotina não encontrada');
-    }
-    
-    $statusAtual = $row['status'];
     
     // ===== DETERMINAR NOVO STATUS =====
     // Se o status atual é "concluido" e o usuário clica novamente, volta para "pendente"
