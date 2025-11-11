@@ -789,20 +789,20 @@ $stats = [
                     </div>
                 </div>
                 <div class="mindmap-controls">
-                    <button class="btn btn-sm btn-primary" onclick="adicionarNoMapa()" title="Adicionar Nó">
+                    <button type="button" class="btn btn-sm btn-primary" id="btn-adicionar-no-mapa" title="Adicionar Nó">
                         <i class="bi bi-plus-circle me-1"></i><span>Adicionar</span>
                     </button>
-                    <button class="btn btn-sm btn-warning" onclick="limparMapa()" title="Limpar">
+                    <button type="button" class="btn btn-sm btn-warning" id="btn-limpar-mapa" title="Limpar">
                         <i class="bi bi-arrow-counterclockwise me-1"></i><span>Limpar</span>
                     </button>
-                    <button class="btn btn-sm btn-success" onclick="salvarMapaMental()" title="Salvar">
+                    <button type="button" class="btn btn-sm btn-success" id="btn-salvar-mapa-toolbar" title="Salvar">
                         <i class="bi bi-save me-1"></i><span>Salvar</span>
                     </button>
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-danger" onclick="salvarMapaMental()">
+                <button type="button" class="btn btn-danger" id="btn-salvar-mapa-footer">
                     <i class="bi bi-check-lg me-2"></i>Salvar Mapa Mental
                 </button>
             </div>
