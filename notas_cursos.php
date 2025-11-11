@@ -990,11 +990,12 @@ class MindMap {
     }
     
     addNode(text, x, y, isCentral = false) {
+        console.log('addNode chamado - text:', text, 'x:', x, 'y:', y, 'isCentral:', isCentral);
         const node = {
             id: this.nodeIdCounter++,
             text: text || 'Novo Nó',
-            x: x || (this.canvas.width / (window.devicePixelRatio || 1)) / 2,
-            y: y || (this.canvas.height / (window.devicePixelRatio || 1)) / 2,
+            x: x || 400,
+            y: y || 300,
             width: 0, // Será calculado
             height: 50,
             isCentral: isCentral,
@@ -1002,20 +1003,28 @@ class MindMap {
             borderColor: isCentral ? this.colors.central.border : this.colors.node.border,
             textColor: isCentral ? this.colors.central.text : this.colors.node.text,
             hover: false,
-            pulse: 0
+            pulse: 1 // Efeito de pulse ao criar
         };
         
         // Calcular largura baseada no texto
-        this.ctx.font = isCentral ? 'bold 16px Arial' : '14px Arial';
-        const metrics = this.ctx.measureText(node.text);
-        node.width = Math.max(120, metrics.width + 30);
+        if (this.ctx) {
+            this.ctx.font = isCentral ? 'bold 16px Arial' : '14px Arial';
+            const metrics = this.ctx.measureText(node.text);
+            node.width = Math.max(120, metrics.width + 30);
+        } else {
+            // Fallback se ctx não estiver disponível
+            node.width = Math.max(120, (node.text.length * 8) + 30);
+            console.warn('Contexto do canvas não disponível, usando largura estimada');
+        }
         
         this.nodes.push(node);
+        console.log('Nó adicionado à lista. Total de nós:', this.nodes.length, 'Nó:', node);
         
         // Animação de entrada
-        node.pulse = 1;
         setTimeout(() => {
-            node.pulse = 0;
+            if (node.pulse !== undefined) {
+                node.pulse = 0;
+            }
         }, 300);
         
         return node;
@@ -1275,52 +1284,57 @@ class MindMap {
             try {
                 Swal.fire({
                     title: 'Adicionar Novo Nó',
-                    html: '<input type="text" id="swal-input-text-new" class="swal2-input" value="Novo Nó" placeholder="Digite o texto do novo nó" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">',
+                    input: 'text',
+                    inputValue: 'Novo Nó',
+                    inputPlaceholder: 'Digite o texto do novo nó',
                     showCancelButton: true,
                     confirmButtonText: 'Adicionar',
                     cancelButtonText: 'Cancelar',
-                    focusConfirm: false,
-                    didOpen: () => {
-                        const input = document.getElementById('swal-input-text-new');
-                        if (input) {
-                            input.focus();
-                            input.select();
-                            // Permitir Enter para confirmar
-                            input.addEventListener('keypress', function(e) {
-                                if (e.key === 'Enter') {
-                                    Swal.clickConfirm();
-                                }
-                            });
+                    allowOutsideClick: true,
+                    allowEscapeKey: true,
+                    showLoaderOnConfirm: false,
+                    inputValidator: (value) => {
+                        if (!value || !value.trim()) {
+                            return 'O texto não pode estar vazio!';
                         }
+                        return null;
                     },
-                    preConfirm: () => {
-                        const input = document.getElementById('swal-input-text-new');
-                        const value = input ? input.value.trim() : '';
-                        if (!value) {
-                            Swal.showValidationMessage('O texto não pode estar vazio!');
-                            return false;
+                    customClass: {
+                        popup: 'swal2-popup-modal',
+                        container: 'swal2-container-modal'
+                    },
+                    didOpen: () => {
+                        // Garantir que o modal do SweetAlert2 fique acima do modal do Bootstrap
+                        const swalContainer = document.querySelector('.swal2-container');
+                        if (swalContainer) {
+                            swalContainer.style.zIndex = '10000';
                         }
-                        return value;
+                        const swalPopup = document.querySelector('.swal2-popup');
+                        if (swalPopup) {
+                            swalPopup.style.zIndex = '10001';
+                        }
                     }
                 }).then((result) => {
                     console.log('Resultado do SweetAlert2 (adicionar):', result);
-                    if (result.isConfirmed && result.value && result.value.trim()) {
-                        const texto = result.value.trim();
-                        console.log('Adicionando nó com texto:', texto, 'em x:', x, 'y:', y);
-                        const newNode = self.addNode(texto, x, y);
-                        console.log('Nó adicionado:', newNode);
-                        // Conectar ao nó central se existir
-                        const centralNode = self.nodes.find(n => n.isCentral);
-                        if (centralNode && centralNode.id !== newNode.id) {
-                            self.addEdge(centralNode.id, newNode.id);
-                            console.log('Conectado ao nó central:', centralNode.id);
-                        }
-                        // Forçar redesenho
-                        if (self.draw) {
-                            self.draw();
-                        }
-                        if (typeof showToast === 'function') {
-                            showToast('Sucesso!', 'Nó adicionado com sucesso!', false);
+                    if (result.isConfirmed && result.value !== undefined && result.value !== null) {
+                        const texto = String(result.value).trim();
+                        if (texto) {
+                            console.log('Adicionando nó com texto:', texto, 'em x:', x, 'y:', y);
+                            const newNode = self.addNode(texto, x, y);
+                            console.log('Nó adicionado:', newNode);
+                            // Conectar ao nó central se existir
+                            const centralNode = self.nodes.find(n => n.isCentral);
+                            if (centralNode && centralNode.id !== newNode.id) {
+                                self.addEdge(centralNode.id, newNode.id);
+                                console.log('Conectado ao nó central:', centralNode.id);
+                            }
+                            // Forçar redesenho
+                            if (self.draw) {
+                                self.draw();
+                            }
+                            if (typeof showToast === 'function') {
+                                showToast('Sucesso!', 'Nó adicionado com sucesso!', false);
+                            }
                         }
                     }
                 }).catch((error) => {
