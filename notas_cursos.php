@@ -1832,22 +1832,22 @@ function adicionarNoMapa() {
     const canvasHeight = mindMapInstance.canvas.height / dpr;
     const centralNode = mindMapInstance.nodes.find(n => n.isCentral);
     
-    let x, y;
+    let nodeX, nodeY;
     if (centralNode) {
         // Posicionar ao lado do nó central
-        x = centralNode.x + 180;
-        y = centralNode.y;
+        nodeX = centralNode.x + 180;
+        nodeY = centralNode.y;
     } else {
         // Se não houver nó central, posicionar no centro
-        x = canvasWidth / 2 + 150;
-        y = canvasHeight / 2;
+        nodeX = canvasWidth / 2 + 150;
+        nodeY = canvasHeight / 2;
     }
     
-    console.log('Adicionando nó em:', x, y);
+    console.log('Adicionando nó em:', nodeX, nodeY);
     
     // Usar método do MindMap para adicionar nó
     try {
-        mindMapInstance.adicionarNo(x, y);
+        mindMapInstance.adicionarNo(nodeX, nodeY);
     } catch (error) {
         console.error('Erro ao adicionar nó:', error);
         if (typeof showToast === 'function') {
@@ -1858,13 +1858,13 @@ function adicionarNoMapa() {
     }
 }
 
-function limparMapa() {
+window.limparMapa = function() {
     if (!confirm('Deseja limpar o mapa mental? Esta ação não pode ser desfeita.')) return;
     
     if (mindMapInstance) {
         mindMapInstance.clear();
     }
-}
+};
 
 function salvarMapaMental() {
     const tituloInput = document.getElementById('mapa-titulo');
@@ -1937,7 +1937,7 @@ function salvarMapaMental() {
     });
 }
 
-function visualizarMapa(id, titulo, dadosJson) {
+window.visualizarMapa = function(id, titulo, dadosJson) {
     try {
         let dados;
         
@@ -2037,9 +2037,9 @@ function visualizarMapa(id, titulo, dadosJson) {
         console.error('Erro ao visualizar mapa:', error);
         showToast('Erro!', 'Erro ao carregar mapa mental: ' + error.message, true);
     }
-}
+};
 
-function excluirMapa(id) {
+window.excluirMapa = function(id) {
     if (!confirm('Tem certeza que deseja excluir este mapa mental?')) return;
     
     fetch('excluir_mapa_mental.php', {
@@ -2060,9 +2060,9 @@ function excluirMapa(id) {
         console.error('Erro:', error);
         showToast('Erro!', 'Erro de conexão', true);
     });
-}
+};
 
-function criarMapaMental(notaId) {
+window.criarMapaMental = function(notaId) {
     fetch(`buscar_nota.php?id=${notaId}`)
         .then(response => response.json())
         .then(data => {
@@ -2094,10 +2094,10 @@ function criarMapaMental(notaId) {
                         if (palavraLimpa.length > 0 && centralNode) {
                             const angle = (index / palavras.length) * Math.PI * 2;
                             const radius = 150;
-                            const x = centralNode.x + Math.cos(angle) * radius;
-                            const y = centralNode.y + Math.sin(angle) * radius;
+                            const nodeX = centralNode.x + Math.cos(angle) * radius;
+                            const nodeY = centralNode.y + Math.sin(angle) * radius;
                             
-                            const newNode = mindMapInstance.addNode(palavraLimpa, x, y);
+                            const newNode = mindMapInstance.addNode(palavraLimpa, nodeX, nodeY);
                             mindMapInstance.addEdge(centralNode.id, newNode.id);
                         }
                     });
@@ -2110,7 +2110,7 @@ function criarMapaMental(notaId) {
             console.error('Erro:', error);
             showToast('Erro!', 'Erro ao buscar nota: ' + error.message, true);
         });
-}
+};
 </script>
 
 <?php
