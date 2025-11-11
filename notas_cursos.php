@@ -1390,8 +1390,8 @@ class MindMap {
         
         // Retângulo arredondado (compatível com todos navegadores)
         const radius = 12;
-        const x = node.x - currentWidth / 2;
-        const y = node.y - currentHeight / 2;
+        const rectX = node.x - currentWidth / 2;
+        const rectY = node.y - currentHeight / 2;
         const w = currentWidth;
         const h = currentHeight;
         
