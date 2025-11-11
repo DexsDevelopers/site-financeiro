@@ -1630,16 +1630,32 @@ document.addEventListener('DOMContentLoaded', function() {
     const modalNovoMapa = document.getElementById('modalNovoMapa');
     if (modalNovoMapa) {
         modalNovoMapa.addEventListener('shown.bs.modal', function() {
-            if (!mindMapInstance) {
-                mindMapInstance = new MindMap('mindmap-canvas');
-            }
+            // Aguardar um pouco para garantir que o canvas está renderizado
+            setTimeout(() => {
+                const canvas = document.getElementById('mindmap-canvas');
+                if (canvas && !mindMapInstance) {
+                    console.log('Inicializando mapa mental...');
+                    mindMapInstance = new MindMap('mindmap-canvas');
+                    if (mindMapInstance && mindMapInstance.canvas) {
+                        console.log('Mapa mental inicializado com sucesso');
+                    } else {
+                        console.error('Falha ao inicializar mapa mental');
+                    }
+                } else if (!canvas) {
+                    console.error('Canvas não encontrado');
+                } else {
+                    console.log('Mapa mental já inicializado');
+                }
+            }, 300);
         });
         
         modalNovoMapa.addEventListener('hidden.bs.modal', function() {
             const tituloInput = document.getElementById('mapa-titulo');
             if (tituloInput) tituloInput.value = '';
             if (mindMapInstance) {
+                mindMapInstance.stopAnimation();
                 mindMapInstance.clear();
+                // Não destruir completamente, apenas limpar para poder reutilizar
             }
         });
     }
