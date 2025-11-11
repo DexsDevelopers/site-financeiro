@@ -923,7 +923,10 @@ class MindMap {
     
     addDefaultNode() {
         if (this.nodes.length === 0) {
-            this.addNode('Tema Central', this.canvas.width / 2, this.canvas.height / 2, true);
+            const dpr = window.devicePixelRatio || 1;
+            const centerX = (this.canvas.width / dpr) / 2;
+            const centerY = (this.canvas.height / dpr) / 2;
+            this.addNode('Tema Central', centerX, centerY, true);
         }
     }
     
@@ -994,15 +997,17 @@ class MindMap {
     
     onMouseDown(e) {
         const rect = this.canvas.getBoundingClientRect();
-        const x = (e.clientX - rect.left) / this.scale;
-        const y = (e.clientY - rect.top) / this.scale;
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
         
         const node = this.getNodeAt(x, y);
         if (node) {
             this.selectedNode = node;
             this.dragging = true;
-            this.dragOffset.x = x - node.x;
-            this.dragOffset.y = y - node.y;
+            const adjustedX = (x - this.offset.x) / this.scale;
+            const adjustedY = (y - this.offset.y) / this.scale;
+            this.dragOffset.x = adjustedX - node.x;
+            this.dragOffset.y = adjustedY - node.y;
         } else {
             this.selectedNode = null;
         }
@@ -1010,12 +1015,14 @@ class MindMap {
     
     onMouseMove(e) {
         const rect = this.canvas.getBoundingClientRect();
-        const x = (e.clientX - rect.left) / this.scale;
-        const y = (e.clientY - rect.top) / this.scale;
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
         
         if (this.dragging && this.selectedNode) {
-            this.selectedNode.x = x - this.dragOffset.x;
-            this.selectedNode.y = y - this.dragOffset.y;
+            const adjustedX = (x - this.offset.x) / this.scale;
+            const adjustedY = (y - this.offset.y) / this.scale;
+            this.selectedNode.x = adjustedX - this.dragOffset.x;
+            this.selectedNode.y = adjustedY - this.dragOffset.y;
         } else {
             // Verificar hover
             const node = this.getNodeAt(x, y);
@@ -1053,15 +1060,17 @@ class MindMap {
         if (e.touches.length === 1) {
             const touch = e.touches[0];
             const rect = this.canvas.getBoundingClientRect();
-            const x = (touch.clientX - rect.left) / this.scale;
-            const y = (touch.clientY - rect.top) / this.scale;
+            const x = touch.clientX - rect.left;
+            const y = touch.clientY - rect.top;
             
             const node = this.getNodeAt(x, y);
             if (node) {
                 this.selectedNode = node;
                 this.dragging = true;
-                this.dragOffset.x = x - node.x;
-                this.dragOffset.y = y - node.y;
+                const adjustedX = (x - this.offset.x) / this.scale;
+                const adjustedY = (y - this.offset.y) / this.scale;
+                this.dragOffset.x = adjustedX - node.x;
+                this.dragOffset.y = adjustedY - node.y;
             }
         }
     }
@@ -1071,11 +1080,13 @@ class MindMap {
         if (this.dragging && this.selectedNode && e.touches.length === 1) {
             const touch = e.touches[0];
             const rect = this.canvas.getBoundingClientRect();
-            const x = (touch.clientX - rect.left) / this.scale;
-            const y = (touch.clientY - rect.top) / this.scale;
+            const x = touch.clientX - rect.left;
+            const y = touch.clientY - rect.top;
+            const adjustedX = (x - this.offset.x) / this.scale;
+            const adjustedY = (y - this.offset.y) / this.scale;
             
-            this.selectedNode.x = x - this.dragOffset.x;
-            this.selectedNode.y = y - this.dragOffset.y;
+            this.selectedNode.x = adjustedX - this.dragOffset.x;
+            this.selectedNode.y = adjustedY - this.dragOffset.y;
         }
     }
     
@@ -1085,10 +1096,12 @@ class MindMap {
     
     onDoubleClick(e) {
         const rect = this.canvas.getBoundingClientRect();
-        const x = (e.clientX - rect.left) / this.scale;
-        const y = (e.clientY - rect.top) / this.scale;
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
         
         const node = this.getNodeAt(x, y);
+        const adjustedX = (x - this.offset.x) / this.scale;
+        const adjustedY = (y - this.offset.y) / this.scale;
         if (node) {
             // Editar nó existente
             const novoTexto = prompt('Editar texto do nó:', node.text);
@@ -1100,7 +1113,7 @@ class MindMap {
             // Adicionar novo nó
             const novoTexto = prompt('Digite o texto do novo nó:', 'Novo Nó');
             if (novoTexto !== null && novoTexto.trim() !== '') {
-                const newNode = this.addNode(novoTexto.trim(), x, y);
+                const newNode = this.addNode(novoTexto.trim(), adjustedX, adjustedY);
                 // Conectar ao nó central se existir
                 const centralNode = this.nodes.find(n => n.isCentral);
                 if (centralNode && centralNode.id !== newNode.id) {
@@ -1113,8 +1126,8 @@ class MindMap {
     onRightClick(e) {
         e.preventDefault();
         const rect = this.canvas.getBoundingClientRect();
-        const x = (e.clientX - rect.left) / this.scale;
-        const y = (e.clientY - rect.top) / this.scale;
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
         
         const node = this.getNodeAt(x, y);
         if (node && !node.isCentral) {
