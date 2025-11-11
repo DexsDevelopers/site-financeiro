@@ -67,8 +67,8 @@ try {
                     $erros++;
                 }
             } else {
-                // Criar novo dia
-                $stmt_novo_dia = $pdo->prepare("INSERT INTO rotina_dias (id_rotina, dia_semana, nome_treino, descricao, duracao, nivel) VALUES (?, ?, ?, '', 60, 'iniciante')");
+                // Criar novo dia (apenas com colunas que existem)
+                $stmt_novo_dia = $pdo->prepare("INSERT INTO rotina_dias (id_rotina, dia_semana, nome_treino) VALUES (?, ?, ?)");
                 if ($stmt_novo_dia->execute([$rotina_id, $dia_semana, $nome_treino])) {
                     $sucessos++;
                 } else {
@@ -117,13 +117,13 @@ try {
         $dia_existente = $stmt_dia->fetch();
         
         if ($dia_existente) {
-            // Atualizar dia existente
-            $stmt_update = $pdo->prepare("UPDATE rotina_dias SET nome_treino = ?, descricao = ?, duracao = ?, nivel = ? WHERE id = ?");
-            $result = $stmt_update->execute([$nome_treino, $descricao, $duracao, $nivel, $dia_existente['id']]);
+            // Atualizar dia existente (apenas nome_treino, que é a coluna que existe)
+            $stmt_update = $pdo->prepare("UPDATE rotina_dias SET nome_treino = ? WHERE id = ?");
+            $result = $stmt_update->execute([$nome_treino, $dia_existente['id']]);
         } else {
-            // Criar novo dia
-            $stmt_novo_dia = $pdo->prepare("INSERT INTO rotina_dias (id_rotina, dia_semana, nome_treino, descricao, duracao, nivel) VALUES (?, ?, ?, ?, ?, ?)");
-            $result = $stmt_novo_dia->execute([$rotina_id, $dia_semana, $nome_treino, $descricao, $duracao, $nivel]);
+            // Criar novo dia (apenas com colunas que existem)
+            $stmt_novo_dia = $pdo->prepare("INSERT INTO rotina_dias (id_rotina, dia_semana, nome_treino) VALUES (?, ?, ?)");
+            $result = $stmt_novo_dia->execute([$rotina_id, $dia_semana, $nome_treino]);
         }
         
         if ($result) {
