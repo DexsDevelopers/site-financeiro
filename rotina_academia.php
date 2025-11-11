@@ -232,12 +232,23 @@ try {
     border-radius: 8px;
     margin-bottom: 8px;
     padding: 12px;
-    background: #f8f9fa;
+    background: var(--bs-body-bg, #f8f9fa);
+    border: 1px solid var(--bs-border-color, #dee2e6) !important;
+    color: var(--bs-body-color, #212529);
 }
 
 .exercise-item:hover {
-    background: #e9ecef;
+    background: var(--bs-secondary-bg, #e9ecef);
     transform: translateX(5px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.exercise-item .fw-bold {
+    color: var(--bs-body-color, #212529) !important;
+}
+
+.exercise-item .small {
+    color: var(--bs-secondary-color, #6c757d) !important;
 }
 
 .exercise-status i {
