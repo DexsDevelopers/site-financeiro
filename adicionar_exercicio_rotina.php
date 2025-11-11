@@ -18,6 +18,33 @@ require_once 'includes/db_connect.php';
 // Função auxiliar para criar tabelas se não existirem
 function criarTabelasAcademiaSeNecessario($pdo) {
     try {
+        // Tabela rotinas (se não existir)
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS rotinas (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                id_usuario INT NOT NULL,
+                nome_rotina VARCHAR(100) DEFAULT 'Rotina Principal',
+                ativo BOOLEAN DEFAULT TRUE,
+                data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (id_usuario) REFERENCES usuarios(id) ON DELETE CASCADE,
+                INDEX idx_usuario (id_usuario)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+        
+        // Tabela rotina_dias (se não existir)
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS rotina_dias (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                id_rotina INT NOT NULL,
+                dia_semana TINYINT NOT NULL CHECK (dia_semana BETWEEN 1 AND 7),
+                nome_treino VARCHAR(100) NOT NULL,
+                FOREIGN KEY (id_rotina) REFERENCES rotinas(id) ON DELETE CASCADE,
+                UNIQUE KEY unique_rotina_dia (id_rotina, dia_semana),
+                INDEX idx_rotina (id_rotina),
+                INDEX idx_dia (dia_semana)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+        
         // Tabela exercicios
         $pdo->exec("
             CREATE TABLE IF NOT EXISTS exercicios (
