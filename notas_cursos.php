@@ -1095,6 +1095,9 @@ class MindMap {
     }
     
     onDoubleClick(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
         const rect = this.canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
@@ -1102,24 +1105,33 @@ class MindMap {
         const node = this.getNodeAt(x, y);
         const adjustedX = (x - this.offset.x) / this.scale;
         const adjustedY = (y - this.offset.y) / this.scale;
+        
         if (node) {
             // Editar nó existente
-            const novoTexto = prompt('Editar texto do nó:', node.text);
-            if (novoTexto !== null && novoTexto.trim() !== '') {
-                node.text = novoTexto.trim();
-                this.draw();
-            }
+            setTimeout(() => {
+                const novoTexto = prompt('Editar texto do nó:', node.text || '');
+                if (novoTexto !== null && novoTexto.trim() !== '') {
+                    node.text = novoTexto.trim();
+                    // Recalcular largura
+                    this.ctx.font = node.isCentral ? 'bold 16px Arial' : '14px Arial';
+                    const metrics = this.ctx.measureText(node.text);
+                    node.width = Math.max(120, metrics.width + 30);
+                }
+            }, 100);
         } else {
             // Adicionar novo nó
-            const novoTexto = prompt('Digite o texto do novo nó:', 'Novo Nó');
-            if (novoTexto !== null && novoTexto.trim() !== '') {
-                const newNode = this.addNode(novoTexto.trim(), adjustedX, adjustedY);
-                // Conectar ao nó central se existir
-                const centralNode = this.nodes.find(n => n.isCentral);
-                if (centralNode && centralNode.id !== newNode.id) {
-                    this.addEdge(centralNode.id, newNode.id);
+            setTimeout(() => {
+                const novoTexto = prompt('Digite o texto do novo nó:', 'Novo Nó');
+                if (novoTexto !== null && novoTexto.trim() !== '') {
+                    const newNode = this.addNode(novoTexto.trim(), adjustedX, adjustedY);
+                    // Conectar ao nó central se existir
+                    const centralNode = this.nodes.find(n => n.isCentral);
+                    if (centralNode && centralNode.id !== newNode.id) {
+                        this.addEdge(centralNode.id, newNode.id);
+                    }
+                    showToast('Sucesso!', 'Nó adicionado com sucesso!', false);
                 }
-            }
+            }, 100);
         }
     }
     
@@ -1391,17 +1403,55 @@ class MindMap {
     }
     
     loadData(data) {
-        if (data && data.nodes) {
-            this.nodes = data.nodes.map(n => ({
-                ...n,
-                width: 120,
-                height: 40
-            }));
+        if (!data) return;
+        
+        // Converter dados do formato antigo (vis-network) para o novo formato (Canvas)
+        if (data.nodes && Array.isArray(data.nodes)) {
+            this.nodes = data.nodes.map(n => {
+                // Se for formato antigo (vis-network)
+                if (n.label && !n.text) {
+                    return {
+                        id: n.id,
+                        text: n.label || 'Nó',
+                        x: n.x || (this.canvas.width / (window.devicePixelRatio || 1)) / 2,
+                        y: n.y || (this.canvas.height / (window.devicePixelRatio || 1)) / 2,
+                        width: 0, // Será calculado
+                        height: 50,
+                        isCentral: n.id === 1 || (n.color && n.color.background === '#dc3545'),
+                        color: n.isCentral ? this.colors.central.bg : this.colors.node.bg,
+                        borderColor: n.isCentral ? this.colors.central.border : this.colors.node.border,
+                        textColor: n.isCentral ? this.colors.central.text : this.colors.node.text,
+                        hover: false,
+                        pulse: 0
+                    };
+                } else {
+                    // Formato novo (Canvas)
+                    return {
+                        ...n,
+                        width: n.width || 120,
+                        height: n.height || 50,
+                        hover: false,
+                        pulse: 0
+                    };
+                }
+            });
+            
+            // Calcular larguras dos nós
+            this.nodes.forEach(node => {
+                if (!node.width || node.width === 0) {
+                    this.ctx.font = node.isCentral ? 'bold 16px Arial' : '14px Arial';
+                    const metrics = this.ctx.measureText(node.text);
+                    node.width = Math.max(120, metrics.width + 30);
+                }
+            });
+            
             this.edges = data.edges || [];
             if (this.nodes.length > 0) {
                 this.nodeIdCounter = Math.max(...this.nodes.map(n => n.id)) + 1;
             }
-            this.draw();
+        } else {
+            // Se não tiver nodes, criar nó central padrão
+            this.addDefaultNode();
         }
     }
     
@@ -1541,17 +1591,22 @@ document.addEventListener('DOMContentLoaded', function() {
                                 </div>
                             `;
                         } else {
-                            container.innerHTML = data.mapas.map(mapa => `
+                            container.innerHTML = data.mapas.map(mapa => {
+                                // Escapar dados para uso seguro no onclick
+                                const dadosEscapados = escapeHTML(JSON.stringify(mapa.dados));
+                                const tituloEscapado = escapeHTML(mapa.titulo);
+                                
+                                return `
                                 <div class="col-md-6 col-lg-4">
                                     <div class="card note-card h-100">
                                         <div class="card-body">
-                                            <h6 class="card-title fw-bold" style="color: var(--bs-body-color, #fff);">${escapeHTML(mapa.titulo)}</h6>
+                                            <h6 class="card-title fw-bold" style="color: var(--bs-body-color, #fff);">${tituloEscapado}</h6>
                                             <p class="text-muted small mb-2">
                                                 <i class="bi bi-calendar me-1"></i>
                                                 ${new Date(mapa.data_criacao).toLocaleDateString('pt-BR')}
                                             </p>
                                             <div class="d-flex gap-2">
-                                                <button class="btn btn-sm btn-primary" onclick="visualizarMapa(${mapa.id}, '${escapeHTML(mapa.titulo)}', ${escapeHTML(JSON.stringify(mapa.dados))})">
+                                                <button class="btn btn-sm btn-primary" onclick="visualizarMapa(${mapa.id}, ${JSON.stringify(tituloEscapado)}, ${JSON.stringify(mapa.dados)})">
                                                     <i class="bi bi-eye me-1"></i>Visualizar
                                                 </button>
                                                 <button class="btn btn-sm btn-danger" onclick="excluirMapa(${mapa.id})">
@@ -1561,7 +1616,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                         </div>
                                     </div>
                                 </div>
-                            `).join('');
+                            `;
+                            }).join('');
                         }
                     }
                 }
@@ -1666,17 +1722,32 @@ function adicionarNoMapa() {
         return;
     }
     
-    const novoTexto = prompt('Digite o texto do novo nó:', 'Novo Nó');
-    if (novoTexto !== null && novoTexto.trim() !== '') {
-        const centralNode = mindMapInstance.nodes.find(n => n.isCentral);
-        const x = centralNode ? centralNode.x + 150 : mindMapInstance.canvas.width / 2 + 150;
-        const y = centralNode ? centralNode.y : mindMapInstance.canvas.height / 2;
-        
-        const newNode = mindMapInstance.addNode(novoTexto.trim(), x, y);
-        if (centralNode) {
-            mindMapInstance.addEdge(centralNode.id, newNode.id);
+    setTimeout(() => {
+        const novoTexto = prompt('Digite o texto do novo nó:', 'Novo Nó');
+        if (novoTexto !== null && novoTexto.trim() !== '') {
+            const dpr = window.devicePixelRatio || 1;
+            const canvasWidth = mindMapInstance.canvas.width / dpr;
+            const canvasHeight = mindMapInstance.canvas.height / dpr;
+            const centralNode = mindMapInstance.nodes.find(n => n.isCentral);
+            
+            let x, y;
+            if (centralNode) {
+                // Posicionar ao lado do nó central
+                x = centralNode.x + 180;
+                y = centralNode.y;
+            } else {
+                // Se não houver nó central, posicionar no centro
+                x = canvasWidth / 2 + 150;
+                y = canvasHeight / 2;
+            }
+            
+            const newNode = mindMapInstance.addNode(novoTexto.trim(), x, y);
+            if (centralNode && centralNode.id !== newNode.id) {
+                mindMapInstance.addEdge(centralNode.id, newNode.id);
+            }
+            showToast('Sucesso!', 'Nó adicionado com sucesso!', false);
         }
-    }
+    }, 100);
 }
 
 function limparMapa() {
@@ -1760,7 +1831,32 @@ function salvarMapaMental() {
 
 function visualizarMapa(id, titulo, dadosJson) {
     try {
-        const dados = typeof dadosJson === 'string' ? JSON.parse(dadosJson) : dadosJson;
+        let dados;
+        
+        // Tentar parsear os dados
+        if (typeof dadosJson === 'string') {
+            try {
+                dados = JSON.parse(dadosJson);
+            } catch (e) {
+                // Se falhar, tentar parsear novamente (pode estar duplamente encodado)
+                try {
+                    dados = JSON.parse(JSON.parse(dadosJson));
+                } catch (e2) {
+                    console.error('Erro ao parsear dados:', e2);
+                    showToast('Erro!', 'Formato de dados inválido', true);
+                    return;
+                }
+            }
+        } else {
+            dados = dadosJson;
+        }
+        
+        // Validar dados
+        if (!dados || (!dados.nodes && !Array.isArray(dados))) {
+            console.error('Dados inválidos:', dados);
+            showToast('Erro!', 'Dados do mapa mental inválidos', true);
+            return;
+        }
         
         document.getElementById('mapa-visualizar-titulo').innerHTML = `<i class="bi bi-diagram-3 me-2"></i>${escapeHTML(titulo)}`;
         
@@ -1772,7 +1868,13 @@ function visualizarMapa(id, titulo, dadosJson) {
         
         // Limpar container
         const oldCanvas = document.getElementById('mindmap-visualizar-canvas');
-        if (oldCanvas) oldCanvas.remove();
+        if (oldCanvas) {
+            const oldInstance = mindMapVisualizar;
+            if (oldInstance) {
+                oldInstance.stopAnimation();
+            }
+            oldCanvas.remove();
+        }
         
         const canvas = document.createElement('canvas');
         canvas.id = 'mindmap-visualizar-canvas';
@@ -1781,8 +1883,13 @@ function visualizarMapa(id, titulo, dadosJson) {
         canvas.style.display = 'block';
         container.appendChild(canvas);
         
-        mindMapVisualizar = new MindMap('mindmap-visualizar-canvas');
-        mindMapVisualizar.loadData(dados);
+        // Aguardar um pouco para o canvas ser criado
+        setTimeout(() => {
+            mindMapVisualizar = new MindMap('mindmap-visualizar-canvas');
+            if (mindMapVisualizar) {
+                mindMapVisualizar.loadData(dados);
+            }
+        }, 100);
         
         const modal = new bootstrap.Modal(document.getElementById('modalVisualizarMapa'));
         modal.show();
@@ -1790,9 +1897,11 @@ function visualizarMapa(id, titulo, dadosJson) {
         // Limpar ao fechar
         document.getElementById('modalVisualizarMapa').addEventListener('hidden.bs.modal', function() {
             if (mindMapVisualizar) {
+                mindMapVisualizar.stopAnimation();
                 mindMapVisualizar = null;
             }
-            if (canvas) canvas.remove();
+            const canvasToRemove = document.getElementById('mindmap-visualizar-canvas');
+            if (canvasToRemove) canvasToRemove.remove();
         }, { once: true });
     } catch (error) {
         console.error('Erro ao visualizar mapa:', error);
