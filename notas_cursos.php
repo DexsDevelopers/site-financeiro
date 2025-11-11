@@ -1175,92 +1175,187 @@ class MindMap {
     }
     
     editarNo(node) {
+        console.log('editarNo chamado para nó:', node);
         // Guardar referência do this
         const self = this;
+        const textoAtual = node.text || '';
         
-        // Usar SweetAlert2 se disponível, senão prompt
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                title: 'Editar Nó',
-                input: 'text',
-                inputValue: node.text || '',
-                inputPlaceholder: 'Digite o texto do nó',
-                showCancelButton: true,
-                confirmButtonText: 'Salvar',
-                cancelButtonText: 'Cancelar',
-                inputValidator: (value) => {
-                    if (!value || !value.trim()) {
-                        return 'O texto não pode estar vazio!';
+        // Tentar usar SweetAlert2 primeiro, mas sempre ter fallback
+        if (typeof Swal !== 'undefined' && Swal.fire) {
+            try {
+                Swal.fire({
+                    title: 'Editar Nó',
+                    html: '<input type="text" id="swal-input-text" class="swal2-input" value="' + textoAtual.replace(/"/g, '&quot;') + '" placeholder="Digite o texto do nó" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">',
+                    showCancelButton: true,
+                    confirmButtonText: 'Salvar',
+                    cancelButtonText: 'Cancelar',
+                    focusConfirm: false,
+                    didOpen: () => {
+                        const input = document.getElementById('swal-input-text');
+                        if (input) {
+                            input.focus();
+                            input.select();
+                            // Permitir Enter para confirmar
+                            input.addEventListener('keypress', function(e) {
+                                if (e.key === 'Enter') {
+                                    Swal.clickConfirm();
+                                }
+                            });
+                        }
+                    },
+                    preConfirm: () => {
+                        const input = document.getElementById('swal-input-text');
+                        const value = input ? input.value.trim() : '';
+                        if (!value) {
+                            Swal.showValidationMessage('O texto não pode estar vazio!');
+                            return false;
+                        }
+                        return value;
                     }
-                }
-            }).then((result) => {
-                if (result.isConfirmed && result.value && result.value.trim()) {
-                    node.text = result.value.trim();
-                    // Recalcular largura
-                    self.ctx.font = node.isCentral ? 'bold 16px Arial' : '14px Arial';
-                    const metrics = self.ctx.measureText(node.text);
-                    node.width = Math.max(120, metrics.width + 30);
-                    if (typeof showToast === 'function') {
-                        showToast('Sucesso!', 'Nó editado com sucesso!', false);
+                }).then((result) => {
+                    console.log('Resultado do SweetAlert2:', result);
+                    if (result.isConfirmed && result.value && result.value.trim()) {
+                        const novoTexto = result.value.trim();
+                        console.log('Atualizando texto do nó de "' + textoAtual + '" para "' + novoTexto + '"');
+                        node.text = novoTexto;
+                        // Recalcular largura
+                        self.ctx.font = node.isCentral ? 'bold 16px Arial' : '14px Arial';
+                        const metrics = self.ctx.measureText(node.text);
+                        node.width = Math.max(120, metrics.width + 30);
+                        console.log('Nó atualizado:', node);
+                        // Forçar redesenho
+                        if (self.draw) {
+                            self.draw();
+                        }
+                        if (typeof showToast === 'function') {
+                            showToast('Sucesso!', 'Nó editado com sucesso!', false);
+                        }
                     }
-                }
-            });
+                }).catch((error) => {
+                    console.error('Erro no SweetAlert2:', error);
+                    // Fallback para prompt
+                    self._editarNoComPrompt(node);
+                });
+            } catch (error) {
+                console.error('Erro ao usar SweetAlert2:', error);
+                // Fallback para prompt
+                self._editarNoComPrompt(node);
+            }
         } else {
+            console.log('SweetAlert2 não disponível, usando prompt');
             // Fallback para prompt
-            const novoTexto = prompt('Editar texto do nó:', node.text || '');
-            if (novoTexto !== null && novoTexto.trim() !== '') {
-                node.text = novoTexto.trim();
-                self.ctx.font = node.isCentral ? 'bold 16px Arial' : '14px Arial';
-                const metrics = self.ctx.measureText(node.text);
-                node.width = Math.max(120, metrics.width + 30);
+            this._editarNoComPrompt(node);
+        }
+    }
+    
+    _editarNoComPrompt(node) {
+        const self = this;
+        const textoAtual = node.text || '';
+        const novoTexto = prompt('Editar texto do nó:', textoAtual);
+        if (novoTexto !== null && novoTexto.trim() !== '') {
+            console.log('Atualizando texto do nó via prompt de "' + textoAtual + '" para "' + novoTexto.trim() + '"');
+            node.text = novoTexto.trim();
+            self.ctx.font = node.isCentral ? 'bold 16px Arial' : '14px Arial';
+            const metrics = self.ctx.measureText(node.text);
+            node.width = Math.max(120, metrics.width + 30);
+            // Forçar redesenho
+            if (self.draw) {
+                self.draw();
             }
         }
     }
     
     adicionarNo(x, y) {
+        console.log('adicionarNo chamado em x:', x, 'y:', y);
         // Guardar referência do this
         const self = this;
         
-        // Usar SweetAlert2 se disponível, senão prompt
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                title: 'Adicionar Novo Nó',
-                input: 'text',
-                inputValue: 'Novo Nó',
-                inputPlaceholder: 'Digite o texto do novo nó',
-                showCancelButton: true,
-                confirmButtonText: 'Adicionar',
-                cancelButtonText: 'Cancelar',
-                inputValidator: (value) => {
-                    if (!value || !value.trim()) {
-                        return 'O texto não pode estar vazio!';
+        // Tentar usar SweetAlert2 primeiro, mas sempre ter fallback
+        if (typeof Swal !== 'undefined' && Swal.fire) {
+            try {
+                Swal.fire({
+                    title: 'Adicionar Novo Nó',
+                    html: '<input type="text" id="swal-input-text-new" class="swal2-input" value="Novo Nó" placeholder="Digite o texto do novo nó" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">',
+                    showCancelButton: true,
+                    confirmButtonText: 'Adicionar',
+                    cancelButtonText: 'Cancelar',
+                    focusConfirm: false,
+                    didOpen: () => {
+                        const input = document.getElementById('swal-input-text-new');
+                        if (input) {
+                            input.focus();
+                            input.select();
+                            // Permitir Enter para confirmar
+                            input.addEventListener('keypress', function(e) {
+                                if (e.key === 'Enter') {
+                                    Swal.clickConfirm();
+                                }
+                            });
+                        }
+                    },
+                    preConfirm: () => {
+                        const input = document.getElementById('swal-input-text-new');
+                        const value = input ? input.value.trim() : '';
+                        if (!value) {
+                            Swal.showValidationMessage('O texto não pode estar vazio!');
+                            return false;
+                        }
+                        return value;
                     }
-                }
-            }).then((result) => {
-                if (result.isConfirmed && result.value && result.value.trim()) {
-                    const newNode = self.addNode(result.value.trim(), x, y);
-                    // Conectar ao nó central se existir
-                    const centralNode = self.nodes.find(n => n.isCentral);
-                    if (centralNode && centralNode.id !== newNode.id) {
-                        self.addEdge(centralNode.id, newNode.id);
+                }).then((result) => {
+                    console.log('Resultado do SweetAlert2 (adicionar):', result);
+                    if (result.isConfirmed && result.value && result.value.trim()) {
+                        const texto = result.value.trim();
+                        console.log('Adicionando nó com texto:', texto, 'em x:', x, 'y:', y);
+                        const newNode = self.addNode(texto, x, y);
+                        console.log('Nó adicionado:', newNode);
+                        // Conectar ao nó central se existir
+                        const centralNode = self.nodes.find(n => n.isCentral);
+                        if (centralNode && centralNode.id !== newNode.id) {
+                            self.addEdge(centralNode.id, newNode.id);
+                            console.log('Conectado ao nó central:', centralNode.id);
+                        }
+                        // Forçar redesenho
+                        if (self.draw) {
+                            self.draw();
+                        }
+                        if (typeof showToast === 'function') {
+                            showToast('Sucesso!', 'Nó adicionado com sucesso!', false);
+                        }
                     }
-                    if (typeof showToast === 'function') {
-                        showToast('Sucesso!', 'Nó adicionado com sucesso!', false);
-                    }
-                }
-            });
+                }).catch((error) => {
+                    console.error('Erro no SweetAlert2 (adicionar):', error);
+                    // Fallback para prompt
+                    self._adicionarNoComPrompt(x, y);
+                });
+            } catch (error) {
+                console.error('Erro ao usar SweetAlert2 (adicionar):', error);
+                // Fallback para prompt
+                this._adicionarNoComPrompt(x, y);
+            }
         } else {
+            console.log('SweetAlert2 não disponível, usando prompt');
             // Fallback para prompt
-            const novoTexto = prompt('Digite o texto do novo nó:', 'Novo Nó');
-            if (novoTexto !== null && novoTexto.trim() !== '') {
-                const newNode = self.addNode(novoTexto.trim(), x, y);
-                const centralNode = self.nodes.find(n => n.isCentral);
-                if (centralNode && centralNode.id !== newNode.id) {
-                    self.addEdge(centralNode.id, newNode.id);
-                }
-                if (typeof showToast === 'function') {
-                    showToast('Sucesso!', 'Nó adicionado com sucesso!', false);
-                }
+            this._adicionarNoComPrompt(x, y);
+        }
+    }
+    
+    _adicionarNoComPrompt(x, y) {
+        const self = this;
+        const novoTexto = prompt('Digite o texto do novo nó:', 'Novo Nó');
+        if (novoTexto !== null && novoTexto.trim() !== '') {
+            console.log('Adicionando nó via prompt com texto:', novoTexto.trim(), 'em x:', x, 'y:', y);
+            const newNode = self.addNode(novoTexto.trim(), x, y);
+            const centralNode = self.nodes.find(n => n.isCentral);
+            if (centralNode && centralNode.id !== newNode.id) {
+                self.addEdge(centralNode.id, newNode.id);
+            }
+            // Forçar redesenho
+            if (self.draw) {
+                self.draw();
+            }
+            if (typeof showToast === 'function') {
+                showToast('Sucesso!', 'Nó adicionado com sucesso!', false);
             }
         }
     }
