@@ -1266,16 +1266,30 @@ class MindMap {
         this.ctx.strokeStyle = node.hover ? this.colors.hover.border : node.borderColor;
         this.ctx.lineWidth = node.hover ? 3 : 2;
         
-        // Retângulo arredondado
+        // Retângulo arredondado (compatível com todos navegadores)
         const radius = 12;
+        const x = node.x - currentWidth / 2;
+        const y = node.y - currentHeight / 2;
+        const w = currentWidth;
+        const h = currentHeight;
+        
         this.ctx.beginPath();
-        this.ctx.roundRect(
-            node.x - currentWidth / 2,
-            node.y - currentHeight / 2,
-            currentWidth,
-            currentHeight,
-            radius
-        );
+        if (this.ctx.roundRect) {
+            // Método moderno (suportado em navegadores recentes)
+            this.ctx.roundRect(x, y, w, h, radius);
+        } else {
+            // Fallback para navegadores antigos
+            this.ctx.moveTo(x + radius, y);
+            this.ctx.lineTo(x + w - radius, y);
+            this.ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+            this.ctx.lineTo(x + w, y + h - radius);
+            this.ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+            this.ctx.lineTo(x + radius, y + h);
+            this.ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+            this.ctx.lineTo(x, y + radius);
+            this.ctx.quadraticCurveTo(x, y, x + radius, y);
+            this.ctx.closePath();
+        }
         this.ctx.fill();
         this.ctx.stroke();
         
