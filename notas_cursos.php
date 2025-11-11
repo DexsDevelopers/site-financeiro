@@ -861,15 +861,30 @@ class MindMap {
             edgeHover: '#ff6b6b'
         };
         
-        this.setupCanvas();
-        this.setupEvents();
-        this.addDefaultNode();
-        this.startAnimation();
+        // Aguardar um pouco para garantir que o canvas está no DOM
+        setTimeout(() => {
+            this.setupCanvas();
+            this.setupEvents();
+            
+            // Só adicionar nó padrão se não houver nós (para não sobrescrever dados carregados)
+            if (this.nodes.length === 0) {
+                this.addDefaultNode();
+            }
+            
+            this.startAnimation();
+        }, 100);
     }
     
     startAnimation() {
+        // Parar animação anterior se existir
+        if (this.animationFrame) {
+            cancelAnimationFrame(this.animationFrame);
+        }
+        
         const animate = () => {
-            this.draw();
+            if (this.canvas && this.ctx) {
+                this.draw();
+            }
             this.animationFrame = requestAnimationFrame(animate);
         };
         animate();
@@ -878,31 +893,59 @@ class MindMap {
     stopAnimation() {
         if (this.animationFrame) {
             cancelAnimationFrame(this.animationFrame);
+            this.animationFrame = null;
+        }
+        
+        // Remover event listener de resize se existir
+        if (this._resizeHandler) {
+            window.removeEventListener('resize', this._resizeHandler);
+            this._resizeHandler = null;
         }
     }
     
     setupCanvas() {
         const container = this.canvas.parentElement;
+        if (!container) {
+            console.error('Container do canvas não encontrado');
+            return;
+        }
+        
         const dpr = window.devicePixelRatio || 1;
         
         const resize = () => {
             const rect = container.getBoundingClientRect();
-            this.canvas.width = rect.width * dpr;
-            this.canvas.height = rect.height * dpr;
-            this.canvas.style.width = rect.width + 'px';
-            this.canvas.style.height = rect.height + 'px';
-            this.ctx.scale(dpr, dpr);
-            this.draw();
+            if (rect.width > 0 && rect.height > 0) {
+                this.canvas.width = rect.width * dpr;
+                this.canvas.height = rect.height * dpr;
+                this.canvas.style.width = rect.width + 'px';
+                this.canvas.style.height = rect.height + 'px';
+                
+                // Resetar contexto após mudança de tamanho
+                this.ctx = this.canvas.getContext('2d');
+                this.ctx.scale(dpr, dpr);
+                
+                // Redesenhar se houver nós
+                if (this.nodes.length > 0) {
+                    this.draw();
+                }
+            }
         };
         
-        resize();
+        // Aguardar um pouco para garantir que o container está renderizado
+        setTimeout(() => {
+            resize();
+        }, 50);
         
         // Debounce resize para performance
         let resizeTimeout;
-        window.addEventListener('resize', () => {
+        const resizeHandler = () => {
             clearTimeout(resizeTimeout);
             resizeTimeout = setTimeout(resize, 250);
-        });
+        };
+        window.addEventListener('resize', resizeHandler);
+        
+        // Armazenar handler para poder remover depois se necessário
+        this._resizeHandler = resizeHandler;
     }
     
     setupEvents() {
