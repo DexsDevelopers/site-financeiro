@@ -821,8 +821,8 @@ $stats = [
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div id="mindmap-visualizar-container" style="width: 100%; height: 600px; border: 1px solid var(--border-color, #333); border-radius: 12px; position: relative; overflow: hidden;">
-                    <canvas id="mindmap-visualizar-canvas"></canvas>
+                <div id="mindmap-visualizar-container" style="width: 100%; height: 600px; min-height: 400px; border: 2px solid var(--border-color, #333); border-radius: 16px; background: linear-gradient(135deg, #1a1a1a 0%, #2d1b1b 100%); position: relative; overflow: hidden; cursor: grab;">
+                    <!-- Canvas será criado dinamicamente -->
                 </div>
             </div>
             <div class="modal-footer">
@@ -1796,16 +1796,10 @@ window.visualizarMapa = function(id, titulo, dadosJson) {
             return;
         }
         
-        // Limpar container
-        const oldCanvas = document.getElementById('mindmap-visualizar-canvas');
-        if (oldCanvas) {
-            const oldInstance = mindMapVisualizar;
-            if (oldInstance) {
-                oldInstance.stopAnimation();
-            }
-            oldCanvas.remove();
-        }
+        // Limpar container completamente
+        container.innerHTML = '';
         
+        // Criar novo canvas
         const canvas = document.createElement('canvas');
         canvas.id = 'mindmap-visualizar-canvas';
         canvas.style.width = '100%';
@@ -1813,25 +1807,87 @@ window.visualizarMapa = function(id, titulo, dadosJson) {
         canvas.style.display = 'block';
         container.appendChild(canvas);
         
-        // Aguardar um pouco para o canvas ser criado
-        setTimeout(() => {
-            mindMapVisualizar = new MindMap('mindmap-visualizar-canvas');
-            if (mindMapVisualizar) {
-                mindMapVisualizar.loadData(dados);
+        // Mostrar modal primeiro
+        const modalElement = document.getElementById('modalVisualizarMapa');
+        if (!modalElement) {
+            console.error('Modal de visualização não encontrado');
+            if (typeof showToast === 'function') {
+                showToast('Erro!', 'Modal de visualização não encontrado', true);
+            } else {
+                alert('Modal de visualização não encontrado');
             }
-        }, 100);
+            return;
+        }
         
-        const modal = new bootstrap.Modal(document.getElementById('modalVisualizarMapa'));
+        const modal = new bootstrap.Modal(modalElement);
+        
+        // Aguardar modal ser exibido antes de inicializar o canvas
+        modalElement.addEventListener('shown.bs.modal', function onModalShown() {
+            // Remover o listener após ser executado
+            modalElement.removeEventListener('shown.bs.modal', onModalShown);
+            
+            // Limpar instância anterior se existir
+            if (mindMapVisualizar) {
+                try {
+                    mindMapVisualizar.stopAnimation();
+                } catch (e) {
+                    console.warn('Erro ao parar animação anterior:', e);
+                }
+                mindMapVisualizar = null;
+            }
+            
+            // Aguardar um pouco para garantir que o canvas está renderizado
+            setTimeout(() => {
+                const canvasElement = document.getElementById('mindmap-visualizar-canvas');
+                if (!canvasElement) {
+                    console.error('Canvas não encontrado após criar');
+                    return;
+                }
+                
+                try {
+                    console.log('Inicializando mapa visualização com dados:', dados);
+                    mindMapVisualizar = new MindMap('mindmap-visualizar-canvas');
+                    
+                    if (mindMapVisualizar && mindMapVisualizar.canvas) {
+                        console.log('Mapa de visualização inicializado, carregando dados...');
+                        mindMapVisualizar.loadData(dados);
+                        console.log('Dados carregados. Nodes:', mindMapVisualizar.nodes.length, 'Edges:', mindMapVisualizar.edges.length);
+                    } else {
+                        console.error('Falha ao inicializar mapa de visualização');
+                        if (typeof showToast === 'function') {
+                            showToast('Erro!', 'Erro ao inicializar visualização do mapa', true);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Erro ao inicializar mapa:', error);
+                    if (typeof showToast === 'function') {
+                        showToast('Erro!', 'Erro ao visualizar mapa: ' + error.message, true);
+                    } else {
+                        alert('Erro ao visualizar mapa: ' + error.message);
+                    }
+                }
+            }, 200);
+        }, { once: true });
+        
+        // Mostrar o modal
         modal.show();
         
         // Limpar ao fechar
-        document.getElementById('modalVisualizarMapa').addEventListener('hidden.bs.modal', function() {
+        modalElement.addEventListener('hidden.bs.modal', function onModalHidden() {
+            // Remover o listener após ser executado
+            modalElement.removeEventListener('hidden.bs.modal', onModalHidden);
+            
             if (mindMapVisualizar) {
-                mindMapVisualizar.stopAnimation();
+                try {
+                    mindMapVisualizar.stopAnimation();
+                } catch (e) {
+                    console.warn('Erro ao parar animação:', e);
+                }
                 mindMapVisualizar = null;
             }
-            const canvasToRemove = document.getElementById('mindmap-visualizar-canvas');
-            if (canvasToRemove) canvasToRemove.remove();
+            
+            // Limpar container
+            container.innerHTML = '';
         }, { once: true });
     } catch (error) {
         console.error('Erro ao visualizar mapa:', error);
@@ -2136,10 +2192,10 @@ document.addEventListener('DOMContentLoaded', function() {
                                                 ${new Date(mapa.data_criacao).toLocaleDateString('pt-BR')}
                                             </p>
                                             <div class="d-flex gap-2">
-                                                <button class="btn btn-sm btn-primary" onclick="visualizarMapa(${mapa.id}, ${JSON.stringify(tituloEscapado)}, ${JSON.stringify(mapa.dados)})">
+                                                <button type="button" class="btn btn-sm btn-primary btn-visualizar-mapa" data-mapa-id="${mapa.id}" data-mapa-titulo="${tituloEscapado.replace(/"/g, '&quot;')}">
                                                     <i class="bi bi-eye me-1"></i>Visualizar
                                                 </button>
-                                                <button class="btn btn-sm btn-danger" onclick="excluirMapa(${mapa.id})">
+                                                <button type="button" class="btn btn-sm btn-danger btn-excluir-mapa" data-mapa-id="${mapa.id}">
                                                     <i class="bi bi-trash"></i>
                                                 </button>
                                             </div>
@@ -2150,43 +2206,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             }).join('');
                         }
                         
-                        // Adicionar event listeners para os botões recém-criados
-                        setTimeout(() => {
-                            // Event listeners para visualizar mapa
-                            document.querySelectorAll('.btn-visualizar-mapa').forEach(btn => {
-                                btn.addEventListener('click', function() {
-                                    const id = parseInt(this.getAttribute('data-mapa-id'));
-                                    const titulo = this.getAttribute('data-mapa-titulo');
-                                    const dadosStr = this.getAttribute('data-mapa-dados');
-                                    let dados;
-                                    try {
-                                        dados = JSON.parse(dadosStr.replace(/&#39;/g, "'"));
-                                    } catch (e) {
-                                        console.error('Erro ao parsear dados:', e);
-                                        dados = dadosStr;
-                                    }
-                                    if (typeof window.visualizarMapa === 'function') {
-                                        window.visualizarMapa(id, titulo, dados);
-                                    } else {
-                                        console.error('Função visualizarMapa não encontrada');
-                                        alert('Erro: Função não carregada. Recarregue a página.');
-                                    }
-                                });
-                            });
-                            
-                            // Event listeners para excluir mapa
-                            document.querySelectorAll('.btn-excluir-mapa').forEach(btn => {
-                                btn.addEventListener('click', function() {
-                                    const id = parseInt(this.getAttribute('data-mapa-id'));
-                                    if (typeof window.excluirMapa === 'function') {
-                                        window.excluirMapa(id);
-                                    } else {
-                                        console.error('Função excluirMapa não encontrada');
-                                        alert('Erro: Função não carregada. Recarregue a página.');
-                                    }
-                                });
-                            });
-                        }, 100);
+                        // Adicionar event listeners para os botões recém-criados usando event delegation
+                        // Usar event delegation no container para evitar problemas com elementos dinâmicos
                     }
                 }
             })
@@ -2203,6 +2224,59 @@ document.addEventListener('DOMContentLoaded', function() {
                 carregarMapasMentais();
             } else if (window.carregarMapasMentais) {
                 window.carregarMapasMentais();
+            }
+        });
+    }
+    
+    // Event delegation para botões de visualizar e excluir mapa (funciona com elementos dinâmicos)
+    const mapasListaContainer = document.getElementById('mapas-mentais-lista');
+    if (mapasListaContainer) {
+        mapasListaContainer.addEventListener('click', function(e) {
+            // Visualizar mapa
+            if (e.target.closest('.btn-visualizar-mapa')) {
+                const btn = e.target.closest('.btn-visualizar-mapa');
+                const id = parseInt(btn.getAttribute('data-mapa-id'));
+                const titulo = btn.getAttribute('data-mapa-titulo');
+                
+                // Buscar dados do mapa via API
+                fetch(`buscar_mapa_mental.php?id=${id}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success && data.mapa) {
+                            if (typeof window.visualizarMapa === 'function') {
+                                window.visualizarMapa(id, titulo, data.mapa.dados);
+                            } else {
+                                console.error('Função visualizarMapa não encontrada');
+                                alert('Erro: Função não carregada. Recarregue a página.');
+                            }
+                        } else {
+                            if (typeof showToast === 'function') {
+                                showToast('Erro!', data.message || 'Mapa não encontrado', true);
+                            } else {
+                                alert(data.message || 'Mapa não encontrado');
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erro ao buscar mapa:', error);
+                        if (typeof showToast === 'function') {
+                            showToast('Erro!', 'Erro ao carregar mapa mental', true);
+                        } else {
+                            alert('Erro ao carregar mapa mental');
+                        }
+                    });
+            }
+            
+            // Excluir mapa
+            if (e.target.closest('.btn-excluir-mapa')) {
+                const btn = e.target.closest('.btn-excluir-mapa');
+                const id = parseInt(btn.getAttribute('data-mapa-id'));
+                if (typeof window.excluirMapa === 'function') {
+                    window.excluirMapa(id);
+                } else {
+                    console.error('Função excluirMapa não encontrada');
+                    alert('Erro: Função não carregada. Recarregue a página.');
+                }
             }
         });
     }
