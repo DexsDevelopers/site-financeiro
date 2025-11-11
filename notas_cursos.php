@@ -965,12 +965,13 @@ function excluirNota(id) {
     });
 }
 
-// Funções para mapa mental
+// Variáveis globais para mapa mental
 let networkMapa = null;
 let nodesMapa = null;
 let edgesMapa = null;
 let nodeIdCounterMapa = 1;
 
+// Funções para mapa mental (escopo global)
 function adicionarNoMapa() {
     if (!nodesMapa) {
         nodesMapa = new vis.DataSet([{ id: 1, label: 'Tema Central', shape: 'box', color: { background: '#dc3545', border: '#c82333' } }]);
@@ -1155,12 +1156,33 @@ function criarMapaMental(notaId) {
                 modal.show();
                 
                 setTimeout(() => {
-                    if (!networkMapa) {
-                        networkMapa = inicializarMapaMental('mindmap-container', {
-                            nodes: nodesMapa.get(),
-                            edges: edgesMapa.get()
-                        });
-                    } else {
+                    const container = document.getElementById('mindmap-container');
+                    if (container && !networkMapa) {
+                        const data = { nodes: nodesMapa, edges: edgesMapa };
+                        const options = {
+                            nodes: {
+                                shape: 'box',
+                                font: { color: '#fff', size: 14 },
+                                borderWidth: 2,
+                                shadow: true
+                            },
+                            edges: {
+                                arrows: { to: { enabled: true } },
+                                color: { color: '#dc3545' },
+                                width: 2
+                            },
+                            physics: {
+                                enabled: true,
+                                stabilization: { iterations: 200 }
+                            },
+                            interaction: {
+                                dragNodes: true,
+                                dragView: true,
+                                zoomView: true
+                            }
+                        };
+                        networkMapa = new vis.Network(container, data, options);
+                    } else if (networkMapa) {
                         atualizarRedeMapa();
                     }
                 }, 300);
@@ -1174,21 +1196,76 @@ function criarMapaMental(notaId) {
         });
 }
 
-// Inicializar mapa mental quando modal abrir
+// Inicializar mapa mental quando modal abrir (dentro do DOMContentLoaded)
 const modalNovoMapa = document.getElementById('modalNovoMapa');
 if (modalNovoMapa) {
     modalNovoMapa.addEventListener('shown.bs.modal', function() {
         if (!networkMapa) {
-            networkMapa = inicializarMapaMental('mindmap-container');
-            nodesMapa = new vis.DataSet([{ id: 1, label: 'Tema Central', shape: 'box', color: { background: '#dc3545', border: '#c82333' } }]);
-            edgesMapa = new vis.DataSet([]);
-            nodeIdCounterMapa = 2;
+            const container = document.getElementById('mindmap-container');
+            if (container) {
+                if (!nodesMapa) {
+                    nodesMapa = new vis.DataSet([{ id: 1, label: 'Tema Central', shape: 'box', color: { background: '#dc3545', border: '#c82333' } }]);
+                    edgesMapa = new vis.DataSet([]);
+                    nodeIdCounterMapa = 2;
+                }
+                
+                const data = { nodes: nodesMapa, edges: edgesMapa };
+                const options = {
+                    nodes: {
+                        shape: 'box',
+                        font: { color: '#fff', size: 14 },
+                        borderWidth: 2,
+                        shadow: true
+                    },
+                    edges: {
+                        arrows: { to: { enabled: true } },
+                        color: { color: '#dc3545' },
+                        width: 2
+                    },
+                    physics: {
+                        enabled: true,
+                        stabilization: { iterations: 200 }
+                    },
+                    interaction: {
+                        dragNodes: true,
+                        dragView: true,
+                        zoomView: true
+                    }
+                };
+                
+                networkMapa = new vis.Network(container, data, options);
+                
+                // Adicionar nó ao clicar duas vezes
+                networkMapa.on('doubleClick', function(params) {
+                    if (params.nodes.length === 0) {
+                        const pos = networkMapa.getPositionOnCanvas(params.pointer.canvas);
+                        const novoNo = {
+                            id: nodeIdCounterMapa++,
+                            label: 'Novo Nó',
+                            x: pos.x,
+                            y: pos.y,
+                            shape: 'box',
+                            color: { background: '#6c757d', border: '#5a6268' }
+                        };
+                        nodesMapa.add(novoNo);
+                    } else {
+                        // Editar nó existente
+                        const nodeId = params.nodes[0];
+                        const node = nodesMapa.get(nodeId);
+                        const novoLabel = prompt('Digite o novo texto do nó:', node.label);
+                        if (novoLabel !== null && novoLabel.trim() !== '') {
+                            nodesMapa.update({ id: nodeId, label: novoLabel.trim() });
+                        }
+                    }
+                });
+            }
         }
     });
     
     modalNovoMapa.addEventListener('hidden.bs.modal', function() {
         // Resetar ao fechar
-        document.getElementById('mapa-titulo').value = '';
+        const tituloInput = document.getElementById('mapa-titulo');
+        if (tituloInput) tituloInput.value = '';
         nodesMapa = null;
         edgesMapa = null;
         nodeIdCounterMapa = 1;
