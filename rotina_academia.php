@@ -140,7 +140,10 @@ try {
                                 <i class="bi bi-gear-fill me-2"></i>Gerenciar Exercícios
                             </button>
                             <?php if (!empty($treino_do_dia['exercicios'])): ?>
-                                <button class="btn btn-danger btn-sm">
+                                <button class="btn btn-danger btn-sm btn-iniciar-treino" 
+                                        data-dia-id="<?php echo $treino_do_dia['id_dia']; ?>"
+                                        data-dia-nome="<?php echo htmlspecialchars($dia_nome); ?>"
+                                        data-nome-treino="<?php echo htmlspecialchars($treino_do_dia['nome_treino']); ?>">
                                     <i class="bi bi-play-fill me-2"></i>Iniciar Treino
                                 </button>
                             <?php endif; ?>
@@ -531,6 +534,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 saveButton.disabled = false;
             });
         }
+    });
+    
+    // Botão Iniciar Treino
+    document.querySelectorAll('.btn-iniciar-treino').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const diaId = this.dataset.diaId;
+            const diaNome = this.dataset.diaNome;
+            const nomeTreino = this.dataset.nomeTreino;
+            
+            if (!diaId) {
+                showToast('Erro!', 'ID do dia não encontrado', true);
+                return;
+            }
+            
+            // Redirecionar para a página de registro de treino
+            // Passando o id_rotina_dia como parâmetro para pré-carregar os exercícios
+            window.location.href = `treinos.php?rotina_dia=${diaId}&dia=${encodeURIComponent(diaNome)}&treino=${encodeURIComponent(nomeTreino)}`;
+        });
     });
 });
 
