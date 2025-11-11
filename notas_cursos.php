@@ -623,16 +623,22 @@ $stats = [
                     <label class="form-label fw-semibold">Título do Mapa Mental</label>
                     <input type="text" id="mapa-titulo" class="form-control" placeholder="Ex: Estrutura de Dados">
                 </div>
-                <div id="mindmap-container"></div>
-                <div class="mindmap-controls">
+                <div class="alert alert-info mb-3">
+                    <small>
+                        <i class="bi bi-info-circle me-1"></i>
+                        <strong>Dicas:</strong> Duplo clique para adicionar/editar nós | Clique em um nó e depois em outro para conectar | Clique com botão direito para excluir
+                    </small>
+                </div>
+                <div id="mindmap-container" style="min-height: 500px;"></div>
+                <div class="mindmap-controls mt-3">
                     <button class="btn btn-sm btn-primary" onclick="adicionarNoMapa()" title="Adicionar Nó">
-                        <i class="bi bi-plus-circle"></i>
+                        <i class="bi bi-plus-circle me-1"></i>Adicionar Nó
+                    </button>
+                    <button class="btn btn-sm btn-warning" onclick="limparMapa()" title="Limpar">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i>Limpar
                     </button>
                     <button class="btn btn-sm btn-success" onclick="salvarMapaMental()" title="Salvar">
-                        <i class="bi bi-save"></i>
-                    </button>
-                    <button class="btn btn-sm btn-secondary" onclick="limparMapa()" title="Limpar">
-                        <i class="bi bi-trash"></i>
+                        <i class="bi bi-save me-1"></i>Salvar
                     </button>
                 </div>
             </div>
@@ -670,77 +676,187 @@ $stats = [
 <script src="https://unpkg.com/vis-network@latest/standalone/umd/vis-network.min.js"></script>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    AOS.init({ duration: 600, once: true });
+// Variáveis globais para mapa mental
+let networkMapa = null;
+let nodesMapa = null;
+let edgesMapa = null;
+let nodeIdCounterMapa = 1;
+let visNetworkLoaded = false;
+
+// Verificar se vis-network está carregado
+function verificarVisNetwork() {
+    if (typeof vis !== 'undefined' && vis.Network) {
+        visNetworkLoaded = true;
+        return true;
+    }
+    return false;
+}
+
+// Aguardar carregamento da biblioteca
+function aguardarVisNetwork(callback, tentativas = 0) {
+    if (verificarVisNetwork()) {
+        callback();
+    } else if (tentativas < 50) {
+        setTimeout(() => aguardarVisNetwork(callback, tentativas + 1), 100);
+    } else {
+        console.error('Erro: Biblioteca vis-network não carregou');
+        showToast('Erro!', 'Erro ao carregar biblioteca de mapas mentais. Recarregue a página.', true);
+    }
+}
+
+// Inicializar mapa mental
+function inicializarMapaMental(containerId, dadosIniciais = null) {
+    if (!verificarVisNetwork()) {
+        aguardarVisNetwork(() => inicializarMapaMental(containerId, dadosIniciais));
+        return null;
+    }
     
-    let network = null;
-    let nodes = new vis.DataSet([]);
-    let edges = new vis.DataSet([]);
-    let nodeIdCounter = 1;
+    const container = document.getElementById(containerId);
+    if (!container) {
+        console.error('Container não encontrado:', containerId);
+        return null;
+    }
     
-    // Inicializar mapa mental
-    function inicializarMapaMental(containerId, dadosIniciais = null) {
-        const container = document.getElementById(containerId);
-        if (!container) return null;
-        
-        if (dadosIniciais) {
-            nodes = new vis.DataSet(dadosIniciais.nodes || []);
-            edges = new vis.DataSet(dadosIniciais.edges || []);
-            if (dadosIniciais.nodes && dadosIniciais.nodes.length > 0) {
-                nodeIdCounter = Math.max(...dadosIniciais.nodes.map(n => n.id)) + 1;
-            }
-        } else {
-            // Nó central padrão
-            nodes = new vis.DataSet([{ id: 1, label: 'Tema Central', shape: 'box', color: { background: '#dc3545', border: '#c82333' } }]);
-            edges = new vis.DataSet([]);
-            nodeIdCounter = 2;
+    // Limpar container
+    container.innerHTML = '';
+    
+    // Inicializar dados
+    if (dadosIniciais && dadosIniciais.nodes) {
+        nodesMapa = new vis.DataSet(dadosIniciais.nodes);
+        edgesMapa = new vis.DataSet(dadosIniciais.edges || []);
+        if (dadosIniciais.nodes.length > 0) {
+            nodeIdCounterMapa = Math.max(...dadosIniciais.nodes.map(n => n.id)) + 1;
         }
-        
-        const data = { nodes: nodes, edges: edges };
-        const options = {
-            nodes: {
-                shape: 'box',
-                font: { color: '#fff', size: 14 },
-                borderWidth: 2,
-                shadow: true
-            },
-            edges: {
-                arrows: { to: { enabled: true } },
-                color: { color: '#dc3545' },
-                width: 2
-            },
-            physics: {
-                enabled: true,
-                stabilization: { iterations: 200 }
-            },
-            interaction: {
-                dragNodes: true,
-                dragView: true,
-                zoomView: true
+    } else {
+        // Nó central padrão
+        nodesMapa = new vis.DataSet([{ 
+            id: 1, 
+            label: 'Tema Central', 
+            shape: 'box', 
+            color: { background: '#dc3545', border: '#c82333' },
+            font: { color: '#fff', size: 16, face: 'Arial' }
+        }]);
+        edgesMapa = new vis.DataSet([]);
+        nodeIdCounterMapa = 2;
+    }
+    
+    const data = { nodes: nodesMapa, edges: edgesMapa };
+    const options = {
+        nodes: {
+            shape: 'box',
+            font: { color: '#fff', size: 14, face: 'Arial' },
+            borderWidth: 2,
+            shadow: { enabled: true, color: 'rgba(0,0,0,0.5)', size: 5 },
+            margin: 10,
+            widthConstraint: { maximum: 200 }
+        },
+        edges: {
+            arrows: { to: { enabled: true, scaleFactor: 0.8 } },
+            color: { color: '#dc3545', highlight: '#ff6b6b' },
+            width: 2,
+            smooth: { type: 'continuous', roundness: 0.5 }
+        },
+        physics: {
+            enabled: true,
+            stabilization: { iterations: 200 },
+            barnesHut: {
+                gravitationalConstant: -2000,
+                centralGravity: 0.1,
+                springLength: 150,
+                springConstant: 0.04,
+                damping: 0.09
             }
-        };
+        },
+        interaction: {
+            dragNodes: true,
+            dragView: true,
+            zoomView: true,
+            selectConnectedEdges: true
+        },
+        layout: {
+            improvedLayout: true
+        }
+    };
+    
+    try {
+        networkMapa = new vis.Network(container, data, options);
         
-        const networkInstance = new vis.Network(container, data, options);
-        
-        // Adicionar nó ao clicar duas vezes
-        networkInstance.on('doubleClick', function(params) {
+        // Eventos do mapa
+        networkMapa.on('doubleClick', function(params) {
             if (params.nodes.length === 0) {
                 // Criar novo nó na posição do clique
-                const pos = networkInstance.getPositionOnCanvas(params.pointer.canvas);
+                const pos = networkMapa.getPositionOnCanvas(params.pointer.canvas);
                 const novoNo = {
-                    id: nodeIdCounter++,
+                    id: nodeIdCounterMapa++,
                     label: 'Novo Nó',
                     x: pos.x,
                     y: pos.y,
                     shape: 'box',
-                    color: { background: '#6c757d', border: '#5a6268' }
+                    color: { background: '#6c757d', border: '#5a6268' },
+                    font: { color: '#fff', size: 14 }
                 };
-                nodes.add(novoNo);
+                nodesMapa.add(novoNo);
+                
+                // Conectar ao nó central se existir
+                if (nodesMapa.length > 1 && nodesMapa.get(1)) {
+                    edgesMapa.add({ from: 1, to: novoNo.id });
+                }
+            } else {
+                // Editar nó existente
+                const nodeId = params.nodes[0];
+                const node = nodesMapa.get(nodeId);
+                if (node) {
+                    const novoLabel = prompt('Digite o novo texto do nó:', node.label || '');
+                    if (novoLabel !== null && novoLabel.trim() !== '') {
+                        nodesMapa.update({ id: nodeId, label: novoLabel.trim() });
+                    }
+                }
             }
         });
         
-        return networkInstance;
+        networkMapa.on('click', function(params) {
+            if (params.nodes.length > 0 && params.edges.length === 0) {
+                // Selecionar nó para conectar
+                const selectedNode = params.nodes[0];
+                if (window.selectedNodeForConnection && window.selectedNodeForConnection !== selectedNode) {
+                    // Criar conexão
+                    edgesMapa.add({ 
+                        from: window.selectedNodeForConnection, 
+                        to: selectedNode 
+                    });
+                    window.selectedNodeForConnection = null;
+                    showToast('Info', 'Conexão criada!', false);
+                } else {
+                    window.selectedNodeForConnection = selectedNode;
+                    showToast('Info', 'Nó selecionado. Clique em outro nó para conectar.', false);
+                }
+            }
+        });
+        
+        networkMapa.on('oncontext', function(params) {
+            params.event.preventDefault();
+            if (params.nodes.length > 0) {
+                const nodeId = params.nodes[0];
+                if (confirm('Deseja excluir este nó?')) {
+                    nodesMapa.remove(nodeId);
+                    edgesMapa.remove(edgesMapa.getIds().filter(e => {
+                        const edge = edgesMapa.get(e);
+                        return edge.from === nodeId || edge.to === nodeId;
+                    }));
+                }
+            }
+        });
+        
+        return networkMapa;
+    } catch (error) {
+        console.error('Erro ao criar mapa mental:', error);
+        showToast('Erro!', 'Erro ao inicializar mapa mental: ' + error.message, true);
+        return null;
     }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    AOS.init({ duration: 600, once: true });
     
     // Salvar nova nota
     const btnSalvarNota = document.getElementById('btnSalvarNota');
@@ -816,16 +932,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Inicializar mapa mental quando modal abrir
-    const modalNovoMapa = document.getElementById('modalNovoMapa');
-    if (modalNovoMapa) {
-        modalNovoMapa.addEventListener('shown.bs.modal', function() {
-            if (!network) {
-                network = inicializarMapaMental('mindmap-container');
-            }
-        });
-    }
-    
     // Carregar mapas mentais salvos
     function carregarMapasMentais() {
         fetch('buscar_mapas_mentais.php')
@@ -889,76 +995,25 @@ document.addEventListener('DOMContentLoaded', function() {
     const modalNovoMapa = document.getElementById('modalNovoMapa');
     if (modalNovoMapa) {
         modalNovoMapa.addEventListener('shown.bs.modal', function() {
-            if (!networkMapa) {
-                const container = document.getElementById('mindmap-container');
-                if (container) {
-                    if (!nodesMapa) {
-                        nodesMapa = new vis.DataSet([{ id: 1, label: 'Tema Central', shape: 'box', color: { background: '#dc3545', border: '#c82333' } }]);
-                        edgesMapa = new vis.DataSet([]);
-                        nodeIdCounterMapa = 2;
-                    }
-                    
-                    const data = { nodes: nodesMapa, edges: edgesMapa };
-                    const options = {
-                        nodes: {
-                            shape: 'box',
-                            font: { color: '#fff', size: 14 },
-                            borderWidth: 2,
-                            shadow: true
-                        },
-                        edges: {
-                            arrows: { to: { enabled: true } },
-                            color: { color: '#dc3545' },
-                            width: 2
-                        },
-                        physics: {
-                            enabled: true,
-                            stabilization: { iterations: 200 }
-                        },
-                        interaction: {
-                            dragNodes: true,
-                            dragView: true,
-                            zoomView: true
-                        }
-                    };
-                    
-                    networkMapa = new vis.Network(container, data, options);
-                    
-                    // Adicionar nó ao clicar duas vezes
-                    networkMapa.on('doubleClick', function(params) {
-                        if (params.nodes.length === 0) {
-                            const pos = networkMapa.getPositionOnCanvas(params.pointer.canvas);
-                            const novoNo = {
-                                id: nodeIdCounterMapa++,
-                                label: 'Novo Nó',
-                                x: pos.x,
-                                y: pos.y,
-                                shape: 'box',
-                                color: { background: '#6c757d', border: '#5a6268' }
-                            };
-                            nodesMapa.add(novoNo);
-                        } else {
-                            // Editar nó existente
-                            const nodeId = params.nodes[0];
-                            const node = nodesMapa.get(nodeId);
-                            const novoLabel = prompt('Digite o novo texto do nó:', node.label);
-                            if (novoLabel !== null && novoLabel.trim() !== '') {
-                                nodesMapa.update({ id: nodeId, label: novoLabel.trim() });
-                            }
-                        }
-                    });
+            aguardarVisNetwork(() => {
+                if (!networkMapa) {
+                    inicializarMapaMental('mindmap-container');
                 }
-            }
+            });
         });
         
         modalNovoMapa.addEventListener('hidden.bs.modal', function() {
             // Resetar ao fechar
             const tituloInput = document.getElementById('mapa-titulo');
             if (tituloInput) tituloInput.value = '';
+            if (networkMapa) {
+                networkMapa.destroy();
+                networkMapa = null;
+            }
             nodesMapa = null;
             edgesMapa = null;
             nodeIdCounterMapa = 1;
-            networkMapa = null;
+            window.selectedNodeForConnection = null;
         });
     }
 });
@@ -1042,16 +1097,21 @@ function excluirNota(id) {
     });
 }
 
-// Variáveis globais para mapa mental
-let networkMapa = null;
-let nodesMapa = null;
-let edgesMapa = null;
-let nodeIdCounterMapa = 1;
-
 // Funções para mapa mental (escopo global)
 function adicionarNoMapa() {
+    if (!verificarVisNetwork()) {
+        showToast('Erro!', 'Biblioteca de mapas mentais não carregada', true);
+        return;
+    }
+    
     if (!nodesMapa) {
-        nodesMapa = new vis.DataSet([{ id: 1, label: 'Tema Central', shape: 'box', color: { background: '#dc3545', border: '#c82333' } }]);
+        nodesMapa = new vis.DataSet([{ 
+            id: 1, 
+            label: 'Tema Central', 
+            shape: 'box', 
+            color: { background: '#dc3545', border: '#c82333' },
+            font: { color: '#fff', size: 16 }
+        }]);
         edgesMapa = new vis.DataSet([]);
         nodeIdCounterMapa = 2;
     }
@@ -1060,12 +1120,13 @@ function adicionarNoMapa() {
         id: nodeIdCounterMapa++,
         label: 'Novo Nó',
         shape: 'box',
-        color: { background: '#6c757d', border: '#5a6268' }
+        color: { background: '#6c757d', border: '#5a6268' },
+        font: { color: '#fff', size: 14 }
     };
     nodesMapa.add(novoNo);
     
     // Conectar ao nó central se existir
-    if (nodesMapa.length > 1) {
+    if (nodesMapa.length > 1 && nodesMapa.get(1)) {
         edgesMapa.add({ from: 1, to: novoNo.id });
     }
     
@@ -1073,16 +1134,28 @@ function adicionarNoMapa() {
 }
 
 function atualizarRedeMapa() {
-    if (!networkMapa || !nodesMapa || !edgesMapa) return;
+    if (!networkMapa || !nodesMapa || !edgesMapa) {
+        if (!networkMapa) {
+            inicializarMapaMental('mindmap-container');
+        }
+        return;
+    }
     
     const data = { nodes: nodesMapa, edges: edgesMapa };
     networkMapa.setData(data);
 }
 
 function salvarMapaMental() {
-    const titulo = document.getElementById('mapa-titulo')?.value?.trim();
+    const tituloInput = document.getElementById('mapa-titulo');
+    if (!tituloInput) {
+        showToast('Erro!', 'Campo de título não encontrado', true);
+        return;
+    }
+    
+    const titulo = tituloInput.value.trim();
     if (!titulo) {
         showToast('Erro!', 'Título é obrigatório', true);
+        tituloInput.focus();
         return;
     }
     
@@ -1095,6 +1168,13 @@ function salvarMapaMental() {
         nodes: nodesMapa.get(),
         edges: edgesMapa ? edgesMapa.get() : []
     };
+    
+    // Mostrar loading
+    const btnSalvar = document.querySelector('#modalNovoMapa .btn-danger');
+    if (btnSalvar) {
+        btnSalvar.disabled = true;
+        btnSalvar.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Salvando...';
+    }
     
     fetch('salvar_mapa_mental.php', {
         method: 'POST',
@@ -1109,7 +1189,11 @@ function salvarMapaMental() {
             if (modal) modal.hide();
             
             // Limpar e resetar
-            document.getElementById('mapa-titulo').value = '';
+            tituloInput.value = '';
+            if (networkMapa) {
+                networkMapa.destroy();
+                networkMapa = null;
+            }
             nodesMapa = null;
             edgesMapa = null;
             nodeIdCounterMapa = 1;
@@ -1117,66 +1201,123 @@ function salvarMapaMental() {
             // Recarregar lista se estiver na aba de mapas
             const mapaTab = document.getElementById('mapa-tab');
             if (mapaTab && mapaTab.classList.contains('active')) {
-                setTimeout(() => window.location.reload(), 1000);
+                setTimeout(() => {
+                    carregarMapasMentais();
+                }, 500);
             }
         } else {
-            showToast('Erro!', data.message, true);
+            showToast('Erro!', data.message || 'Erro ao salvar mapa mental', true);
+            if (btnSalvar) {
+                btnSalvar.disabled = false;
+                btnSalvar.innerHTML = '<i class="bi bi-check-lg me-2"></i>Salvar Mapa Mental';
+            }
         }
     })
     .catch(error => {
         console.error('Erro:', error);
-        showToast('Erro!', 'Erro de conexão', true);
+        showToast('Erro!', 'Erro de conexão: ' + error.message, true);
+        if (btnSalvar) {
+            btnSalvar.disabled = false;
+            btnSalvar.innerHTML = '<i class="bi bi-check-lg me-2"></i>Salvar Mapa Mental';
+        }
     });
 }
 
 function limparMapa() {
     if (!confirm('Deseja limpar o mapa mental? Esta ação não pode ser desfeita.')) return;
     
-    nodesMapa = new vis.DataSet([{ id: 1, label: 'Tema Central', shape: 'box', color: { background: '#dc3545', border: '#c82333' } }]);
+    if (!verificarVisNetwork()) {
+        showToast('Erro!', 'Biblioteca de mapas mentais não carregada', true);
+        return;
+    }
+    
+    nodesMapa = new vis.DataSet([{ 
+        id: 1, 
+        label: 'Tema Central', 
+        shape: 'box', 
+        color: { background: '#dc3545', border: '#c82333' },
+        font: { color: '#fff', size: 16 }
+    }]);
     edgesMapa = new vis.DataSet([]);
     nodeIdCounterMapa = 2;
+    window.selectedNodeForConnection = null;
     atualizarRedeMapa();
 }
 
 function visualizarMapa(id, titulo, dadosJson) {
-    const dados = typeof dadosJson === 'string' ? JSON.parse(dadosJson) : dadosJson;
-    
-    document.getElementById('mapa-visualizar-titulo').innerHTML = `<i class="bi bi-diagram-3 me-2"></i>${escapeHTML(titulo)}`;
-    
-    const container = document.getElementById('mindmap-visualizar-container');
-    if (container) {
-        const nodes = new vis.DataSet(dados.nodes || []);
-        const edges = new vis.DataSet(dados.edges || []);
-        const data = { nodes: nodes, edges: edges };
-        
-        const options = {
-            nodes: {
-                shape: 'box',
-                font: { color: '#fff', size: 14 },
-                borderWidth: 2,
-                shadow: true
-            },
-            edges: {
-                arrows: { to: { enabled: true } },
-                color: { color: '#dc3545' },
-                width: 2
-            },
-            physics: {
-                enabled: true,
-                stabilization: { iterations: 200 }
-            },
-            interaction: {
-                dragNodes: true,
-                dragView: true,
-                zoomView: true
+    aguardarVisNetwork(() => {
+        try {
+            const dados = typeof dadosJson === 'string' ? JSON.parse(dadosJson) : dadosJson;
+            
+            document.getElementById('mapa-visualizar-titulo').innerHTML = `<i class="bi bi-diagram-3 me-2"></i>${escapeHTML(titulo)}`;
+            
+            const container = document.getElementById('mindmap-visualizar-container');
+            if (!container) {
+                showToast('Erro!', 'Container de visualização não encontrado', true);
+                return;
             }
-        };
-        
-        const network = new vis.Network(container, data, options);
-    }
-    
-    const modal = new bootstrap.Modal(document.getElementById('modalVisualizarMapa'));
-    modal.show();
+            
+            // Limpar container
+            container.innerHTML = '';
+            
+            const nodes = new vis.DataSet(dados.nodes || []);
+            const edges = new vis.DataSet(dados.edges || []);
+            const data = { nodes: nodes, edges: edges };
+            
+            const options = {
+                nodes: {
+                    shape: 'box',
+                    font: { color: '#fff', size: 14, face: 'Arial' },
+                    borderWidth: 2,
+                    shadow: { enabled: true, color: 'rgba(0,0,0,0.5)', size: 5 },
+                    margin: 10,
+                    widthConstraint: { maximum: 200 }
+                },
+                edges: {
+                    arrows: { to: { enabled: true, scaleFactor: 0.8 } },
+                    color: { color: '#dc3545', highlight: '#ff6b6b' },
+                    width: 2,
+                    smooth: { type: 'continuous', roundness: 0.5 }
+                },
+                physics: {
+                    enabled: true,
+                    stabilization: { iterations: 200 },
+                    barnesHut: {
+                        gravitationalConstant: -2000,
+                        centralGravity: 0.1,
+                        springLength: 150,
+                        springConstant: 0.04,
+                        damping: 0.09
+                    }
+                },
+                interaction: {
+                    dragNodes: true,
+                    dragView: true,
+                    zoomView: true,
+                    selectConnectedEdges: true
+                },
+                layout: {
+                    improvedLayout: true
+                }
+            };
+            
+            const network = new vis.Network(container, data, options);
+            
+            // Limpar ao fechar modal
+            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalVisualizarMapa'));
+            modal.show();
+            
+            document.getElementById('modalVisualizarMapa').addEventListener('hidden.bs.modal', function() {
+                if (network) {
+                    network.destroy();
+                }
+                container.innerHTML = '';
+            }, { once: true });
+        } catch (error) {
+            console.error('Erro ao visualizar mapa:', error);
+            showToast('Erro!', 'Erro ao carregar mapa mental: ' + error.message, true);
+        }
+    });
 }
 
 function excluirMapa(id) {
@@ -1209,67 +1350,63 @@ function criarMapaMental(notaId) {
         .then(data => {
             if (data.success && data.nota) {
                 const nota = data.nota;
-                document.getElementById('mapa-titulo').value = nota.titulo + ' - Mapa Mental';
+                const tituloInput = document.getElementById('mapa-titulo');
+                if (tituloInput) {
+                    tituloInput.value = nota.titulo + ' - Mapa Mental';
+                }
                 
                 // Criar nós baseados no conteúdo da nota
                 const palavras = nota.conteudo.split(/\s+/).filter(p => p.length > 3).slice(0, 10);
-                nodesMapa = new vis.DataSet([
-                    { id: 1, label: nota.titulo, shape: 'box', color: { background: '#dc3545', border: '#c82333' } }
-                ]);
-                edgesMapa = new vis.DataSet([]);
-                nodeIdCounterMapa = 2;
                 
-                palavras.forEach((palavra, index) => {
-                    nodesMapa.add({
-                        id: nodeIdCounterMapa++,
-                        label: palavra.substring(0, 20),
-                        shape: 'box',
-                        color: { background: '#6c757d', border: '#5a6268' }
-                    });
-                    edgesMapa.add({ from: 1, to: nodeIdCounterMapa - 1 });
-                });
-                
-                const modal = new bootstrap.Modal(document.getElementById('modalNovoMapa'));
-                modal.show();
-                
-                setTimeout(() => {
-                    const container = document.getElementById('mindmap-container');
-                    if (container && !networkMapa) {
-                        const data = { nodes: nodesMapa, edges: edgesMapa };
-                        const options = {
-                            nodes: {
+                aguardarVisNetwork(() => {
+                    nodesMapa = new vis.DataSet([
+                        { 
+                            id: 1, 
+                            label: nota.titulo.substring(0, 30), 
+                            shape: 'box', 
+                            color: { background: '#dc3545', border: '#c82333' },
+                            font: { color: '#fff', size: 16 }
+                        }
+                    ]);
+                    edgesMapa = new vis.DataSet([]);
+                    nodeIdCounterMapa = 2;
+                    
+                    palavras.forEach((palavra) => {
+                        const palavraLimpa = palavra.replace(/[^\w\s]/g, '').substring(0, 20);
+                        if (palavraLimpa.length > 0) {
+                            nodesMapa.add({
+                                id: nodeIdCounterMapa++,
+                                label: palavraLimpa,
                                 shape: 'box',
-                                font: { color: '#fff', size: 14 },
-                                borderWidth: 2,
-                                shadow: true
-                            },
-                            edges: {
-                                arrows: { to: { enabled: true } },
-                                color: { color: '#dc3545' },
-                                width: 2
-                            },
-                            physics: {
-                                enabled: true,
-                                stabilization: { iterations: 200 }
-                            },
-                            interaction: {
-                                dragNodes: true,
-                                dragView: true,
-                                zoomView: true
-                            }
-                        };
-                        networkMapa = new vis.Network(container, data, options);
-                    } else if (networkMapa) {
-                        atualizarRedeMapa();
-                    }
-                }, 300);
+                                color: { background: '#6c757d', border: '#5a6268' },
+                                font: { color: '#fff', size: 14 }
+                            });
+                            edgesMapa.add({ from: 1, to: nodeIdCounterMapa - 1 });
+                        }
+                    });
+                    
+                    const modal = new bootstrap.Modal(document.getElementById('modalNovoMapa'));
+                    modal.show();
+                    
+                    // Aguardar modal abrir completamente
+                    setTimeout(() => {
+                        if (!networkMapa) {
+                            inicializarMapaMental('mindmap-container', {
+                                nodes: nodesMapa.get(),
+                                edges: edgesMapa.get()
+                            });
+                        } else {
+                            atualizarRedeMapa();
+                        }
+                    }, 500);
+                });
             } else {
-                showToast('Erro!', 'Nota não encontrada', true);
+                showToast('Erro!', data.message || 'Nota não encontrada', true);
             }
         })
         .catch(error => {
             console.error('Erro:', error);
-            showToast('Erro!', 'Erro ao buscar nota', true);
+            showToast('Erro!', 'Erro ao buscar nota: ' + error.message, true);
         });
 }
 
