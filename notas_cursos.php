@@ -1477,53 +1477,108 @@ class MindMap {
     }
     
     loadData(data) {
-        if (!data) return;
+        console.log('loadData chamado com:', data);
+        
+        if (!data) {
+            console.log('Dados vazios, adicionando nó padrão');
+            this.addDefaultNode();
+            return;
+        }
+        
+        // Se dados vierem como string JSON, parsear
+        if (typeof data === 'string') {
+            try {
+                data = JSON.parse(data);
+                console.log('Dados parseados de string:', data);
+            } catch (e) {
+                console.error('Erro ao parsear dados string:', e, 'Dados:', data);
+                this.addDefaultNode();
+                return;
+            }
+        }
+        
+        // Validar estrutura de dados
+        if (!data || typeof data !== 'object') {
+            console.error('Dados inválidos:', data);
+            this.addDefaultNode();
+            return;
+        }
         
         // Converter dados do formato antigo (vis-network) para o novo formato (Canvas)
         if (data.nodes && Array.isArray(data.nodes)) {
-            this.nodes = data.nodes.map(n => {
-                // Se for formato antigo (vis-network)
+            console.log('Carregando', data.nodes.length, 'nós');
+            this.nodes = [];
+            
+            const dpr = window.devicePixelRatio || 1;
+            const canvasWidth = (this.canvas.width / dpr) || 800;
+            const canvasHeight = (this.canvas.height / dpr) || 600;
+            
+            data.nodes.forEach((n, index) => {
+                let node;
+                
+                // Se for formato antigo (vis-network) - tem 'label' mas não tem 'text'
                 if (n.label && !n.text) {
-                    return {
-                        id: n.id,
+                    node = {
+                        id: n.id || (index + 1),
                         text: n.label || 'Nó',
-                        x: n.x || (this.canvas.width / (window.devicePixelRatio || 1)) / 2,
-                        y: n.y || (this.canvas.height / (window.devicePixelRatio || 1)) / 2,
+                        x: (n.x !== undefined && n.x !== null) ? n.x : (canvasWidth / 2 + (index * 100)),
+                        y: (n.y !== undefined && n.y !== null) ? n.y : (canvasHeight / 2 + (index * 50)),
                         width: 0, // Será calculado
                         height: 50,
-                        isCentral: n.id === 1 || (n.color && n.color.background === '#dc3545'),
-                        color: n.isCentral ? this.colors.central.bg : this.colors.node.bg,
-                        borderColor: n.isCentral ? this.colors.central.border : this.colors.node.border,
-                        textColor: n.isCentral ? this.colors.central.text : this.colors.node.text,
+                        isCentral: n.id === 1 || index === 0 || (n.color && (n.color.background === '#dc3545' || n.color === '#dc3545')),
+                        color: (n.id === 1 || index === 0 || (n.color && (n.color.background === '#dc3545' || n.color === '#dc3545'))) ? this.colors.central.bg : this.colors.node.bg,
+                        borderColor: (n.id === 1 || index === 0 || (n.color && (n.color.background === '#dc3545' || n.color === '#dc3545'))) ? this.colors.central.border : this.colors.node.border,
+                        textColor: (n.id === 1 || index === 0 || (n.color && (n.color.background === '#dc3545' || n.color === '#dc3545'))) ? this.colors.central.text : this.colors.node.text,
                         hover: false,
                         pulse: 0
                     };
                 } else {
-                    // Formato novo (Canvas)
-                    return {
-                        ...n,
-                        width: n.width || 120,
+                    // Formato novo (Canvas) ou já convertido
+                    node = {
+                        id: n.id || (index + 1),
+                        text: n.text || n.label || 'Nó',
+                        x: (n.x !== undefined && n.x !== null) ? n.x : (canvasWidth / 2 + (index * 100)),
+                        y: (n.y !== undefined && n.y !== null) ? n.y : (canvasHeight / 2 + (index * 50)),
+                        width: n.width || 0,
                         height: n.height || 50,
+                        isCentral: n.isCentral || (index === 0 && n.isCentral !== false),
+                        color: n.color || (n.isCentral ? this.colors.central.bg : this.colors.node.bg),
+                        borderColor: n.borderColor || (n.isCentral ? this.colors.central.border : this.colors.node.border),
+                        textColor: n.textColor || (n.isCentral ? this.colors.central.text : this.colors.node.text),
                         hover: false,
                         pulse: 0
                     };
                 }
+                
+                // Garantir que pelo menos o primeiro nó seja central se não houver nenhum
+                if (index === 0 && this.nodes.length === 0) {
+                    node.isCentral = true;
+                    node.color = this.colors.central.bg;
+                    node.borderColor = this.colors.central.border;
+                    node.textColor = this.colors.central.text;
+                }
+                
+                this.nodes.push(node);
             });
             
             // Calcular larguras dos nós
             this.nodes.forEach(node => {
                 if (!node.width || node.width === 0) {
                     this.ctx.font = node.isCentral ? 'bold 16px Arial' : '14px Arial';
-                    const metrics = this.ctx.measureText(node.text);
+                    const metrics = this.ctx.measureText(node.text || 'Nó');
                     node.width = Math.max(120, metrics.width + 30);
                 }
             });
             
             this.edges = data.edges || [];
             if (this.nodes.length > 0) {
-                this.nodeIdCounter = Math.max(...this.nodes.map(n => n.id)) + 1;
+                const maxId = Math.max(...this.nodes.map(n => (n.id || 0)));
+                this.nodeIdCounter = Math.max(maxId + 1, this.nodeIdCounter);
             }
+            
+            console.log('Mapa carregado:', this.nodes.length, 'nós,', this.edges.length, 'arestas');
         } else {
+            console.log('Sem nodes, adicionando nó padrão');
             // Se não tiver nodes, criar nó central padrão
             this.addDefaultNode();
         }
