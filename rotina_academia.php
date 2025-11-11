@@ -17,7 +17,7 @@ try {
         $rotina_completa[$dia['dia_semana']] = ['id_dia' => $dia['id_dia'], 'nome_treino' => $dia['nome_treino'] ?: 'Não definido', 'exercicios' => []];
         $rotina_salva[$dia['dia_semana']] = $dia['nome_treino'];
     }
-    $sql_exercicios = "SELECT re.id, re.id_rotina_dia, e.nome_exercicio, re.series_sugeridas, re.repeticoes_sugeridas FROM rotina_exercicios re JOIN exercicios e ON re.id_exercicio = e.id JOIN rotina_dias rd ON re.id_rotina_dia = rd.id JOIN rotinas r ON rd.id_rotina = r.id WHERE r.id_usuario = ? AND r.ativo = 1 ORDER BY re.ordem";
+    $sql_exercicios = "SELECT re.id, re.id_rotina_dia, e.nome_exercicio, re.series_sugeridas, re.repeticoes_sugeridas FROM rotina_exercicios re JOIN exercicios e ON re.id_exercicio = e.id JOIN rotina_dias rd ON re.id_rotina_dia = rd.id JOIN rotinas r ON rd.id_rotina = r.id WHERE r.id_usuario = ? AND r.ativo = 1 ORDER BY COALESCE(re.ordem, re.id)";
     $stmt_exercicios = $pdo->prepare($sql_exercicios);
     $stmt_exercicios->execute([$userId]);
     foreach ($stmt_exercicios->fetchAll(PDO::FETCH_ASSOC) as $ex) {
