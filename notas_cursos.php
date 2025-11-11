@@ -1398,18 +1398,18 @@ class MindMap {
         this.ctx.beginPath();
         if (this.ctx.roundRect) {
             // Método moderno (suportado em navegadores recentes)
-            this.ctx.roundRect(x, y, w, h, radius);
+            this.ctx.roundRect(rectX, rectY, w, h, radius);
         } else {
             // Fallback para navegadores antigos
-            this.ctx.moveTo(x + radius, y);
-            this.ctx.lineTo(x + w - radius, y);
-            this.ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
-            this.ctx.lineTo(x + w, y + h - radius);
-            this.ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
-            this.ctx.lineTo(x + radius, y + h);
-            this.ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
-            this.ctx.lineTo(x, y + radius);
-            this.ctx.quadraticCurveTo(x, y, x + radius, y);
+            this.ctx.moveTo(rectX + radius, rectY);
+            this.ctx.lineTo(rectX + w - radius, rectY);
+            this.ctx.quadraticCurveTo(rectX + w, rectY, rectX + w, rectY + radius);
+            this.ctx.lineTo(rectX + w, rectY + h - radius);
+            this.ctx.quadraticCurveTo(rectX + w, rectY + h, rectX + w - radius, rectY + h);
+            this.ctx.lineTo(rectX + radius, rectY + h);
+            this.ctx.quadraticCurveTo(rectX, rectY + h, rectX, rectY + h - radius);
+            this.ctx.lineTo(rectX, rectY + radius);
+            this.ctx.quadraticCurveTo(rectX, rectY, rectX + radius, rectY);
             this.ctx.closePath();
         }
         this.ctx.fill();
@@ -1548,6 +1548,393 @@ class MindMap {
 // Variáveis globais
 let mindMapInstance = null;
 let mindMapVisualizar = null;
+
+// ============================================
+// FUNÇÕES GLOBAIS DO MAPA MENTAL (ANTES DO DOMContentLoaded)
+// ============================================
+
+// Função para adicionar nó no mapa mental
+window.adicionarNoMapa = function() {
+    console.log('adicionarNoMapa chamado, mindMapInstance:', mindMapInstance);
+    
+    if (!mindMapInstance) {
+        console.error('Mapa mental não inicializado');
+        if (typeof showToast === 'function') {
+            showToast('Erro!', 'Mapa mental não inicializado. Feche e abra o modal novamente.', true);
+        } else {
+            alert('Mapa mental não inicializado. Feche e abra o modal novamente.');
+        }
+        return;
+    }
+    
+    if (!mindMapInstance.canvas) {
+        console.error('Canvas não encontrado');
+        if (typeof showToast === 'function') {
+            showToast('Erro!', 'Canvas do mapa mental não encontrado', true);
+        }
+        return;
+    }
+    
+    const dpr = window.devicePixelRatio || 1;
+    const canvasWidth = mindMapInstance.canvas.width / dpr;
+    const canvasHeight = mindMapInstance.canvas.height / dpr;
+    const centralNode = mindMapInstance.nodes.find(n => n.isCentral);
+    
+    let nodeX, nodeY;
+    if (centralNode) {
+        // Posicionar ao lado do nó central
+        nodeX = centralNode.x + 180;
+        nodeY = centralNode.y;
+    } else {
+        // Se não houver nó central, posicionar no centro
+        nodeX = canvasWidth / 2 + 150;
+        nodeY = canvasHeight / 2;
+    }
+    
+    console.log('Adicionando nó em:', nodeX, nodeY);
+    
+    // Usar método do MindMap para adicionar nó
+    try {
+        mindMapInstance.adicionarNo(nodeX, nodeY);
+    } catch (error) {
+        console.error('Erro ao adicionar nó:', error);
+        if (typeof showToast === 'function') {
+            showToast('Erro!', 'Erro ao adicionar nó: ' + error.message, true);
+        } else {
+            alert('Erro ao adicionar nó: ' + error.message);
+        }
+    }
+};
+
+// Função para limpar mapa mental
+window.limparMapa = function() {
+    if (!confirm('Deseja limpar o mapa mental? Esta ação não pode ser desfeita.')) return;
+    
+    if (mindMapInstance) {
+        mindMapInstance.clear();
+    }
+};
+
+// Função para salvar mapa mental
+window.salvarMapaMental = function() {
+    const tituloInput = document.getElementById('mapa-titulo');
+    if (!tituloInput) {
+        if (typeof showToast === 'function') {
+            showToast('Erro!', 'Campo de título não encontrado', true);
+        } else {
+            alert('Campo de título não encontrado');
+        }
+        return;
+    }
+    
+    const titulo = tituloInput.value.trim();
+    if (!titulo) {
+        if (typeof showToast === 'function') {
+            showToast('Erro!', 'Título é obrigatório', true);
+        } else {
+            alert('Título é obrigatório');
+        }
+        tituloInput.focus();
+        return;
+    }
+    
+    if (!mindMapInstance || mindMapInstance.nodes.length === 0) {
+        if (typeof showToast === 'function') {
+            showToast('Erro!', 'Adicione pelo menos um nó ao mapa', true);
+        } else {
+            alert('Adicione pelo menos um nó ao mapa');
+        }
+        return;
+    }
+    
+    const dados = mindMapInstance.getData();
+    
+    // Mostrar loading
+    const btnSalvar = document.querySelector('#modalNovoMapa .btn-danger');
+    if (btnSalvar) {
+        btnSalvar.disabled = true;
+        btnSalvar.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Salvando...';
+    }
+    
+    fetch('salvar_mapa_mental.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ titulo: titulo, dados: JSON.stringify(dados) })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (typeof showToast === 'function') {
+                showToast('Sucesso!', 'Mapa mental salvo com sucesso!');
+            }
+            const modal = bootstrap.Modal.getInstance(document.getElementById('modalNovoMapa'));
+            if (modal) modal.hide();
+            
+            // Limpar e resetar
+            tituloInput.value = '';
+            if (mindMapInstance) {
+                mindMapInstance.clear();
+            }
+            
+            // Recarregar lista se estiver na aba de mapas
+            const mapaTab = document.getElementById('mapa-tab');
+            if (mapaTab && mapaTab.classList.contains('active')) {
+                setTimeout(() => {
+                    if (typeof carregarMapasMentais === 'function') {
+                        carregarMapasMentais();
+                    } else if (window.carregarMapasMentais) {
+                        window.carregarMapasMentais();
+                    }
+                }, 500);
+            }
+        } else {
+            if (typeof showToast === 'function') {
+                showToast('Erro!', data.message || 'Erro ao salvar mapa mental', true);
+            } else {
+                alert(data.message || 'Erro ao salvar mapa mental');
+            }
+            if (btnSalvar) {
+                btnSalvar.disabled = false;
+                btnSalvar.innerHTML = '<i class="bi bi-check-lg me-2"></i>Salvar Mapa Mental';
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        if (typeof showToast === 'function') {
+            showToast('Erro!', 'Erro de conexão: ' + error.message, true);
+        } else {
+            alert('Erro de conexão: ' + error.message);
+        }
+        if (btnSalvar) {
+            btnSalvar.disabled = false;
+            btnSalvar.innerHTML = '<i class="bi bi-check-lg me-2"></i>Salvar Mapa Mental';
+        }
+    });
+};
+
+// Função para visualizar mapa mental
+window.visualizarMapa = function(id, titulo, dadosJson) {
+    try {
+        let dados;
+        
+        // Tentar parsear os dados
+        if (typeof dadosJson === 'string') {
+            try {
+                dados = JSON.parse(dadosJson);
+            } catch (e) {
+                // Se falhar, tentar parsear novamente (pode estar duplamente encodado)
+                try {
+                    const parsed = JSON.parse(dadosJson);
+                    dados = typeof parsed === 'string' ? JSON.parse(parsed) : parsed;
+                } catch (e2) {
+                    console.error('Erro ao parsear dados:', e2, 'Dados recebidos:', dadosJson);
+                    if (typeof showToast === 'function') {
+                        showToast('Erro!', 'Formato de dados inválido. Tente recriar o mapa.', true);
+                    } else {
+                        alert('Formato de dados inválido. Tente recriar o mapa.');
+                    }
+                    return;
+                }
+            }
+        } else {
+            dados = dadosJson;
+        }
+        
+        // Validar dados
+        if (!dados) {
+            console.error('Dados nulos ou indefinidos');
+            if (typeof showToast === 'function') {
+                showToast('Erro!', 'Dados do mapa mental inválidos', true);
+            } else {
+                alert('Dados do mapa mental inválidos');
+            }
+            return;
+        }
+        
+        // Se dados não tiver estrutura esperada, tentar converter
+        if (!dados.nodes) {
+            // Pode ser que os dados estejam em formato diferente
+            if (Array.isArray(dados)) {
+                dados = { nodes: dados, edges: [] };
+            } else if (dados.data) {
+                dados = dados.data;
+            } else {
+                console.error('Dados inválidos:', dados);
+                if (typeof showToast === 'function') {
+                    showToast('Erro!', 'Formato de dados não reconhecido', true);
+                } else {
+                    alert('Formato de dados não reconhecido');
+                }
+                return;
+            }
+        }
+        
+        // Garantir que nodes seja array
+        if (!Array.isArray(dados.nodes)) {
+            console.error('Nodes não é array:', dados.nodes);
+            if (typeof showToast === 'function') {
+                showToast('Erro!', 'Estrutura de dados inválida', true);
+            } else {
+                alert('Estrutura de dados inválida');
+            }
+            return;
+        }
+        
+        const tituloElement = document.getElementById('mapa-visualizar-titulo');
+        if (tituloElement) {
+            tituloElement.innerHTML = '<i class="bi bi-diagram-3 me-2"></i>' + (typeof escapeHTML === 'function' ? escapeHTML(titulo) : titulo);
+        }
+        
+        const container = document.getElementById('mindmap-visualizar-container');
+        if (!container) {
+            if (typeof showToast === 'function') {
+                showToast('Erro!', 'Container de visualização não encontrado', true);
+            } else {
+                alert('Container de visualização não encontrado');
+            }
+            return;
+        }
+        
+        // Limpar container
+        const oldCanvas = document.getElementById('mindmap-visualizar-canvas');
+        if (oldCanvas) {
+            const oldInstance = mindMapVisualizar;
+            if (oldInstance) {
+                oldInstance.stopAnimation();
+            }
+            oldCanvas.remove();
+        }
+        
+        const canvas = document.createElement('canvas');
+        canvas.id = 'mindmap-visualizar-canvas';
+        canvas.style.width = '100%';
+        canvas.style.height = '100%';
+        canvas.style.display = 'block';
+        container.appendChild(canvas);
+        
+        // Aguardar um pouco para o canvas ser criado
+        setTimeout(() => {
+            mindMapVisualizar = new MindMap('mindmap-visualizar-canvas');
+            if (mindMapVisualizar) {
+                mindMapVisualizar.loadData(dados);
+            }
+        }, 100);
+        
+        const modal = new bootstrap.Modal(document.getElementById('modalVisualizarMapa'));
+        modal.show();
+        
+        // Limpar ao fechar
+        document.getElementById('modalVisualizarMapa').addEventListener('hidden.bs.modal', function() {
+            if (mindMapVisualizar) {
+                mindMapVisualizar.stopAnimation();
+                mindMapVisualizar = null;
+            }
+            const canvasToRemove = document.getElementById('mindmap-visualizar-canvas');
+            if (canvasToRemove) canvasToRemove.remove();
+        }, { once: true });
+    } catch (error) {
+        console.error('Erro ao visualizar mapa:', error);
+        if (typeof showToast === 'function') {
+            showToast('Erro!', 'Erro ao carregar mapa mental: ' + error.message, true);
+        } else {
+            alert('Erro ao carregar mapa mental: ' + error.message);
+        }
+    }
+};
+
+// Função para excluir mapa mental
+window.excluirMapa = function(id) {
+    if (!confirm('Tem certeza que deseja excluir este mapa mental?')) return;
+    
+    fetch('excluir_mapa_mental.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: id })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (typeof showToast === 'function') {
+                showToast('Sucesso!', 'Mapa mental excluído com sucesso!');
+            }
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            if (typeof showToast === 'function') {
+                showToast('Erro!', data.message, true);
+            } else {
+                alert(data.message);
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        if (typeof showToast === 'function') {
+            showToast('Erro!', 'Erro de conexão', true);
+        } else {
+            alert('Erro de conexão');
+        }
+    });
+};
+
+// Função para criar mapa mental a partir de nota
+window.criarMapaMental = function(notaId) {
+    fetch(`buscar_nota.php?id=${notaId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.nota) {
+                const nota = data.nota;
+                const tituloInput = document.getElementById('mapa-titulo');
+                if (tituloInput) {
+                    tituloInput.value = nota.titulo + ' - Mapa Mental';
+                }
+                
+                const modal = new bootstrap.Modal(document.getElementById('modalNovoMapa'));
+                modal.show();
+                
+                // Aguardar modal abrir e inicializar mapa
+                setTimeout(() => {
+                    if (!mindMapInstance) {
+                        mindMapInstance = new MindMap('mindmap-canvas');
+                    }
+                    
+                    // Criar nós baseados no conteúdo
+                    const palavras = nota.conteudo.split(/\s+/).filter(p => p.length > 3).slice(0, 8);
+                    const centralNode = mindMapInstance.nodes.find(n => n.isCentral);
+                    if (centralNode) {
+                        centralNode.text = nota.titulo.substring(0, 20);
+                    }
+                    
+                    palavras.forEach((palavra, index) => {
+                        const palavraLimpa = palavra.replace(/[^\w\s]/g, '').substring(0, 15);
+                        if (palavraLimpa.length > 0 && centralNode) {
+                            const angle = (index / palavras.length) * Math.PI * 2;
+                            const radius = 150;
+                            const nodeX = centralNode.x + Math.cos(angle) * radius;
+                            const nodeY = centralNode.y + Math.sin(angle) * radius;
+                            
+                            const newNode = mindMapInstance.addNode(palavraLimpa, nodeX, nodeY);
+                            mindMapInstance.addEdge(centralNode.id, newNode.id);
+                        }
+                    });
+                }, 300);
+            } else {
+                if (typeof showToast === 'function') {
+                    showToast('Erro!', data.message || 'Nota não encontrada', true);
+                } else {
+                    alert(data.message || 'Nota não encontrada');
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            if (typeof showToast === 'function') {
+                showToast('Erro!', 'Erro ao buscar nota: ' + error.message, true);
+            } else {
+                alert('Erro ao buscar nota: ' + error.message);
+            }
+        });
+};
 
 document.addEventListener('DOMContentLoaded', function() {
     AOS.init({ duration: 600, once: true });
@@ -1805,316 +2192,6 @@ function excluirNota(id) {
     });
 }
 
-// Funções para mapa mental
-function adicionarNoMapa() {
-    console.log('adicionarNoMapa chamado, mindMapInstance:', mindMapInstance);
-    
-    if (!mindMapInstance) {
-        console.error('Mapa mental não inicializado');
-        if (typeof showToast === 'function') {
-            showToast('Erro!', 'Mapa mental não inicializado. Feche e abra o modal novamente.', true);
-        } else {
-            alert('Mapa mental não inicializado. Feche e abra o modal novamente.');
-        }
-        return;
-    }
-    
-    if (!mindMapInstance.canvas) {
-        console.error('Canvas não encontrado');
-        if (typeof showToast === 'function') {
-            showToast('Erro!', 'Canvas do mapa mental não encontrado', true);
-        }
-        return;
-    }
-    
-    const dpr = window.devicePixelRatio || 1;
-    const canvasWidth = mindMapInstance.canvas.width / dpr;
-    const canvasHeight = mindMapInstance.canvas.height / dpr;
-    const centralNode = mindMapInstance.nodes.find(n => n.isCentral);
-    
-    let nodeX, nodeY;
-    if (centralNode) {
-        // Posicionar ao lado do nó central
-        nodeX = centralNode.x + 180;
-        nodeY = centralNode.y;
-    } else {
-        // Se não houver nó central, posicionar no centro
-        nodeX = canvasWidth / 2 + 150;
-        nodeY = canvasHeight / 2;
-    }
-    
-    console.log('Adicionando nó em:', nodeX, nodeY);
-    
-    // Usar método do MindMap para adicionar nó
-    try {
-        mindMapInstance.adicionarNo(nodeX, nodeY);
-    } catch (error) {
-        console.error('Erro ao adicionar nó:', error);
-        if (typeof showToast === 'function') {
-            showToast('Erro!', 'Erro ao adicionar nó: ' + error.message, true);
-        } else {
-            alert('Erro ao adicionar nó: ' + error.message);
-        }
-    }
-}
-
-window.limparMapa = function() {
-    if (!confirm('Deseja limpar o mapa mental? Esta ação não pode ser desfeita.')) return;
-    
-    if (mindMapInstance) {
-        mindMapInstance.clear();
-    }
-};
-
-window.salvarMapaMental = function() {
-    const tituloInput = document.getElementById('mapa-titulo');
-    if (!tituloInput) {
-        showToast('Erro!', 'Campo de título não encontrado', true);
-        return;
-    }
-    
-    const titulo = tituloInput.value.trim();
-    if (!titulo) {
-        showToast('Erro!', 'Título é obrigatório', true);
-        tituloInput.focus();
-        return;
-    }
-    
-    if (!mindMapInstance || mindMapInstance.nodes.length === 0) {
-        showToast('Erro!', 'Adicione pelo menos um nó ao mapa', true);
-        return;
-    }
-    
-    const dados = mindMapInstance.getData();
-    
-    // Mostrar loading
-    const btnSalvar = document.querySelector('#modalNovoMapa .btn-danger');
-    if (btnSalvar) {
-        btnSalvar.disabled = true;
-        btnSalvar.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Salvando...';
-    }
-    
-    fetch('salvar_mapa_mental.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ titulo: titulo, dados: JSON.stringify(dados) })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showToast('Sucesso!', 'Mapa mental salvo com sucesso!');
-            const modal = bootstrap.Modal.getInstance(document.getElementById('modalNovoMapa'));
-            if (modal) modal.hide();
-            
-            // Limpar e resetar
-            tituloInput.value = '';
-            if (mindMapInstance) {
-                mindMapInstance.clear();
-            }
-            
-            // Recarregar lista se estiver na aba de mapas
-            const mapaTab = document.getElementById('mapa-tab');
-            if (mapaTab && mapaTab.classList.contains('active')) {
-                setTimeout(() => {
-                    if (typeof carregarMapasMentais === 'function') {
-                        carregarMapasMentais();
-                    } else if (window.carregarMapasMentais) {
-                        window.carregarMapasMentais();
-                    }
-                }, 500);
-            }
-        } else {
-            showToast('Erro!', data.message || 'Erro ao salvar mapa mental', true);
-            if (btnSalvar) {
-                btnSalvar.disabled = false;
-                btnSalvar.innerHTML = '<i class="bi bi-check-lg me-2"></i>Salvar Mapa Mental';
-            }
-        }
-    })
-    .catch(error => {
-        console.error('Erro:', error);
-        showToast('Erro!', 'Erro de conexão: ' + error.message, true);
-        if (btnSalvar) {
-            btnSalvar.disabled = false;
-            btnSalvar.innerHTML = '<i class="bi bi-check-lg me-2"></i>Salvar Mapa Mental';
-        }
-    });
-};
-
-window.visualizarMapa = function(id, titulo, dadosJson) {
-    try {
-        let dados;
-        
-        // Tentar parsear os dados
-        if (typeof dadosJson === 'string') {
-            try {
-                dados = JSON.parse(dadosJson);
-            } catch (e) {
-                // Se falhar, tentar parsear novamente (pode estar duplamente encodado)
-                try {
-                    const parsed = JSON.parse(dadosJson);
-                    dados = typeof parsed === 'string' ? JSON.parse(parsed) : parsed;
-                } catch (e2) {
-                    console.error('Erro ao parsear dados:', e2, 'Dados recebidos:', dadosJson);
-                    showToast('Erro!', 'Formato de dados inválido. Tente recriar o mapa.', true);
-                    return;
-                }
-            }
-        } else {
-            dados = dadosJson;
-        }
-        
-        // Validar dados
-        if (!dados) {
-            console.error('Dados nulos ou indefinidos');
-            showToast('Erro!', 'Dados do mapa mental inválidos', true);
-            return;
-        }
-        
-        // Se dados não tiver estrutura esperada, tentar converter
-        if (!dados.nodes) {
-            // Pode ser que os dados estejam em formato diferente
-            if (Array.isArray(dados)) {
-                dados = { nodes: dados, edges: [] };
-            } else if (dados.data) {
-                dados = dados.data;
-            } else {
-                console.error('Dados inválidos:', dados);
-                showToast('Erro!', 'Formato de dados não reconhecido', true);
-                return;
-            }
-        }
-        
-        // Garantir que nodes seja array
-        if (!Array.isArray(dados.nodes)) {
-            console.error('Nodes não é array:', dados.nodes);
-            showToast('Erro!', 'Estrutura de dados inválida', true);
-            return;
-        }
-        
-        document.getElementById('mapa-visualizar-titulo').innerHTML = `<i class="bi bi-diagram-3 me-2"></i>${escapeHTML(titulo)}`;
-        
-        const container = document.getElementById('mindmap-visualizar-container');
-        if (!container) {
-            showToast('Erro!', 'Container de visualização não encontrado', true);
-            return;
-        }
-        
-        // Limpar container
-        const oldCanvas = document.getElementById('mindmap-visualizar-canvas');
-        if (oldCanvas) {
-            const oldInstance = mindMapVisualizar;
-            if (oldInstance) {
-                oldInstance.stopAnimation();
-            }
-            oldCanvas.remove();
-        }
-        
-        const canvas = document.createElement('canvas');
-        canvas.id = 'mindmap-visualizar-canvas';
-        canvas.style.width = '100%';
-        canvas.style.height = '100%';
-        canvas.style.display = 'block';
-        container.appendChild(canvas);
-        
-        // Aguardar um pouco para o canvas ser criado
-        setTimeout(() => {
-            mindMapVisualizar = new MindMap('mindmap-visualizar-canvas');
-            if (mindMapVisualizar) {
-                mindMapVisualizar.loadData(dados);
-            }
-        }, 100);
-        
-        const modal = new bootstrap.Modal(document.getElementById('modalVisualizarMapa'));
-        modal.show();
-        
-        // Limpar ao fechar
-        document.getElementById('modalVisualizarMapa').addEventListener('hidden.bs.modal', function() {
-            if (mindMapVisualizar) {
-                mindMapVisualizar.stopAnimation();
-                mindMapVisualizar = null;
-            }
-            const canvasToRemove = document.getElementById('mindmap-visualizar-canvas');
-            if (canvasToRemove) canvasToRemove.remove();
-        }, { once: true });
-    } catch (error) {
-        console.error('Erro ao visualizar mapa:', error);
-        showToast('Erro!', 'Erro ao carregar mapa mental: ' + error.message, true);
-    }
-};
-
-window.excluirMapa = function(id) {
-    if (!confirm('Tem certeza que deseja excluir este mapa mental?')) return;
-    
-    fetch('excluir_mapa_mental.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: id })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showToast('Sucesso!', 'Mapa mental excluído com sucesso!');
-            setTimeout(() => window.location.reload(), 1000);
-        } else {
-            showToast('Erro!', data.message, true);
-        }
-    })
-    .catch(error => {
-        console.error('Erro:', error);
-        showToast('Erro!', 'Erro de conexão', true);
-    });
-};
-
-window.criarMapaMental = function(notaId) {
-    fetch(`buscar_nota.php?id=${notaId}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success && data.nota) {
-                const nota = data.nota;
-                const tituloInput = document.getElementById('mapa-titulo');
-                if (tituloInput) {
-                    tituloInput.value = nota.titulo + ' - Mapa Mental';
-                }
-                
-                const modal = new bootstrap.Modal(document.getElementById('modalNovoMapa'));
-                modal.show();
-                
-                // Aguardar modal abrir e inicializar mapa
-                setTimeout(() => {
-                    if (!mindMapInstance) {
-                        mindMapInstance = new MindMap('mindmap-canvas');
-                    }
-                    
-                    // Criar nós baseados no conteúdo
-                    const palavras = nota.conteudo.split(/\s+/).filter(p => p.length > 3).slice(0, 8);
-                    const centralNode = mindMapInstance.nodes.find(n => n.isCentral);
-                    if (centralNode) {
-                        centralNode.text = nota.titulo.substring(0, 20);
-                    }
-                    
-                    palavras.forEach((palavra, index) => {
-                        const palavraLimpa = palavra.replace(/[^\w\s]/g, '').substring(0, 15);
-                        if (palavraLimpa.length > 0 && centralNode) {
-                            const angle = (index / palavras.length) * Math.PI * 2;
-                            const radius = 150;
-                            const nodeX = centralNode.x + Math.cos(angle) * radius;
-                            const nodeY = centralNode.y + Math.sin(angle) * radius;
-                            
-                            const newNode = mindMapInstance.addNode(palavraLimpa, nodeX, nodeY);
-                            mindMapInstance.addEdge(centralNode.id, newNode.id);
-                        }
-                    });
-                }, 300);
-            } else {
-                showToast('Erro!', data.message || 'Nota não encontrada', true);
-            }
-        })
-        .catch(error => {
-            console.error('Erro:', error);
-            showToast('Erro!', 'Erro ao buscar nota: ' + error.message, true);
-        });
-};
 </script>
 
 <?php
