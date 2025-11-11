@@ -114,11 +114,11 @@ try {
                                 <?php foreach ($treino_do_dia['exercicios'] as $index => $ex): ?>
                                     <div class="exercise-item d-flex justify-content-between align-items-center py-2 <?php echo $index > 0 ? 'border-top' : ''; ?>">
                                         <div class="flex-grow-1">
-                                            <div class="fw-semibold text-dark"><?php echo htmlspecialchars($ex['nome_exercicio']); ?></div>
-                                            <div class="small text-muted">
+                                            <div class="fw-semibold" style="color: var(--bs-body-color, #212529) !important;"><?php echo htmlspecialchars($ex['nome_exercicio'] ?? 'Exercício sem nome'); ?></div>
+                                            <div class="small mt-1" style="color: var(--bs-secondary-color, #6c757d) !important;">
                                                 <i class="bi bi-arrow-repeat me-1"></i>
-                                                <?php echo htmlspecialchars($ex['series_sugeridas']); ?> séries × 
-                                                <?php echo htmlspecialchars($ex['repeticoes_sugeridas']); ?> reps
+                                                <?php echo htmlspecialchars($ex['series_sugeridas'] ?? 'N/A'); ?> séries × 
+                                                <?php echo htmlspecialchars($ex['repeticoes_sugeridas'] ?? 'N/A'); ?> reps
                                             </div>
                                         </div>
                                         <div class="exercise-status">
@@ -243,12 +243,20 @@ try {
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
-.exercise-item .fw-bold {
+.exercise-item .fw-bold,
+.exercise-item .fw-semibold {
     color: var(--bs-body-color, #212529) !important;
 }
 
 .exercise-item .small {
     color: var(--bs-secondary-color, #6c757d) !important;
+}
+
+/* Garantir que o texto seja visível mesmo em cards escuros */
+.card-body .exercise-item .fw-semibold,
+.card-body .exercise-item .fw-bold {
+    color: var(--bs-body-color, #212529) !important;
+    opacity: 1 !important;
 }
 
 .exercise-status i {
