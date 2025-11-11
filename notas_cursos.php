@@ -2149,6 +2149,44 @@ document.addEventListener('DOMContentLoaded', function() {
                             `;
                             }).join('');
                         }
+                        
+                        // Adicionar event listeners para os botões recém-criados
+                        setTimeout(() => {
+                            // Event listeners para visualizar mapa
+                            document.querySelectorAll('.btn-visualizar-mapa').forEach(btn => {
+                                btn.addEventListener('click', function() {
+                                    const id = parseInt(this.getAttribute('data-mapa-id'));
+                                    const titulo = this.getAttribute('data-mapa-titulo');
+                                    const dadosStr = this.getAttribute('data-mapa-dados');
+                                    let dados;
+                                    try {
+                                        dados = JSON.parse(dadosStr.replace(/&#39;/g, "'"));
+                                    } catch (e) {
+                                        console.error('Erro ao parsear dados:', e);
+                                        dados = dadosStr;
+                                    }
+                                    if (typeof window.visualizarMapa === 'function') {
+                                        window.visualizarMapa(id, titulo, dados);
+                                    } else {
+                                        console.error('Função visualizarMapa não encontrada');
+                                        alert('Erro: Função não carregada. Recarregue a página.');
+                                    }
+                                });
+                            });
+                            
+                            // Event listeners para excluir mapa
+                            document.querySelectorAll('.btn-excluir-mapa').forEach(btn => {
+                                btn.addEventListener('click', function() {
+                                    const id = parseInt(this.getAttribute('data-mapa-id'));
+                                    if (typeof window.excluirMapa === 'function') {
+                                        window.excluirMapa(id);
+                                    } else {
+                                        console.error('Função excluirMapa não encontrada');
+                                        alert('Erro: Função não carregada. Recarregue a página.');
+                                    }
+                                });
+                            });
+                        }, 100);
                     }
                 }
             })
@@ -2161,7 +2199,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const mapaTab = document.getElementById('mapa-tab');
     if (mapaTab) {
         mapaTab.addEventListener('shown.bs.tab', function() {
-            carregarMapasMentais();
+            if (typeof carregarMapasMentais === 'function') {
+                carregarMapasMentais();
+            } else if (window.carregarMapasMentais) {
+                window.carregarMapasMentais();
+            }
         });
     }
 });
