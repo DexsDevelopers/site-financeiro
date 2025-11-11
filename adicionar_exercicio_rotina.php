@@ -60,14 +60,30 @@ try {
         $exercicioId = $pdo->lastInsertId();
     }
 
-    // 3. Buscar ordem máxima para adicionar no final
-    $stmt_ordem = $pdo->prepare("SELECT COALESCE(MAX(ordem), 0) + 1 as nova_ordem FROM rotina_exercicios WHERE id_rotina_dia = ?");
-    $stmt_ordem->execute([$id_rotina_dia]);
-    $nova_ordem = $stmt_ordem->fetchColumn();
-
+    // 3. Verificar se a coluna 'ordem' existe na tabela
+    $coluna_ordem_existe = false;
+    try {
+        $stmt_check_col = $pdo->query("SHOW COLUMNS FROM rotina_exercicios LIKE 'ordem'");
+        $coluna_ordem_existe = $stmt_check_col->rowCount() > 0;
+    } catch (PDOException $e) {
+        // Se der erro ao verificar, assume que não existe
+        $coluna_ordem_existe = false;
+    }
+    
     // 4. Insere o exercício na rotina daquele dia.
-    $stmt_insert = $pdo->prepare("INSERT INTO rotina_exercicios (id_rotina_dia, id_exercicio, series_sugeridas, repeticoes_sugeridas, ordem) VALUES (?, ?, ?, ?, ?)");
-    $stmt_insert->execute([$id_rotina_dia, $exercicioId, $series, $repeticoes, $nova_ordem]);
+    if ($coluna_ordem_existe) {
+        // Buscar ordem máxima para adicionar no final
+        $stmt_ordem = $pdo->prepare("SELECT COALESCE(MAX(ordem), 0) + 1 as nova_ordem FROM rotina_exercicios WHERE id_rotina_dia = ?");
+        $stmt_ordem->execute([$id_rotina_dia]);
+        $nova_ordem = $stmt_ordem->fetchColumn();
+        
+        $stmt_insert = $pdo->prepare("INSERT INTO rotina_exercicios (id_rotina_dia, id_exercicio, series_sugeridas, repeticoes_sugeridas, ordem) VALUES (?, ?, ?, ?, ?)");
+        $stmt_insert->execute([$id_rotina_dia, $exercicioId, $series, $repeticoes, $nova_ordem]);
+    } else {
+        // Se não tiver coluna ordem, insere sem ela
+        $stmt_insert = $pdo->prepare("INSERT INTO rotina_exercicios (id_rotina_dia, id_exercicio, series_sugeridas, repeticoes_sugeridas) VALUES (?, ?, ?, ?)");
+        $stmt_insert->execute([$id_rotina_dia, $exercicioId, $series, $repeticoes]);
+    }
     $newRotinaExercicioId = $pdo->lastInsertId();
 
     $pdo->commit();
