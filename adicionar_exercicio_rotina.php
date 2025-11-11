@@ -58,21 +58,54 @@ function criarTabelasAcademiaSeNecessario($pdo) {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         ");
         
-        // Tabela rotina_exercicios
-        $pdo->exec("
-            CREATE TABLE IF NOT EXISTS rotina_exercicios (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                id_rotina_dia INT NOT NULL,
-                id_exercicio INT NOT NULL,
-                series_sugeridas INT NULL,
-                repeticoes_sugeridas VARCHAR(50) NULL,
-                ordem INT DEFAULT 0,
-                FOREIGN KEY (id_rotina_dia) REFERENCES rotina_dias(id) ON DELETE CASCADE,
-                FOREIGN KEY (id_exercicio) REFERENCES exercicios(id) ON DELETE CASCADE,
-                INDEX idx_rotina_dia (id_rotina_dia),
-                INDEX idx_exercicio (id_exercicio)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-        ");
+        // Verificar se rotina_exercicios existe e tem estrutura incorreta
+        $stmt_check = $pdo->query("SHOW TABLES LIKE 'rotina_exercicios'");
+        $tabela_existe = $stmt_check->rowCount() > 0;
+        
+        if ($tabela_existe) {
+            // Verificar se tem coluna id_usuario
+            $stmt_cols = $pdo->query("SHOW COLUMNS FROM rotina_exercicios LIKE 'id_usuario'");
+            $tem_id_usuario = $stmt_cols->rowCount() > 0;
+            
+            if ($tem_id_usuario) {
+                // Tabela existe mas tem estrutura incorreta - não criar, apenas logar
+                error_log("ATENÇÃO: Tabela rotina_exercicios existe com estrutura incorreta (tem id_usuario). Execute corrigir_tabela_rotina_exercicios.php");
+            } else {
+                // Tabela existe e está correta - verificar se tem todas as colunas necessárias
+                $stmt_all_cols = $pdo->query("SHOW COLUMNS FROM rotina_exercicios");
+                $colunas = $stmt_all_cols->fetchAll(PDO::FETCH_COLUMN);
+                $colunas_necessarias = ['id', 'id_rotina_dia', 'id_exercicio', 'series_sugeridas', 'repeticoes_sugeridas'];
+                
+                foreach ($colunas_necessarias as $col) {
+                    if (!in_array($col, $colunas)) {
+                        // Adicionar coluna faltante
+                        if ($col === 'ordem') {
+                            $pdo->exec("ALTER TABLE rotina_exercicios ADD COLUMN `{$col}` INT DEFAULT 0");
+                        } elseif ($col === 'series_sugeridas') {
+                            $pdo->exec("ALTER TABLE rotina_exercicios ADD COLUMN `{$col}` INT NULL");
+                        } elseif ($col === 'repeticoes_sugeridas') {
+                            $pdo->exec("ALTER TABLE rotina_exercicios ADD COLUMN `{$col}` VARCHAR(50) NULL");
+                        }
+                    }
+                }
+            }
+        } else {
+            // Tabela não existe - criar com estrutura correta
+            $pdo->exec("
+                CREATE TABLE rotina_exercicios (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    id_rotina_dia INT NOT NULL,
+                    id_exercicio INT NOT NULL,
+                    series_sugeridas INT NULL,
+                    repeticoes_sugeridas VARCHAR(50) NULL,
+                    ordem INT DEFAULT 0,
+                    FOREIGN KEY (id_rotina_dia) REFERENCES rotina_dias(id) ON DELETE CASCADE,
+                    FOREIGN KEY (id_exercicio) REFERENCES exercicios(id) ON DELETE CASCADE,
+                    INDEX idx_rotina_dia (id_rotina_dia),
+                    INDEX idx_exercicio (id_exercicio)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            ");
+        }
     } catch (PDOException $e) {
         // Ignora se já existir
         error_log("Erro ao criar tabelas (pode ser que já existam): " . $e->getMessage());
