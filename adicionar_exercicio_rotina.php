@@ -211,8 +211,16 @@ try {
         $response['message'] = 'Tabela não encontrada no banco de dados. Execute o script de criação de tabelas.';
     } elseif (strpos($errorMessage, "Column not found") !== false || strpos($errorMessage, "Unknown column") !== false) {
         $response['message'] = 'Estrutura da tabela incompatível. Verifique se todas as colunas existem.';
-    } elseif (strpos($errorMessage, "foreign key") !== false) {
-        $response['message'] = 'Erro de referência. Verifique se o dia da rotina existe.';
+    } elseif (strpos($errorMessage, "foreign key") !== false || strpos($errorMessage, "Integrity constraint violation") !== false) {
+        // Verificar se é o erro específico de id_usuario na tabela rotina_exercicios
+        if (strpos($errorMessage, "rotina_exercicios") !== false && strpos($errorMessage, "id_usuario") !== false) {
+            $response['message'] = 'Estrutura da tabela rotina_exercicios está incorreta. Execute o script: corrigir_tabela_rotina_exercicios.php';
+            $response['fix_script'] = 'corrigir_tabela_rotina_exercicios.php';
+        } elseif (strpos($errorMessage, "id_rotina_dia") !== false) {
+            $response['message'] = 'Erro de referência. Verifique se o dia da rotina existe e foi criado corretamente.';
+        } else {
+            $response['message'] = 'Erro de referência no banco de dados. Verifique se todas as tabelas relacionadas existem.';
+        }
     } else {
         $response['message'] = 'Erro no banco de dados: ' . $errorMessage;
     }
