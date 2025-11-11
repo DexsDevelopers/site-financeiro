@@ -81,14 +81,20 @@ try {
         echo "<hr>";
         echo "<h3>🔧 Corrigindo estrutura...</h3>";
         
-        $pdo->beginTransaction();
+        // Nota: Não usamos transação porque ALTER TABLE faz commit automático em MySQL
+        $erros_ocorridos = [];
         
         try {
             // 1. Remover foreign key de id_usuario se existir
             if ($fk_id_usuario) {
                 echo "<p>Removendo foreign key '{$fk_id_usuario}'...</p>";
-                $pdo->exec("ALTER TABLE rotina_exercicios DROP FOREIGN KEY `{$fk_id_usuario}`");
-                echo "<p style='color: green;'>✅ Foreign key removida.</p>";
+                try {
+                    $pdo->exec("ALTER TABLE rotina_exercicios DROP FOREIGN KEY `{$fk_id_usuario}`");
+                    echo "<p style='color: green;'>✅ Foreign key removida.</p>";
+                } catch (PDOException $e) {
+                    $erros_ocorridos[] = "Erro ao remover foreign key: " . $e->getMessage();
+                    echo "<p style='color: orange;'>⚠️ Erro ao remover foreign key (pode já ter sido removida): " . htmlspecialchars($e->getMessage()) . "</p>";
+                }
             }
             
             // 2. Remover índice de id_usuario se existir
@@ -103,13 +109,17 @@ try {
             // 3. Remover coluna id_usuario se existir
             if ($tem_id_usuario) {
                 echo "<p>Removendo coluna 'id_usuario'...</p>";
-                $pdo->exec("ALTER TABLE rotina_exercicios DROP COLUMN `id_usuario`");
-                echo "<p style='color: green;'>✅ Coluna 'id_usuario' removida.</p>";
+                try {
+                    $pdo->exec("ALTER TABLE rotina_exercicios DROP COLUMN `id_usuario`");
+                    echo "<p style='color: green;'>✅ Coluna 'id_usuario' removida.</p>";
+                } catch (PDOException $e) {
+                    $erros_ocorridos[] = "Erro ao remover coluna id_usuario: " . $e->getMessage();
+                    echo "<p style='color: red;'>❌ Erro ao remover coluna: " . htmlspecialchars($e->getMessage()) . "</p>";
+                }
             }
             
             // 4. Garantir que as colunas necessárias existam
             $colunas_necessarias = [
-                'id' => 'INT AUTO_INCREMENT PRIMARY KEY',
                 'id_rotina_dia' => 'INT NOT NULL',
                 'id_exercicio' => 'INT NOT NULL',
                 'series_sugeridas' => 'INT NULL',
@@ -122,15 +132,13 @@ try {
             foreach ($colunas_necessarias as $coluna => $tipo) {
                 if (!in_array($coluna, $colunas_existentes)) {
                     echo "<p>Adicionando coluna '{$coluna}'...</p>";
-                    if ($coluna === 'id') {
-                        // Não adicionar id, já deve existir
-                        continue;
-                    } elseif ($coluna === 'ordem') {
+                    try {
                         $pdo->exec("ALTER TABLE rotina_exercicios ADD COLUMN `{$coluna}` {$tipo}");
-                    } else {
-                        $pdo->exec("ALTER TABLE rotina_exercicios ADD COLUMN `{$coluna}` {$tipo}");
+                        echo "<p style='color: green;'>✅ Coluna '{$coluna}' adicionada.</p>";
+                    } catch (PDOException $e) {
+                        $erros_ocorridos[] = "Erro ao adicionar coluna {$coluna}: " . $e->getMessage();
+                        echo "<p style='color: orange;'>⚠️ Não foi possível adicionar coluna '{$coluna}': " . htmlspecialchars($e->getMessage()) . "</p>";
                     }
-                    echo "<p style='color: green;'>✅ Coluna '{$coluna}' adicionada.</p>";
                 }
             }
             
@@ -159,17 +167,28 @@ try {
                         ");
                         echo "<p style='color: green;'>✅ Foreign key para '{$coluna}' adicionada.</p>";
                     } catch (PDOException $e) {
+                        $erros_ocorridos[] = "Erro ao adicionar foreign key para {$coluna}: " . $e->getMessage();
                         echo "<p style='color: orange;'>⚠️ Não foi possível adicionar foreign key para '{$coluna}': " . htmlspecialchars($e->getMessage()) . "</p>";
                     }
+                } else {
+                    echo "<p style='color: green;'>✅ Foreign key para '{$coluna}' já existe.</p>";
                 }
             }
             
-            $pdo->commit();
             echo "<hr>";
-            echo "<h3 style='color: green;'>✅ Estrutura corrigida com sucesso!</h3>";
+            if (empty($erros_ocorridos)) {
+                echo "<h3 style='color: green;'>✅ Estrutura corrigida com sucesso!</h3>";
+            } else {
+                echo "<h3 style='color: orange;'>⚠️ Estrutura corrigida com alguns avisos:</h3>";
+                echo "<ul>";
+                foreach ($erros_ocorridos as $erro) {
+                    echo "<li>" . htmlspecialchars($erro) . "</li>";
+                }
+                echo "</ul>";
+            }
             
         } catch (PDOException $e) {
-            $pdo->rollBack();
+            echo "<p style='color: red;'>❌ Erro crítico: " . htmlspecialchars($e->getMessage()) . "</p>";
             throw $e;
         }
         
