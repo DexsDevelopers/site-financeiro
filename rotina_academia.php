@@ -464,37 +464,79 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Modal Novo Treino
-document.getElementById('btnSalvarTreino').addEventListener('click', function() {
-    const form = document.getElementById('formNovoTreino');
-    const formData = new FormData(form);
-    const button = this;
-    
-    button.disabled = true;
-    button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Salvando...';
-    
-    fetch('salvar_rotina_semanal.php', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showToast('Sucesso!', 'Treino criado com sucesso!');
-            setTimeout(() => window.location.reload(), 1000);
-        } else {
-            showToast('Erro!', data.message, true);
-            button.disabled = false;
-            button.innerHTML = '<i class="bi bi-check-lg me-2"></i>Criar Treino';
+// Modal Novo Treino - Validação e Submissão
+const btnSalvarTreino = document.getElementById('btnSalvarTreino');
+if (btnSalvarTreino) {
+    btnSalvarTreino.addEventListener('click', function() {
+        const form = document.getElementById('formNovoTreino');
+        if (!form) {
+            showToast('Erro!', 'Formulário não encontrado', true);
+            return;
         }
-    })
-    .catch(error => {
-        console.error('Erro:', error);
-        showToast('Erro!', 'Erro de conexão', true);
-        button.disabled = false;
-        button.innerHTML = '<i class="bi bi-check-lg me-2"></i>Criar Treino';
+        
+        const formData = new FormData(form);
+        const nomeTreino = formData.get('nome_treino')?.trim();
+        const diaSemana = formData.get('dia_semana');
+        
+        // Validação
+        if (!nomeTreino) {
+            showToast('Erro!', 'O nome do treino é obrigatório', true);
+            const inputNome = form.querySelector('input[name="nome_treino"]');
+            if (inputNome) {
+                inputNome.focus();
+                inputNome.classList.add('is-invalid');
+                setTimeout(() => inputNome.classList.remove('is-invalid'), 3000);
+            }
+            return;
+        }
+        
+        if (!diaSemana || diaSemana === '') {
+            showToast('Erro!', 'Selecione um dia da semana', true);
+            const selectDia = form.querySelector('select[name="dia_semana"]');
+            if (selectDia) {
+                selectDia.focus();
+                selectDia.classList.add('is-invalid');
+                setTimeout(() => selectDia.classList.remove('is-invalid'), 3000);
+            }
+            return;
+        }
+        
+        const button = this;
+        const btnOriginal = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Salvando...';
+        
+        fetch('salvar_rotina_semanal.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Erro na resposta do servidor');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                showToast('Sucesso!', data.message || 'Treino criado com sucesso!');
+                form.reset();
+                const modal = bootstrap.Modal.getInstance(document.getElementById('modalNovoTreino'));
+                if (modal) modal.hide();
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                showToast('Erro!', data.message || 'Erro ao criar treino', true);
+                button.disabled = false;
+                button.innerHTML = btnOriginal;
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            showToast('Erro!', 'Erro de conexão. Verifique sua internet e tente novamente.', true);
+            button.disabled = false;
+            button.innerHTML = btnOriginal;
+        });
     });
-});
+}
 </script>
 
 <!-- Modal Novo Treino -->
