@@ -6,6 +6,11 @@ require_once 'templates/header.php';
 // Pega a data da URL (GET), ou usa a data de hoje como padrão.
 $data_selecionada = $_GET['data'] ?? date('Y-m-d');
 
+// Parâmetros da rotina (quando vem do botão "Iniciar Treino")
+$rotina_dia_id = $_GET['rotina_dia'] ?? null;
+$dia_nome = $_GET['dia'] ?? null;
+$nome_treino = $_GET['treino'] ?? null;
+
 // Validação simples para garantir que a data está em um formato esperado
 try {
     $dataObj = new DateTime($data_selecionada);
@@ -13,6 +18,26 @@ try {
 } catch (Exception $e) {
     $data_selecionada = date('Y-m-d');
     $data_formatada = date('d/m/Y');
+}
+
+// Buscar exercícios planejados da rotina se rotina_dia_id foi fornecido
+$exercicios_planejados = [];
+if ($rotina_dia_id) {
+    try {
+        $sql_planejados = "SELECT re.id, e.nome_exercicio, re.series_sugeridas, re.repeticoes_sugeridas 
+                          FROM rotina_exercicios re 
+                          JOIN exercicios e ON re.id_exercicio = e.id 
+                          JOIN rotina_dias rd ON re.id_rotina_dia = rd.id 
+                          JOIN rotinas r ON rd.id_rotina = r.id 
+                          WHERE re.id_rotina_dia = ? AND r.id_usuario = ? 
+                          ORDER BY COALESCE(re.ordem, re.id)";
+        $stmt_planejados = $pdo->prepare($sql_planejados);
+        $stmt_planejados->execute([$rotina_dia_id, $userId]);
+        $exercicios_planejados = $stmt_planejados->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        // Ignorar erro, apenas não mostrar exercícios planejados
+        error_log("Erro ao buscar exercícios planejados: " . $e->getMessage());
+    }
 }
 
 $registros_dia = [];
@@ -36,7 +61,15 @@ try {
 </style>
 
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-    <h1 class="h2 mb-0">Registro de Treino</h1>
+    <div>
+        <h1 class="h2 mb-0">Registro de Treino</h1>
+        <?php if ($nome_treino && $dia_nome): ?>
+            <p class="text-muted mb-0">
+                <i class="bi bi-calendar-check me-1"></i>
+                <strong><?php echo htmlspecialchars($dia_nome); ?></strong> - <?php echo htmlspecialchars($nome_treino); ?>
+            </p>
+        <?php endif; ?>
+    </div>
     <div class="d-flex align-items-center gap-2">
         <form id="filtroDataTreino" class="d-flex align-items-center gap-2">
             <label for="data_treino" class="form-label mb-0">Ver treino do dia:</label>
@@ -45,6 +78,37 @@ try {
         <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#modalNovoExercicio"><i class="bi bi-plus-lg"></i></button>
     </div>
 </div>
+
+<?php if (!empty($exercicios_planejados)): ?>
+<div class="alert alert-info mb-4" role="alert">
+    <div class="d-flex justify-content-between align-items-start">
+        <div>
+            <h5 class="alert-heading mb-2">
+                <i class="bi bi-list-check me-2"></i>Exercícios Planejados para Hoje
+            </h5>
+            <p class="mb-2">Você tem <strong><?php echo count($exercicios_planejados); ?></strong> exercício(s) planejado(s). Adicione-os rapidamente ao seu treino:</p>
+            <div class="d-flex flex-wrap gap-2 mt-3">
+                <?php foreach ($exercicios_planejados as $ex_planejado): ?>
+                    <button class="btn btn-outline-primary btn-sm btn-adicionar-planejado" 
+                            data-exercicio="<?php echo htmlspecialchars($ex_planejado['nome_exercicio']); ?>"
+                            data-series="<?php echo htmlspecialchars($ex_planejado['series_sugeridas'] ?? ''); ?>"
+                            data-repeticoes="<?php echo htmlspecialchars($ex_planejado['repeticoes_sugeridas'] ?? ''); ?>">
+                        <i class="bi bi-plus-circle me-1"></i>
+                        <?php echo htmlspecialchars($ex_planejado['nome_exercicio']); ?>
+                        <?php if ($ex_planejado['series_sugeridas'] || $ex_planejado['repeticoes_sugeridas']): ?>
+                            <small class="text-muted">
+                                (<?php echo htmlspecialchars($ex_planejado['series_sugeridas'] ?? '-'); ?>x 
+                                <?php echo htmlspecialchars($ex_planejado['repeticoes_sugeridas'] ?? '-'); ?>)
+                            </small>
+                        <?php endif; ?>
+                    </button>
+                <?php endforeach; ?>
+            </div>
+        </div>
+        <button type="button" class="btn-close" onclick="this.closest('.alert').remove();"></button>
+    </div>
+</div>
+<?php endif; ?>
 
 <div class="row g-3" id="lista-registros-treino">
     <?php if (empty($registros_dia)): ?>
@@ -89,9 +153,47 @@ document.addEventListener('DOMContentLoaded', function() {
     if (inputData) {
         inputData.addEventListener('change', function() {
             const dataSelecionada = this.value;
-            window.location.href = `treinos.php?data=${dataSelecionada}`;
+            // Preservar parâmetros da rotina se existirem
+            const urlParams = new URLSearchParams(window.location.search);
+            const rotinaDia = urlParams.get('rotina_dia');
+            const dia = urlParams.get('dia');
+            const treino = urlParams.get('treino');
+            
+            let url = `treinos.php?data=${dataSelecionada}`;
+            if (rotinaDia) url += `&rotina_dia=${rotinaDia}`;
+            if (dia) url += `&dia=${encodeURIComponent(dia)}`;
+            if (treino) url += `&treino=${encodeURIComponent(treino)}`;
+            
+            window.location.href = url;
         });
     }
+    
+    // --- LÓGICA PARA ADICIONAR EXERCÍCIOS PLANEJADOS ---
+    document.querySelectorAll('.btn-adicionar-planejado').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const exercicio = this.dataset.exercicio;
+            const series = this.dataset.series || '';
+            const repeticoes = this.dataset.repeticoes || '';
+            
+            // Preencher o formulário do modal
+            const formNovo = document.getElementById('formNovoRegistro');
+            if (formNovo) {
+                formNovo.querySelector('input[name="exercicio"]').value = exercicio;
+                formNovo.querySelector('input[name="series"]').value = series;
+                formNovo.querySelector('input[name="repeticoes"]').value = repeticoes;
+                
+                // Abrir o modal
+                const modal = new bootstrap.Modal(document.getElementById('modalNovoExercicio'));
+                modal.show();
+                
+                // Focar no campo de carga (próximo campo a preencher)
+                setTimeout(() => {
+                    const campoCarga = formNovo.querySelector('input[name="carga"]');
+                    if (campoCarga) campoCarga.focus();
+                }, 300);
+            }
+        });
+    });
 
     const modalNovoExercicio = new bootstrap.Modal(document.getElementById('modalNovoExercicio'));
     const formNovoRegistro = document.getElementById('formNovoRegistro');
