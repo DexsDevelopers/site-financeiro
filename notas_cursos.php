@@ -924,8 +924,24 @@ class MindMap {
     addDefaultNode() {
         if (this.nodes.length === 0) {
             const dpr = window.devicePixelRatio || 1;
-            const centerX = (this.canvas.width / dpr) / 2;
-            const centerY = (this.canvas.height / dpr) / 2;
+            let centerX, centerY;
+            
+            if (this.canvas && this.canvas.width && this.canvas.height) {
+                centerX = (this.canvas.width / dpr) / 2;
+                centerY = (this.canvas.height / dpr) / 2;
+            } else {
+                // Fallback para dimensões padrão
+                const container = this.canvas ? this.canvas.parentElement : null;
+                if (container) {
+                    const rect = container.getBoundingClientRect();
+                    centerX = (rect.width || 800) / 2;
+                    centerY = (rect.height || 600) / 2;
+                } else {
+                    centerX = 400;
+                    centerY = 300;
+                }
+            }
+            
             this.addNode('Tema Central', centerX, centerY, true);
         }
     }
@@ -1891,37 +1907,56 @@ window.visualizarMapa = function(id, titulo, dadosJson) {
                 mindMapVisualizar = null;
             }
             
-            // Aguardar um pouco para garantir que o canvas está renderizado
+            // Aguardar um pouco para garantir que o canvas está renderizado e o modal está totalmente visível
             setTimeout(() => {
                 const canvasElement = document.getElementById('mindmap-visualizar-canvas');
                 if (!canvasElement) {
                     console.error('Canvas não encontrado após criar');
+                    if (typeof showToast === 'function') {
+                        showToast('Erro!', 'Canvas não encontrado', true);
+                    }
                     return;
                 }
+                
+                // Verificar se o canvas tem dimensões
+                const containerRect = container.getBoundingClientRect();
+                console.log('Container dimensions:', containerRect.width, 'x', containerRect.height);
                 
                 try {
                     console.log('Inicializando mapa visualização com dados:', dados);
                     mindMapVisualizar = new MindMap('mindmap-visualizar-canvas');
                     
                     if (mindMapVisualizar && mindMapVisualizar.canvas) {
-                        console.log('Mapa de visualização inicializado, carregando dados...');
+                        console.log('Mapa de visualização inicializado, canvas:', mindMapVisualizar.canvas.width, 'x', mindMapVisualizar.canvas.height);
+                        console.log('Carregando dados:', dados);
+                        
+                        // Carregar dados
                         mindMapVisualizar.loadData(dados);
+                        
                         console.log('Dados carregados. Nodes:', mindMapVisualizar.nodes.length, 'Edges:', mindMapVisualizar.edges.length);
+                        
+                        // Forçar redraw
+                        if (mindMapVisualizar.draw) {
+                            mindMapVisualizar.draw();
+                        }
                     } else {
-                        console.error('Falha ao inicializar mapa de visualização');
+                        console.error('Falha ao inicializar mapa de visualização - canvas não disponível');
                         if (typeof showToast === 'function') {
                             showToast('Erro!', 'Erro ao inicializar visualização do mapa', true);
+                        } else {
+                            alert('Erro ao inicializar visualização do mapa');
                         }
                     }
                 } catch (error) {
                     console.error('Erro ao inicializar mapa:', error);
+                    console.error('Stack trace:', error.stack);
                     if (typeof showToast === 'function') {
                         showToast('Erro!', 'Erro ao visualizar mapa: ' + error.message, true);
                     } else {
                         alert('Erro ao visualizar mapa: ' + error.message);
                     }
                 }
-            }, 200);
+            }, 400);
         }, { once: true });
         
         // Mostrar o modal
