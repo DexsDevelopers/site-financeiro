@@ -43,12 +43,13 @@ if (empty($categoria)) {
     exit;
 }
 
+// Curso é opcional, pode ser null
 if ($id_curso <= 0) {
-    echo json_encode(['success' => false, 'message' => 'Curso é obrigatório']);
-    exit;
+    $id_curso = null;
 }
 
-if (!in_array($categoria, ['conceitos', 'exercicios', 'dicas', 'resumos', 'outros'])) {
+$categorias_validas = ['conceitos', 'exercicios', 'dicas', 'resumos', 'formulas', 'definicoes', 'exemplos', 'outros'];
+if (!in_array($categoria, $categorias_validas)) {
     echo json_encode(['success' => false, 'message' => 'Categoria inválida']);
     exit;
 }
@@ -79,10 +80,26 @@ try {
     exit;
 }
 
+// Verificar se o curso pertence ao usuário (se fornecido)
+if ($id_curso) {
+    try {
+        $stmt_curso = $pdo->prepare("SELECT id FROM cursos WHERE id = ? AND id_usuario = ?");
+        $stmt_curso->execute([$id_curso, $userId]);
+        if (!$stmt_curso->fetch()) {
+            echo json_encode(['success' => false, 'message' => 'Curso não encontrado']);
+            exit;
+        }
+    } catch (PDOException $e) {
+        echo json_encode(['success' => false, 'message' => 'Erro ao verificar curso']);
+        exit;
+    }
+}
+
 // Atualizar nota
 try {
-    $stmt = $pdo->prepare("UPDATE notas_cursos SET titulo = ?, conteudo = ?, categoria = ?, id_curso = ? WHERE id = ? AND id_usuario = ?");
-    $stmt->execute([$titulo, $conteudo, $categoria, $id_curso, $id, $userId]);
+    $prioridade = $_POST['prioridade'] ?? 'baixa';
+    $stmt = $pdo->prepare("UPDATE notas_cursos SET titulo = ?, conteudo = ?, categoria = ?, id_curso = ?, prioridade = ? WHERE id = ? AND id_usuario = ?");
+    $stmt->execute([$titulo, $conteudo, $categoria, $id_curso, $prioridade, $id, $userId]);
     
     echo json_encode(['success' => true, 'message' => 'Anotação atualizada com sucesso!']);
 } catch (PDOException $e) {
