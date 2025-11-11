@@ -932,8 +932,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Carregar mapas mentais salvos
-    function carregarMapasMentais() {
+    // Carregar mapas mentais salvos (função global)
+    window.carregarMapasMentais = function() {
         fetch('buscar_mapas_mentais.php')
             .then(response => response.json())
             .then(data => {
