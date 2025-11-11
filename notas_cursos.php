@@ -1866,7 +1866,7 @@ window.limparMapa = function() {
     }
 };
 
-function salvarMapaMental() {
+window.salvarMapaMental = function() {
     const tituloInput = document.getElementById('mapa-titulo');
     if (!tituloInput) {
         showToast('Erro!', 'Campo de título não encontrado', true);
@@ -1916,7 +1916,11 @@ function salvarMapaMental() {
             const mapaTab = document.getElementById('mapa-tab');
             if (mapaTab && mapaTab.classList.contains('active')) {
                 setTimeout(() => {
-                    carregarMapasMentais();
+                    if (typeof carregarMapasMentais === 'function') {
+                        carregarMapasMentais();
+                    } else if (window.carregarMapasMentais) {
+                        window.carregarMapasMentais();
+                    }
                 }, 500);
             }
         } else {
@@ -1935,7 +1939,7 @@ function salvarMapaMental() {
             btnSalvar.innerHTML = '<i class="bi bi-check-lg me-2"></i>Salvar Mapa Mental';
         }
     });
-}
+};
 
 window.visualizarMapa = function(id, titulo, dadosJson) {
     try {
