@@ -312,13 +312,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         } else {
                             data.exercicios.forEach(ex => {
                                 exerciciosHtml += `
-                                    <div class="exercise-item d-flex justify-content-between align-items-center" id="rot-ex-row-${ex.id}">
+                                    <div class="exercise-item d-flex justify-content-between align-items-center p-3 mb-2 border rounded" id="rot-ex-row-${ex.id}">
                                         <div class="flex-grow-1">
-                                            <div class="fw-bold text-dark">${escapeHTML(ex.nome_exercicio)}</div>
-                                            <div class="small text-muted">
+                                            <div class="fw-bold" style="color: var(--bs-body-color, #212529);">${escapeHTML(ex.nome_exercicio || 'Exercício sem nome')}</div>
+                                            <div class="small mt-1" style="color: var(--bs-secondary-color, #6c757d);">
                                                 <i class="bi bi-arrow-repeat me-1"></i>
-                                                <span class="series-text">${escapeHTML(ex.series_sugeridas || '')}</span> séries × 
-                                                <span class="reps-text">${escapeHTML(ex.repeticoes_sugeridas || '')}</span> reps
+                                                <span class="series-text">${escapeHTML(ex.series_sugeridas || 'N/A')}</span> séries × 
+                                                <span class="reps-text">${escapeHTML(ex.repeticoes_sugeridas || 'N/A')}</span> reps
                                             </div>
                                         </div>
                                         <div class="d-flex gap-2">
@@ -424,14 +424,25 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         if (editButton) {
-            const li = editButton.closest('li');
-            const seriesEl = li.querySelector('.series-text');
-            const repsEl = li.querySelector('.reps-text');
-            const seriesValue = seriesEl.textContent.trim();
-            const repsValue = repsEl.textContent.trim();
+            const exerciseItem = editButton.closest('.exercise-item');
+            if (!exerciseItem) {
+                console.error('Elemento exercise-item não encontrado');
+                return;
+            }
             
-            seriesEl.innerHTML = `<input type="text" class="form-control form-control-sm d-inline-block" value="${seriesValue}" style="width: 70px;">`;
-            repsEl.innerHTML = `<input type="text" class="form-control form-control-sm d-inline-block" value="${repsValue}" style="width: 70px;">`;
+            const seriesEl = exerciseItem.querySelector('.series-text');
+            const repsEl = exerciseItem.querySelector('.reps-text');
+            
+            if (!seriesEl || !repsEl) {
+                console.error('Elementos series-text ou reps-text não encontrados');
+                return;
+            }
+            
+            const seriesValue = seriesEl.textContent.trim().replace('N/A', '');
+            const repsValue = repsEl.textContent.trim().replace('N/A', '');
+            
+            seriesEl.innerHTML = `<input type="text" class="form-control form-control-sm d-inline-block" value="${seriesValue}" style="width: 70px; color: var(--bs-body-color, #212529);">`;
+            repsEl.innerHTML = `<input type="text" class="form-control form-control-sm d-inline-block" value="${repsValue}" style="width: 70px; color: var(--bs-body-color, #212529);">`;
             
             editButton.innerHTML = '<i class="bi bi-check-lg"></i>';
             editButton.classList.remove('btn-editar-exercicio-rotina', 'btn-outline-primary');
@@ -439,38 +450,66 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         if (saveButton) {
-            const li = saveButton.closest('li');
+            const exerciseItem = saveButton.closest('.exercise-item');
+            if (!exerciseItem) {
+                console.error('Elemento exercise-item não encontrado');
+                return;
+            }
+            
             const id = saveButton.dataset.id;
-            const seriesInput = li.querySelector('.series-text input');
-            const repsInput = li.querySelector('.reps-text input');
+            const seriesInput = exerciseItem.querySelector('.series-text input');
+            const repsInput = exerciseItem.querySelector('.reps-text input');
+            
+            if (!seriesInput || !repsInput) {
+                console.error('Inputs de edição não encontrados');
+                return;
+            }
+            
+            const originalSeries = seriesInput.value;
+            const originalReps = repsInput.value;
+            
+            saveButton.disabled = true;
             saveButton.innerHTML = `<span class="spinner-border spinner-border-sm"></span>`;
             
             fetch('editar_exercicio_rotina.php', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ id: id, series_sugeridas: seriesInput.value, repeticoes_sugeridas: repsInput.value })
-            }).then(res => res.json()).then(data => {
+                body: JSON.stringify({ id: id, series_sugeridas: originalSeries, repeticoes_sugeridas: originalReps })
+            })
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error('Erro na resposta do servidor');
+                }
+                return res.json();
+            })
+            .then(data => {
                 if(data.success) {
                     showToast('Sucesso!', data.message);
-                    const newSeries = seriesInput.value;
-                    const newReps = repsInput.value;
-                    li.querySelector('.series-text').textContent = newSeries;
-                    li.querySelector('.reps-text').textContent = newReps;
+                    exerciseItem.querySelector('.series-text').textContent = originalSeries || 'N/A';
+                    exerciseItem.querySelector('.reps-text').textContent = originalReps || 'N/A';
                     saveButton.innerHTML = '<i class="bi bi-pencil-fill"></i>';
                     saveButton.classList.remove('btn-salvar-exercicio-rotina', 'btn-outline-success');
                     saveButton.classList.add('btn-editar-exercicio-rotina', 'btn-outline-primary');
-                    // Recarrega a página principal para atualizar a lista fora do modal
-                    setTimeout(() => window.location.reload(), 1000);
+                    saveButton.disabled = false;
                 } else { 
-                    showToast('Erro!', data.message, true);
-                    const oldSeries = seriesInput.defaultValue;
-                    const oldReps = repsInput.defaultValue;
-                    li.querySelector('.series-text').textContent = oldSeries;
-                    li.querySelector('.reps-text').textContent = oldReps;
+                    showToast('Erro!', data.message || 'Erro ao atualizar exercício', true);
+                    exerciseItem.querySelector('.series-text').textContent = originalSeries || 'N/A';
+                    exerciseItem.querySelector('.reps-text').textContent = originalReps || 'N/A';
                     saveButton.innerHTML = '<i class="bi bi-pencil-fill"></i>';
                     saveButton.classList.remove('btn-salvar-exercicio-rotina', 'btn-outline-success');
                     saveButton.classList.add('btn-editar-exercicio-rotina', 'btn-outline-primary');
+                    saveButton.disabled = false;
                 }
+            })
+            .catch(error => {
+                console.error('Erro ao editar exercício:', error);
+                showToast('Erro!', 'Erro de conexão. Tente novamente.', true);
+                exerciseItem.querySelector('.series-text').textContent = originalSeries || 'N/A';
+                exerciseItem.querySelector('.reps-text').textContent = originalReps || 'N/A';
+                saveButton.innerHTML = '<i class="bi bi-pencil-fill"></i>';
+                saveButton.classList.remove('btn-salvar-exercicio-rotina', 'btn-outline-success');
+                saveButton.classList.add('btn-editar-exercicio-rotina', 'btn-outline-primary');
+                saveButton.disabled = false;
             });
         }
     });
