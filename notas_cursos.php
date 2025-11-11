@@ -1,5 +1,5 @@
 <?php
-// notas_cursos.php - Sistema Profissional de Notas e Anotações com Mapa Mental
+// notas_cursos.php - Sistema Profissional de Notas e Anotações com Mapa Mental (Canvas Customizado)
 require_once 'templates/header.php';
 
 // Buscar cursos e notas
@@ -200,7 +200,7 @@ $stats = [
     .priority-media { background: #ffc107; }
     .priority-baixa { background: #28a745; }
     
-    /* Mapa Mental Styles */
+    /* Mapa Mental Styles - Canvas Customizado */
     #mindmap-container {
         width: 100%;
         height: 600px;
@@ -209,6 +209,13 @@ $stats = [
         background: var(--card-background, #1a1a1a);
         position: relative;
         overflow: hidden;
+        cursor: move;
+    }
+    
+    #mindmap-canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
     }
     
     .mindmap-controls {
@@ -218,6 +225,10 @@ $stats = [
         z-index: 1000;
         display: flex;
         gap: 5px;
+        background: rgba(26, 26, 26, 0.9);
+        padding: 8px;
+        border-radius: 8px;
+        border: 1px solid var(--border-color, #333);
     }
     
     .mindmap-node {
@@ -232,13 +243,25 @@ $stats = [
         padding: 1rem;
         margin-bottom: 1rem;
     }
+    
+    .node-edit-input {
+        position: absolute;
+        background: rgba(26, 26, 26, 0.95);
+        border: 2px solid #dc3545;
+        border-radius: 4px;
+        padding: 4px 8px;
+        color: #fff;
+        font-size: 14px;
+        z-index: 10000;
+        min-width: 150px;
+    }
 </style>
 
 <div class="card card-custom intro-card border-0" data-aos="fade-up">
     <div class="card-body p-4 p-md-5 text-center">
         <i class="bi bi-journal-text display-1 text-danger mb-4"></i>
         <h1 class="display-5">📚 Notas e Anotações</h1>
-        <p class="lead text-white-50 col-md-8 mx-auto">Sistema profissional de organização de anotações com categorização inteligente, busca avançada e mapas mentais.</p>
+        <p class="lead text-white-50 col-md-8 mx-auto">Sistema profissional de organização de anotações com categorização inteligente, busca avançada e mapas mentais interativos.</p>
     </div>
 </div>
 
@@ -626,13 +649,15 @@ $stats = [
                 <div class="alert alert-info mb-3">
                     <small>
                         <i class="bi bi-info-circle me-1"></i>
-                        <strong>Dicas:</strong> Duplo clique para adicionar/editar nós | Clique em um nó e depois em outro para conectar | Clique com botão direito para excluir
+                        <strong>Dicas:</strong> Clique no canvas para adicionar nó | Clique em um nó para editar | Arraste para mover | Clique com botão direito para excluir
                     </small>
                 </div>
-                <div id="mindmap-container" style="min-height: 500px;"></div>
-                <div class="mindmap-controls mt-3">
+                <div id="mindmap-container">
+                    <canvas id="mindmap-canvas"></canvas>
+                </div>
+                <div class="mindmap-controls">
                     <button class="btn btn-sm btn-primary" onclick="adicionarNoMapa()" title="Adicionar Nó">
-                        <i class="bi bi-plus-circle me-1"></i>Adicionar Nó
+                        <i class="bi bi-plus-circle me-1"></i>Adicionar
                     </button>
                     <button class="btn btn-sm btn-warning" onclick="limparMapa()" title="Limpar">
                         <i class="bi bi-arrow-counterclockwise me-1"></i>Limpar
@@ -663,7 +688,9 @@ $stats = [
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div id="mindmap-visualizar-container" style="width: 100%; height: 600px; border: 1px solid var(--border-color, #333); border-radius: 12px;"></div>
+                <div id="mindmap-visualizar-container" style="width: 100%; height: 600px; border: 1px solid var(--border-color, #333); border-radius: 12px; position: relative; overflow: hidden;">
+                    <canvas id="mindmap-visualizar-canvas"></canvas>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
@@ -672,188 +699,310 @@ $stats = [
     </div>
 </div>
 
-<!-- Biblioteca vis-network para mapas mentais -->
-<script src="https://unpkg.com/vis-network@latest/standalone/umd/vis-network.min.js"></script>
-
 <script>
-// Variáveis globais para mapa mental
-let networkMapa = null;
-let nodesMapa = null;
-let edgesMapa = null;
-let nodeIdCounterMapa = 1;
-let visNetworkLoaded = false;
-
-// Verificar se vis-network está carregado
-function verificarVisNetwork() {
-    if (typeof vis !== 'undefined' && vis.Network) {
-        visNetworkLoaded = true;
-        return true;
-    }
-    return false;
-}
-
-// Aguardar carregamento da biblioteca
-function aguardarVisNetwork(callback, tentativas = 0) {
-    if (verificarVisNetwork()) {
-        callback();
-    } else if (tentativas < 50) {
-        setTimeout(() => aguardarVisNetwork(callback, tentativas + 1), 100);
-    } else {
-        console.error('Erro: Biblioteca vis-network não carregou');
-        showToast('Erro!', 'Erro ao carregar biblioteca de mapas mentais. Recarregue a página.', true);
-    }
-}
-
-// Inicializar mapa mental
-function inicializarMapaMental(containerId, dadosIniciais = null) {
-    if (!verificarVisNetwork()) {
-        aguardarVisNetwork(() => inicializarMapaMental(containerId, dadosIniciais));
-        return null;
-    }
-    
-    const container = document.getElementById(containerId);
-    if (!container) {
-        console.error('Container não encontrado:', containerId);
-        return null;
-    }
-    
-    // Limpar container
-    container.innerHTML = '';
-    
-    // Inicializar dados
-    if (dadosIniciais && dadosIniciais.nodes) {
-        nodesMapa = new vis.DataSet(dadosIniciais.nodes);
-        edgesMapa = new vis.DataSet(dadosIniciais.edges || []);
-        if (dadosIniciais.nodes.length > 0) {
-            nodeIdCounterMapa = Math.max(...dadosIniciais.nodes.map(n => n.id)) + 1;
-        }
-    } else {
-        // Nó central padrão
-        nodesMapa = new vis.DataSet([{ 
-            id: 1, 
-            label: 'Tema Central', 
-            shape: 'box', 
-            color: { background: '#dc3545', border: '#c82333' },
-            font: { color: '#fff', size: 16, face: 'Arial' }
-        }]);
-        edgesMapa = new vis.DataSet([]);
-        nodeIdCounterMapa = 2;
-    }
-    
-    const data = { nodes: nodesMapa, edges: edgesMapa };
-    const options = {
-        nodes: {
-            shape: 'box',
-            font: { color: '#fff', size: 14, face: 'Arial' },
-            borderWidth: 2,
-            shadow: { enabled: true, color: 'rgba(0,0,0,0.5)', size: 5 },
-            margin: 10,
-            widthConstraint: { maximum: 200 }
-        },
-        edges: {
-            arrows: { to: { enabled: true, scaleFactor: 0.8 } },
-            color: { color: '#dc3545', highlight: '#ff6b6b' },
-            width: 2,
-            smooth: { type: 'continuous', roundness: 0.5 }
-        },
-        physics: {
-            enabled: true,
-            stabilization: { iterations: 200 },
-            barnesHut: {
-                gravitationalConstant: -2000,
-                centralGravity: 0.1,
-                springLength: 150,
-                springConstant: 0.04,
-                damping: 0.09
-            }
-        },
-        interaction: {
-            dragNodes: true,
-            dragView: true,
-            zoomView: true,
-            selectConnectedEdges: true
-        },
-        layout: {
-            improvedLayout: true
-        }
-    };
-    
-    try {
-        networkMapa = new vis.Network(container, data, options);
+// Sistema de Mapa Mental Customizado com Canvas (100% compatível)
+class MindMap {
+    constructor(canvasId) {
+        this.canvas = document.getElementById(canvasId);
+        if (!this.canvas) return;
         
-        // Eventos do mapa
-        networkMapa.on('doubleClick', function(params) {
-            if (params.nodes.length === 0) {
-                // Criar novo nó na posição do clique
-                const pos = networkMapa.getPositionOnCanvas(params.pointer.canvas);
-                const novoNo = {
-                    id: nodeIdCounterMapa++,
-                    label: 'Novo Nó',
-                    x: pos.x,
-                    y: pos.y,
-                    shape: 'box',
-                    color: { background: '#6c757d', border: '#5a6268' },
-                    font: { color: '#fff', size: 14 }
-                };
-                nodesMapa.add(novoNo);
-                
+        this.ctx = this.canvas.getContext('2d');
+        this.nodes = [];
+        this.edges = [];
+        this.selectedNode = null;
+        this.dragging = false;
+        this.dragOffset = { x: 0, y: 0 };
+        this.offset = { x: 0, y: 0 };
+        this.scale = 1;
+        this.nodeIdCounter = 1;
+        
+        this.setupCanvas();
+        this.setupEvents();
+        this.addDefaultNode();
+        this.draw();
+    }
+    
+    setupCanvas() {
+        const container = this.canvas.parentElement;
+        this.canvas.width = container.clientWidth;
+        this.canvas.height = container.clientHeight;
+        
+        // Ajustar canvas quando redimensionar
+        window.addEventListener('resize', () => {
+            this.canvas.width = container.clientWidth;
+            this.canvas.height = container.clientHeight;
+            this.draw();
+        });
+    }
+    
+    setupEvents() {
+        // Mouse events
+        this.canvas.addEventListener('mousedown', (e) => this.onMouseDown(e));
+        this.canvas.addEventListener('mousemove', (e) => this.onMouseMove(e));
+        this.canvas.addEventListener('mouseup', (e) => this.onMouseUp(e));
+        this.canvas.addEventListener('dblclick', (e) => this.onDoubleClick(e));
+        this.canvas.addEventListener('contextmenu', (e) => this.onRightClick(e));
+        this.canvas.addEventListener('wheel', (e) => this.onWheel(e));
+    }
+    
+    addDefaultNode() {
+        if (this.nodes.length === 0) {
+            this.addNode('Tema Central', this.canvas.width / 2, this.canvas.height / 2, true);
+        }
+    }
+    
+    addNode(text, x, y, isCentral = false) {
+        const node = {
+            id: this.nodeIdCounter++,
+            text: text || 'Novo Nó',
+            x: x || this.canvas.width / 2,
+            y: y || this.canvas.height / 2,
+            width: 120,
+            height: 40,
+            isCentral: isCentral,
+            color: isCentral ? '#dc3545' : '#6c757d'
+        };
+        this.nodes.push(node);
+        this.draw();
+        return node;
+    }
+    
+    removeNode(nodeId) {
+        this.nodes = this.nodes.filter(n => n.id !== nodeId);
+        this.edges = this.edges.filter(e => e.from !== nodeId && e.to !== nodeId);
+        this.draw();
+    }
+    
+    addEdge(fromId, toId) {
+        // Verificar se já existe
+        if (this.edges.some(e => e.from === fromId && e.to === toId)) {
+            return;
+        }
+        this.edges.push({ from: fromId, to: toId });
+        this.draw();
+    }
+    
+    getNodeAt(x, y) {
+        for (let i = this.nodes.length - 1; i >= 0; i--) {
+            const node = this.nodes[i];
+            const nodeX = (node.x - this.offset.x) * this.scale;
+            const nodeY = (node.y - this.offset.y) * this.scale;
+            
+            if (x >= nodeX - node.width/2 && x <= nodeX + node.width/2 &&
+                y >= nodeY - node.height/2 && y <= nodeY + node.height/2) {
+                return node;
+            }
+        }
+        return null;
+    }
+    
+    onMouseDown(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left) / this.scale;
+        const y = (e.clientY - rect.top) / this.scale;
+        
+        const node = this.getNodeAt(x, y);
+        if (node) {
+            this.selectedNode = node;
+            this.dragging = true;
+            this.dragOffset.x = x - node.x;
+            this.dragOffset.y = y - node.y;
+        } else {
+            this.selectedNode = null;
+        }
+    }
+    
+    onMouseMove(e) {
+        if (this.dragging && this.selectedNode) {
+            const rect = this.canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / this.scale;
+            const y = (e.clientY - rect.top) / this.scale;
+            
+            this.selectedNode.x = x - this.dragOffset.x;
+            this.selectedNode.y = y - this.dragOffset.y;
+            this.draw();
+        }
+    }
+    
+    onMouseUp(e) {
+        this.dragging = false;
+    }
+    
+    onDoubleClick(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left) / this.scale;
+        const y = (e.clientY - rect.top) / this.scale;
+        
+        const node = this.getNodeAt(x, y);
+        if (node) {
+            // Editar nó existente
+            const novoTexto = prompt('Editar texto do nó:', node.text);
+            if (novoTexto !== null && novoTexto.trim() !== '') {
+                node.text = novoTexto.trim();
+                this.draw();
+            }
+        } else {
+            // Adicionar novo nó
+            const novoTexto = prompt('Digite o texto do novo nó:', 'Novo Nó');
+            if (novoTexto !== null && novoTexto.trim() !== '') {
+                const newNode = this.addNode(novoTexto.trim(), x, y);
                 // Conectar ao nó central se existir
-                if (nodesMapa.length > 1 && nodesMapa.get(1)) {
-                    edgesMapa.add({ from: 1, to: novoNo.id });
+                const centralNode = this.nodes.find(n => n.isCentral);
+                if (centralNode && centralNode.id !== newNode.id) {
+                    this.addEdge(centralNode.id, newNode.id);
                 }
-            } else {
-                // Editar nó existente
-                const nodeId = params.nodes[0];
-                const node = nodesMapa.get(nodeId);
-                if (node) {
-                    const novoLabel = prompt('Digite o novo texto do nó:', node.label || '');
-                    if (novoLabel !== null && novoLabel.trim() !== '') {
-                        nodesMapa.update({ id: nodeId, label: novoLabel.trim() });
-                    }
-                }
+            }
+        }
+    }
+    
+    onRightClick(e) {
+        e.preventDefault();
+        const rect = this.canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left) / this.scale;
+        const y = (e.clientY - rect.top) / this.scale;
+        
+        const node = this.getNodeAt(x, y);
+        if (node && !node.isCentral) {
+            if (confirm('Deseja excluir este nó?')) {
+                this.removeNode(node.id);
+            }
+        }
+    }
+    
+    onWheel(e) {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? 0.9 : 1.1;
+        this.scale = Math.max(0.5, Math.min(2, this.scale * delta));
+        this.draw();
+    }
+    
+    draw() {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.save();
+        this.ctx.translate(this.offset.x, this.offset.y);
+        this.ctx.scale(this.scale, this.scale);
+        
+        // Desenhar arestas
+        this.edges.forEach(edge => {
+            const fromNode = this.nodes.find(n => n.id === edge.from);
+            const toNode = this.nodes.find(n => n.id === edge.to);
+            if (fromNode && toNode) {
+                this.drawEdge(fromNode, toNode);
             }
         });
         
-        networkMapa.on('click', function(params) {
-            if (params.nodes.length > 0 && params.edges.length === 0) {
-                // Selecionar nó para conectar
-                const selectedNode = params.nodes[0];
-                if (window.selectedNodeForConnection && window.selectedNodeForConnection !== selectedNode) {
-                    // Criar conexão
-                    edgesMapa.add({ 
-                        from: window.selectedNodeForConnection, 
-                        to: selectedNode 
-                    });
-                    window.selectedNodeForConnection = null;
-                    showToast('Info', 'Conexão criada!', false);
-                } else {
-                    window.selectedNodeForConnection = selectedNode;
-                    showToast('Info', 'Nó selecionado. Clique em outro nó para conectar.', false);
-                }
-            }
+        // Desenhar nós
+        this.nodes.forEach(node => {
+            this.drawNode(node);
         });
         
-        networkMapa.on('oncontext', function(params) {
-            params.event.preventDefault();
-            if (params.nodes.length > 0) {
-                const nodeId = params.nodes[0];
-                if (confirm('Deseja excluir este nó?')) {
-                    nodesMapa.remove(nodeId);
-                    edgesMapa.remove(edgesMapa.getIds().filter(e => {
-                        const edge = edgesMapa.get(e);
-                        return edge.from === nodeId || edge.to === nodeId;
-                    }));
-                }
-            }
-        });
+        this.ctx.restore();
+    }
+    
+    drawEdge(fromNode, toNode) {
+        this.ctx.strokeStyle = '#dc3545';
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.moveTo(fromNode.x, fromNode.y);
+        this.ctx.lineTo(toNode.x, toNode.y);
+        this.ctx.stroke();
         
-        return networkMapa;
-    } catch (error) {
-        console.error('Erro ao criar mapa mental:', error);
-        showToast('Erro!', 'Erro ao inicializar mapa mental: ' + error.message, true);
-        return null;
+        // Seta
+        const angle = Math.atan2(toNode.y - fromNode.y, toNode.x - fromNode.x);
+        const arrowLength = 10;
+        const arrowAngle = Math.PI / 6;
+        
+        this.ctx.beginPath();
+        this.ctx.moveTo(toNode.x, toNode.y);
+        this.ctx.lineTo(
+            toNode.x - arrowLength * Math.cos(angle - arrowAngle),
+            toNode.y - arrowLength * Math.sin(angle - arrowAngle)
+        );
+        this.ctx.lineTo(
+            toNode.x - arrowLength * Math.cos(angle + arrowAngle),
+            toNode.y - arrowLength * Math.sin(angle + arrowAngle)
+        );
+        this.ctx.closePath();
+        this.ctx.fillStyle = '#dc3545';
+        this.ctx.fill();
+    }
+    
+    drawNode(node) {
+        // Sombra
+        this.ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+        this.ctx.shadowBlur = 5;
+        this.ctx.shadowOffsetX = 2;
+        this.ctx.shadowOffsetY = 2;
+        
+        // Retângulo do nó
+        this.ctx.fillStyle = node.color;
+        this.ctx.strokeStyle = node.isCentral ? '#c82333' : '#5a6268';
+        this.ctx.lineWidth = 2;
+        
+        this.ctx.fillRect(
+            node.x - node.width / 2,
+            node.y - node.height / 2,
+            node.width,
+            node.height
+        );
+        this.ctx.strokeRect(
+            node.x - node.width / 2,
+            node.y - node.height / 2,
+            node.width,
+            node.height
+        );
+        
+        // Resetar sombra
+        this.ctx.shadowColor = 'transparent';
+        
+        // Texto
+        this.ctx.fillStyle = '#fff';
+        this.ctx.font = node.isCentral ? 'bold 14px Arial' : '13px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
+        this.ctx.fillText(node.text, node.x, node.y);
+    }
+    
+    getData() {
+        return {
+            nodes: this.nodes.map(n => ({
+                id: n.id,
+                text: n.text,
+                x: n.x,
+                y: n.y,
+                isCentral: n.isCentral,
+                color: n.color
+            })),
+            edges: this.edges
+        };
+    }
+    
+    loadData(data) {
+        if (data && data.nodes) {
+            this.nodes = data.nodes.map(n => ({
+                ...n,
+                width: 120,
+                height: 40
+            }));
+            this.edges = data.edges || [];
+            if (this.nodes.length > 0) {
+                this.nodeIdCounter = Math.max(...this.nodes.map(n => n.id)) + 1;
+            }
+            this.draw();
+        }
+    }
+    
+    clear() {
+        this.nodes = [];
+        this.edges = [];
+        this.nodeIdCounter = 1;
+        this.addDefaultNode();
     }
 }
+
+// Variáveis globais
+let mindMapInstance = null;
+let mindMapVisualizar = null;
 
 document.addEventListener('DOMContentLoaded', function() {
     AOS.init({ duration: 600, once: true });
@@ -932,7 +1081,25 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Carregar mapas mentais salvos (função global)
+    // Inicializar mapa mental quando modal abrir
+    const modalNovoMapa = document.getElementById('modalNovoMapa');
+    if (modalNovoMapa) {
+        modalNovoMapa.addEventListener('shown.bs.modal', function() {
+            if (!mindMapInstance) {
+                mindMapInstance = new MindMap('mindmap-canvas');
+            }
+        });
+        
+        modalNovoMapa.addEventListener('hidden.bs.modal', function() {
+            const tituloInput = document.getElementById('mapa-titulo');
+            if (tituloInput) tituloInput.value = '';
+            if (mindMapInstance) {
+                mindMapInstance.clear();
+            }
+        });
+    }
+    
+    // Carregar mapas mentais salvos
     window.carregarMapasMentais = function() {
         fetch('buscar_mapas_mentais.php')
             .then(response => response.json())
@@ -981,39 +1148,13 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(error => {
                 console.error('Erro ao carregar mapas:', error);
             });
-    }
+    };
     
     // Carregar mapas quando a aba for ativada
     const mapaTab = document.getElementById('mapa-tab');
     if (mapaTab) {
         mapaTab.addEventListener('shown.bs.tab', function() {
             carregarMapasMentais();
-        });
-    }
-    
-    // Inicializar mapa mental quando modal abrir
-    const modalNovoMapa = document.getElementById('modalNovoMapa');
-    if (modalNovoMapa) {
-        modalNovoMapa.addEventListener('shown.bs.modal', function() {
-            aguardarVisNetwork(() => {
-                if (!networkMapa) {
-                    inicializarMapaMental('mindmap-container');
-                }
-            });
-        });
-        
-        modalNovoMapa.addEventListener('hidden.bs.modal', function() {
-            // Resetar ao fechar
-            const tituloInput = document.getElementById('mapa-titulo');
-            if (tituloInput) tituloInput.value = '';
-            if (networkMapa) {
-                networkMapa.destroy();
-                networkMapa = null;
-            }
-            nodesMapa = null;
-            edgesMapa = null;
-            nodeIdCounterMapa = 1;
-            window.selectedNodeForConnection = null;
         });
     }
 });
@@ -1097,52 +1238,32 @@ function excluirNota(id) {
     });
 }
 
-// Funções para mapa mental (escopo global)
+// Funções para mapa mental
 function adicionarNoMapa() {
-    if (!verificarVisNetwork()) {
-        showToast('Erro!', 'Biblioteca de mapas mentais não carregada', true);
+    if (!mindMapInstance) {
+        showToast('Erro!', 'Mapa mental não inicializado', true);
         return;
     }
     
-    if (!nodesMapa) {
-        nodesMapa = new vis.DataSet([{ 
-            id: 1, 
-            label: 'Tema Central', 
-            shape: 'box', 
-            color: { background: '#dc3545', border: '#c82333' },
-            font: { color: '#fff', size: 16 }
-        }]);
-        edgesMapa = new vis.DataSet([]);
-        nodeIdCounterMapa = 2;
+    const novoTexto = prompt('Digite o texto do novo nó:', 'Novo Nó');
+    if (novoTexto !== null && novoTexto.trim() !== '') {
+        const centralNode = mindMapInstance.nodes.find(n => n.isCentral);
+        const x = centralNode ? centralNode.x + 150 : mindMapInstance.canvas.width / 2 + 150;
+        const y = centralNode ? centralNode.y : mindMapInstance.canvas.height / 2;
+        
+        const newNode = mindMapInstance.addNode(novoTexto.trim(), x, y);
+        if (centralNode) {
+            mindMapInstance.addEdge(centralNode.id, newNode.id);
+        }
     }
-    
-    const novoNo = {
-        id: nodeIdCounterMapa++,
-        label: 'Novo Nó',
-        shape: 'box',
-        color: { background: '#6c757d', border: '#5a6268' },
-        font: { color: '#fff', size: 14 }
-    };
-    nodesMapa.add(novoNo);
-    
-    // Conectar ao nó central se existir
-    if (nodesMapa.length > 1 && nodesMapa.get(1)) {
-        edgesMapa.add({ from: 1, to: novoNo.id });
-    }
-    
-    atualizarRedeMapa();
 }
 
-function atualizarRedeMapa() {
-    if (!networkMapa || !nodesMapa || !edgesMapa) {
-        if (!networkMapa) {
-            inicializarMapaMental('mindmap-container');
-        }
-        return;
-    }
+function limparMapa() {
+    if (!confirm('Deseja limpar o mapa mental? Esta ação não pode ser desfeita.')) return;
     
-    const data = { nodes: nodesMapa, edges: edgesMapa };
-    networkMapa.setData(data);
+    if (mindMapInstance) {
+        mindMapInstance.clear();
+    }
 }
 
 function salvarMapaMental() {
@@ -1159,15 +1280,12 @@ function salvarMapaMental() {
         return;
     }
     
-    if (!nodesMapa || nodesMapa.length === 0) {
+    if (!mindMapInstance || mindMapInstance.nodes.length === 0) {
         showToast('Erro!', 'Adicione pelo menos um nó ao mapa', true);
         return;
     }
     
-    const dados = {
-        nodes: nodesMapa.get(),
-        edges: edgesMapa ? edgesMapa.get() : []
-    };
+    const dados = mindMapInstance.getData();
     
     // Mostrar loading
     const btnSalvar = document.querySelector('#modalNovoMapa .btn-danger');
@@ -1190,13 +1308,9 @@ function salvarMapaMental() {
             
             // Limpar e resetar
             tituloInput.value = '';
-            if (networkMapa) {
-                networkMapa.destroy();
-                networkMapa = null;
+            if (mindMapInstance) {
+                mindMapInstance.clear();
             }
-            nodesMapa = null;
-            edgesMapa = null;
-            nodeIdCounterMapa = 1;
             
             // Recarregar lista se estiver na aba de mapas
             const mapaTab = document.getElementById('mapa-tab');
@@ -1223,101 +1337,46 @@ function salvarMapaMental() {
     });
 }
 
-function limparMapa() {
-    if (!confirm('Deseja limpar o mapa mental? Esta ação não pode ser desfeita.')) return;
-    
-    if (!verificarVisNetwork()) {
-        showToast('Erro!', 'Biblioteca de mapas mentais não carregada', true);
-        return;
-    }
-    
-    nodesMapa = new vis.DataSet([{ 
-        id: 1, 
-        label: 'Tema Central', 
-        shape: 'box', 
-        color: { background: '#dc3545', border: '#c82333' },
-        font: { color: '#fff', size: 16 }
-    }]);
-    edgesMapa = new vis.DataSet([]);
-    nodeIdCounterMapa = 2;
-    window.selectedNodeForConnection = null;
-    atualizarRedeMapa();
-}
-
 function visualizarMapa(id, titulo, dadosJson) {
-    aguardarVisNetwork(() => {
-        try {
-            const dados = typeof dadosJson === 'string' ? JSON.parse(dadosJson) : dadosJson;
-            
-            document.getElementById('mapa-visualizar-titulo').innerHTML = `<i class="bi bi-diagram-3 me-2"></i>${escapeHTML(titulo)}`;
-            
-            const container = document.getElementById('mindmap-visualizar-container');
-            if (!container) {
-                showToast('Erro!', 'Container de visualização não encontrado', true);
-                return;
-            }
-            
-            // Limpar container
-            container.innerHTML = '';
-            
-            const nodes = new vis.DataSet(dados.nodes || []);
-            const edges = new vis.DataSet(dados.edges || []);
-            const data = { nodes: nodes, edges: edges };
-            
-            const options = {
-                nodes: {
-                    shape: 'box',
-                    font: { color: '#fff', size: 14, face: 'Arial' },
-                    borderWidth: 2,
-                    shadow: { enabled: true, color: 'rgba(0,0,0,0.5)', size: 5 },
-                    margin: 10,
-                    widthConstraint: { maximum: 200 }
-                },
-                edges: {
-                    arrows: { to: { enabled: true, scaleFactor: 0.8 } },
-                    color: { color: '#dc3545', highlight: '#ff6b6b' },
-                    width: 2,
-                    smooth: { type: 'continuous', roundness: 0.5 }
-                },
-                physics: {
-                    enabled: true,
-                    stabilization: { iterations: 200 },
-                    barnesHut: {
-                        gravitationalConstant: -2000,
-                        centralGravity: 0.1,
-                        springLength: 150,
-                        springConstant: 0.04,
-                        damping: 0.09
-                    }
-                },
-                interaction: {
-                    dragNodes: true,
-                    dragView: true,
-                    zoomView: true,
-                    selectConnectedEdges: true
-                },
-                layout: {
-                    improvedLayout: true
-                }
-            };
-            
-            const network = new vis.Network(container, data, options);
-            
-            // Limpar ao fechar modal
-            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalVisualizarMapa'));
-            modal.show();
-            
-            document.getElementById('modalVisualizarMapa').addEventListener('hidden.bs.modal', function() {
-                if (network) {
-                    network.destroy();
-                }
-                container.innerHTML = '';
-            }, { once: true });
-        } catch (error) {
-            console.error('Erro ao visualizar mapa:', error);
-            showToast('Erro!', 'Erro ao carregar mapa mental: ' + error.message, true);
+    try {
+        const dados = typeof dadosJson === 'string' ? JSON.parse(dadosJson) : dadosJson;
+        
+        document.getElementById('mapa-visualizar-titulo').innerHTML = `<i class="bi bi-diagram-3 me-2"></i>${escapeHTML(titulo)}`;
+        
+        const container = document.getElementById('mindmap-visualizar-container');
+        if (!container) {
+            showToast('Erro!', 'Container de visualização não encontrado', true);
+            return;
         }
-    });
+        
+        // Limpar container
+        const oldCanvas = document.getElementById('mindmap-visualizar-canvas');
+        if (oldCanvas) oldCanvas.remove();
+        
+        const canvas = document.createElement('canvas');
+        canvas.id = 'mindmap-visualizar-canvas';
+        canvas.style.width = '100%';
+        canvas.style.height = '100%';
+        canvas.style.display = 'block';
+        container.appendChild(canvas);
+        
+        mindMapVisualizar = new MindMap('mindmap-visualizar-canvas');
+        mindMapVisualizar.loadData(dados);
+        
+        const modal = new bootstrap.Modal(document.getElementById('modalVisualizarMapa'));
+        modal.show();
+        
+        // Limpar ao fechar
+        document.getElementById('modalVisualizarMapa').addEventListener('hidden.bs.modal', function() {
+            if (mindMapVisualizar) {
+                mindMapVisualizar = null;
+            }
+            if (canvas) canvas.remove();
+        }, { once: true });
+    } catch (error) {
+        console.error('Erro ao visualizar mapa:', error);
+        showToast('Erro!', 'Erro ao carregar mapa mental: ' + error.message, true);
+    }
 }
 
 function excluirMapa(id) {
@@ -1344,7 +1403,6 @@ function excluirMapa(id) {
 }
 
 function criarMapaMental(notaId) {
-    // Buscar nota e criar mapa mental baseado nela
     fetch(`buscar_nota.php?id=${notaId}`)
         .then(response => response.json())
         .then(data => {
@@ -1355,51 +1413,35 @@ function criarMapaMental(notaId) {
                     tituloInput.value = nota.titulo + ' - Mapa Mental';
                 }
                 
-                // Criar nós baseados no conteúdo da nota
-                const palavras = nota.conteudo.split(/\s+/).filter(p => p.length > 3).slice(0, 10);
+                const modal = new bootstrap.Modal(document.getElementById('modalNovoMapa'));
+                modal.show();
                 
-                aguardarVisNetwork(() => {
-                    nodesMapa = new vis.DataSet([
-                        { 
-                            id: 1, 
-                            label: nota.titulo.substring(0, 30), 
-                            shape: 'box', 
-                            color: { background: '#dc3545', border: '#c82333' },
-                            font: { color: '#fff', size: 16 }
-                        }
-                    ]);
-                    edgesMapa = new vis.DataSet([]);
-                    nodeIdCounterMapa = 2;
+                // Aguardar modal abrir e inicializar mapa
+                setTimeout(() => {
+                    if (!mindMapInstance) {
+                        mindMapInstance = new MindMap('mindmap-canvas');
+                    }
                     
-                    palavras.forEach((palavra) => {
-                        const palavraLimpa = palavra.replace(/[^\w\s]/g, '').substring(0, 20);
-                        if (palavraLimpa.length > 0) {
-                            nodesMapa.add({
-                                id: nodeIdCounterMapa++,
-                                label: palavraLimpa,
-                                shape: 'box',
-                                color: { background: '#6c757d', border: '#5a6268' },
-                                font: { color: '#fff', size: 14 }
-                            });
-                            edgesMapa.add({ from: 1, to: nodeIdCounterMapa - 1 });
+                    // Criar nós baseados no conteúdo
+                    const palavras = nota.conteudo.split(/\s+/).filter(p => p.length > 3).slice(0, 8);
+                    const centralNode = mindMapInstance.nodes.find(n => n.isCentral);
+                    if (centralNode) {
+                        centralNode.text = nota.titulo.substring(0, 20);
+                    }
+                    
+                    palavras.forEach((palavra, index) => {
+                        const palavraLimpa = palavra.replace(/[^\w\s]/g, '').substring(0, 15);
+                        if (palavraLimpa.length > 0 && centralNode) {
+                            const angle = (index / palavras.length) * Math.PI * 2;
+                            const radius = 150;
+                            const x = centralNode.x + Math.cos(angle) * radius;
+                            const y = centralNode.y + Math.sin(angle) * radius;
+                            
+                            const newNode = mindMapInstance.addNode(palavraLimpa, x, y);
+                            mindMapInstance.addEdge(centralNode.id, newNode.id);
                         }
                     });
-                    
-                    const modal = new bootstrap.Modal(document.getElementById('modalNovoMapa'));
-                    modal.show();
-                    
-                    // Aguardar modal abrir completamente
-                    setTimeout(() => {
-                        if (!networkMapa) {
-                            inicializarMapaMental('mindmap-container', {
-                                nodes: nodesMapa.get(),
-                                edges: edgesMapa.get()
-                            });
-                        } else {
-                            atualizarRedeMapa();
-                        }
-                    }, 500);
-                });
+                }, 300);
             } else {
                 showToast('Erro!', data.message || 'Nota não encontrada', true);
             }
@@ -1409,7 +1451,6 @@ function criarMapaMental(notaId) {
             showToast('Erro!', 'Erro ao buscar nota: ' + error.message, true);
         });
 }
-
 </script>
 
 <?php
