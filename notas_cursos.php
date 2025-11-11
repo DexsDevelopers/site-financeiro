@@ -848,11 +848,37 @@ class MindMap {
         this.offset = { x: 0, y: 0 };
         this.scale = 1;
         this.nodeIdCounter = 1;
+        this.hoveredNode = null;
+        this.animationFrame = null;
+        this.lastZoomTime = 0;
+        
+        // Cores modernas
+        this.colors = {
+            central: { bg: '#dc3545', border: '#c82333', text: '#fff' },
+            node: { bg: '#6c757d', border: '#5a6268', text: '#fff' },
+            hover: { bg: '#ff6b6b', border: '#ff5252', text: '#fff' },
+            edge: '#dc3545',
+            edgeHover: '#ff6b6b'
+        };
         
         this.setupCanvas();
         this.setupEvents();
         this.addDefaultNode();
-        this.draw();
+        this.startAnimation();
+    }
+    
+    startAnimation() {
+        const animate = () => {
+            this.draw();
+            this.animationFrame = requestAnimationFrame(animate);
+        };
+        animate();
+    }
+    
+    stopAnimation() {
+        if (this.animationFrame) {
+            cancelAnimationFrame(this.animationFrame);
+        }
     }
     
     setupCanvas() {
