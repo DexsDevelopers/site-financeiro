@@ -152,7 +152,7 @@ unset($servico);
         
         <?php
         // Verificar se Client Secret está configurado
-        $clientSecretMissing = !defined('GOOGLE_CLIENT_SECRET') || empty(constant('GOOGLE_CLIENT_SECRET'));
+        $clientSecretMissing = !defined('GOOGLE_CLIENT_SECRET') || (defined('GOOGLE_CLIENT_SECRET') && empty(GOOGLE_CLIENT_SECRET));
         if ($clientSecretMissing):
         ?>
         <div class="alert alert-warning alert-dismissible fade show" role="alert">
