@@ -24,9 +24,11 @@ try {
         // Carregar o arquivo - se houver erro, a exceção será lançada
         require_once $dbConnectPath;
         
-        // Verificar se $pdo foi definido após o require
-        if (!isset($pdo)) {
-            $dbError = "Variável \$pdo não foi definida após carregar db_connect.php. O arquivo pode ter lançado uma exceção antes de definir \$pdo.";
+        // Verificar se houve erro de conexão definido pelo db_connect.php
+        if (isset($db_connect_error)) {
+            $dbError = "Erro ao conectar: " . $db_connect_error . " (Código: " . ($db_connect_error_code ?? 'N/A') . ")";
+        } elseif (!isset($pdo)) {
+            $dbError = "Variável \$pdo não foi definida após carregar db_connect.php";
         } elseif (!$pdo) {
             $dbError = "Conexão com banco de dados retornou null";
         } else {

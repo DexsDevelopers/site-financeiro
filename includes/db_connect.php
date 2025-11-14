@@ -35,8 +35,11 @@ try {
      $pdo = new PDO($dsn, $user, $pass, $options);
      $pdo->exec("SET time_zone = '-03:00'");
 } catch (\PDOException $e) {
-     throw new \PDOException($e->getMessage(), (int)$e->getCode());
-     
+     // Não lançar exceção aqui - deixar que o código que inclui este arquivo trate o erro
+     // Isso permite que scripts possam verificar se $pdo foi definido
+     $pdo = null;
+     $db_connect_error = $e->getMessage();
+     $db_connect_error_code = $e->getCode();
 }
 
 
