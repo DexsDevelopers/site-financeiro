@@ -12,34 +12,63 @@ try {
     // Definir $pdo como null antes para garantir que existe
     $pdo = null;
     
-    // Carregar o arquivo - se houver erro, a exceção será lançada
-    require_once 'includes/db_connect.php';
-    
-    // Verificar se $pdo foi definido após o require
-    if (!isset($pdo)) {
-        $dbError = "Variável \$pdo não foi definida após carregar db_connect.php";
-    } elseif (!$pdo) {
-        $dbError = "Conexão com banco de dados retornou null";
+    // Verificar se o arquivo existe
+    $dbConnectPath = __DIR__ . '/includes/db_connect.php';
+    if (!file_exists($dbConnectPath)) {
+        $dbError = "Arquivo db_connect.php não encontrado em: " . $dbConnectPath;
     } else {
-        // Testar a conexão fazendo uma query simples
-        try {
-            $testQuery = $pdo->query("SELECT 1");
-            if (!$testQuery) {
-                $dbError = "Conexão estabelecida mas query de teste falhou";
+        // Carregar o arquivo - se houver erro, a exceção será lançada
+        require_once $dbConnectPath;
+        
+        // Verificar se $pdo foi definido após o require
+        if (!isset($pdo)) {
+            $dbError = "Variável \$pdo não foi definida após carregar db_connect.php. O arquivo pode ter lançado uma exceção antes de definir \$pdo.";
+        } elseif (!$pdo) {
+            $dbError = "Conexão com banco de dados retornou null";
+        } else {
+            // Testar a conexão fazendo uma query simples
+            try {
+                $testQuery = $pdo->query("SELECT 1");
+                if (!$testQuery) {
+                    $dbError = "Conexão estabelecida mas query de teste falhou";
+                }
+            } catch (PDOException $testE) {
+                $dbError = "Erro ao testar conexão: " . $testE->getMessage();
             }
-        } catch (PDOException $testE) {
-            $dbError = "Erro ao testar conexão: " . $testE->getMessage();
         }
     }
 } catch (\PDOException $e) {
-    $dbError = "Erro PDO: " . $e->getMessage();
+    $dbError = "Erro PDO ao conectar: " . $e->getMessage() . " (Código: " . $e->getCode() . ")";
     $pdo = null;
 } catch (\Exception $e) {
-    $dbError = "Erro ao carregar configuração: " . $e->getMessage();
+    $dbError = "Erro ao carregar configuração: " . $e->getMessage() . " (Arquivo: " . $e->getFile() . ", Linha: " . $e->getLine() . ")";
     $pdo = null;
 } catch (\Throwable $e) {
-    $dbError = "Erro fatal: " . $e->getMessage();
+    $dbError = "Erro fatal: " . $e->getMessage() . " (Arquivo: " . $e->getFile() . ", Linha: " . $e->getLine() . ")";
     $pdo = null;
+}
+
+// Se ainda não temos $pdo e não temos erro, significa que a exceção não foi capturada
+// Vamos tentar criar a conexão diretamente aqui para debug
+if (!isset($pdo) && !$dbError) {
+    try {
+        $host = 'localhost';
+        $dbname = 'u853242961_financeiro';
+        $user = 'u853242961_user7';
+        $pass = 'Lucastav8012@';
+        $charset = 'utf8mb4';
+        $dsn = "mysql:host=$host;dbname=$dbname;charset=$charset";
+        $options = [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES => false,
+        ];
+        $pdo = new PDO($dsn, $user, $pass, $options);
+        $pdo->exec("SET time_zone = '-03:00'");
+    } catch (\PDOException $e) {
+        $dbError = "Erro ao conectar diretamente: " . $e->getMessage() . " (Código: " . $e->getCode() . ")";
+        $pdo = null;
+    }
 }
 
 // Verificar se o arquivo de configuração existe e carregar novamente se necessário
