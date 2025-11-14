@@ -4,15 +4,21 @@
 // Iniciar output buffering para capturar erros
 ob_start();
 
+$pdo = null;
+$dbError = null;
+
 try {
     require_once 'includes/db_connect.php';
+    // Verificar se $pdo foi definido após o require
+    if (!isset($pdo) || !$pdo) {
+        $dbError = "Conexão com banco de dados não estabelecida após carregar db_connect.php";
+    }
+} catch (PDOException $e) {
+    $dbError = $e->getMessage();
+    $pdo = null;
 } catch (Exception $e) {
-    die("Erro ao carregar configuração: " . $e->getMessage());
-}
-
-// Verificar se $pdo foi definido
-if (!isset($pdo) || !$pdo) {
-    die("Erro: Conexão com banco de dados não estabelecida. Verifique includes/db_connect.php");
+    $dbError = "Erro ao carregar configuração: " . $e->getMessage();
+    $pdo = null;
 }
 
 // Verificar se o arquivo de configuração existe e carregar novamente se necessário
@@ -106,11 +112,20 @@ $oauthConfigured = $hasClientId && $hasClientSecret &&
                         $erros = [];
                         
                         // Verificar conexão com banco
-                        if (!isset($pdo) || !$pdo) {
+                        if (!isset($pdo) || !$pdo || $dbError) {
                             echo "<div class='alert alert-danger'>";
                             echo "<h5 class='alert-heading'><i class='bi bi-exclamation-triangle me-2'></i>Erro de Conexão</h5>";
                             echo "<p class='mb-0'>Não foi possível conectar ao banco de dados. Verifique a configuração em <code>includes/db_connect.php</code>.</p>";
-                            echo "<p class='mb-0'><small>Erro: " . (isset($e) ? htmlspecialchars($e->getMessage()) : 'Conexão não estabelecida') . "</small></p>";
+                            if ($dbError) {
+                                echo "<p class='mb-0'><small><strong>Detalhes do erro:</strong> " . htmlspecialchars($dbError) . "</small></p>";
+                            }
+                            echo "<p class='mb-0 mt-2'><small>Verifique se:</small></p>";
+                            echo "<ul class='mb-0'><small>";
+                            echo "<li>O servidor MySQL está rodando</li>";
+                            echo "<li>As credenciais em <code>includes/db_connect.php</code> estão corretas</li>";
+                            echo "<li>O banco de dados <code>u853242961_financeiro</code> existe</li>";
+                            echo "<li>O usuário tem permissões adequadas</li>";
+                            echo "</small></ul>";
                             echo "</div>";
                         } else {
                             try {
