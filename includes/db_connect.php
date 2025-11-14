@@ -7,9 +7,15 @@ define('ONESIGNAL_REST_API_KEY', 'os_v2_app_roki2ogjtvacxjcw5gpgn7ggb6mdk2tfshne
 define('GEMINI_API_KEY', 'AIzaSyCv3V2FhpTzHEvHLiSNx0jAvsFJEdaQo78');
 
 // Google OAuth (Integrações Google)
-define('GOOGLE_CLIENT_ID', '945016861625-47dgg8sgrqgqpt99ct7e46l0o52vn2up.apps.googleusercontent.com');
-// ⚠️ IMPORTANTE: Obtenha o Client Secret no Google Cloud Console e adicione abaixo
-// define('GOOGLE_CLIENT_SECRET', 'SEU_CLIENT_SECRET_AQUI');
+// ⚠️ SEGURANÇA: As credenciais devem ser configuradas em um arquivo separado não versionado
+// Crie o arquivo 'includes/google_oauth_config.php' com:
+// <?php
+// define('GOOGLE_CLIENT_ID', 'seu-client-id');
+// define('GOOGLE_CLIENT_SECRET', 'seu-client-secret');
+// ?>
+if (file_exists(__DIR__ . '/google_oauth_config.php')) {
+    require_once __DIR__ . '/google_oauth_config.php';
+}
 // GOOGLE_REDIRECT_URI será gerado automaticamente baseado na URL atual
 
 $host = 'localhost';

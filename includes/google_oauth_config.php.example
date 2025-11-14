@@ -1,0 +1,13 @@
+<?php
+// google_oauth_config.php.example
+// 
+// INSTRUÇÕES:
+// 1. Copie este arquivo para 'google_oauth_config.php' (sem o .example)
+// 2. Adicione suas credenciais do Google OAuth abaixo
+// 3. NUNCA commite o arquivo 'google_oauth_config.php' no Git!
+
+// Google OAuth Credentials
+// Substitua pelos valores reais do Google Cloud Console
+define('GOOGLE_CLIENT_ID', 'SEU_CLIENT_ID_AQUI');
+define('GOOGLE_CLIENT_SECRET', 'SEU_CLIENT_SECRET_AQUI');
+

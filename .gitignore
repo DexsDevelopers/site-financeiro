@@ -5,6 +5,7 @@ package-lock.json
 # Arquivos de configuração sensíveis
 .env
 config.php
+includes/google_oauth_config.php
 
 # Cache e logs
 cache/
