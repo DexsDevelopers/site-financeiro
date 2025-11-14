@@ -7,17 +7,38 @@ ob_start();
 $pdo = null;
 $dbError = null;
 
+// Tentar carregar db_connect.php e capturar qualquer exceção
 try {
-    require_once 'includes/db_connect.php';
-    // Verificar se $pdo foi definido após o require
-    if (!isset($pdo) || !$pdo) {
-        $dbError = "Conexão com banco de dados não estabelecida após carregar db_connect.php";
-    }
-} catch (PDOException $e) {
-    $dbError = $e->getMessage();
+    // Definir $pdo como null antes para garantir que existe
     $pdo = null;
-} catch (Exception $e) {
+    
+    // Carregar o arquivo - se houver erro, a exceção será lançada
+    require_once 'includes/db_connect.php';
+    
+    // Verificar se $pdo foi definido após o require
+    if (!isset($pdo)) {
+        $dbError = "Variável \$pdo não foi definida após carregar db_connect.php";
+    } elseif (!$pdo) {
+        $dbError = "Conexão com banco de dados retornou null";
+    } else {
+        // Testar a conexão fazendo uma query simples
+        try {
+            $testQuery = $pdo->query("SELECT 1");
+            if (!$testQuery) {
+                $dbError = "Conexão estabelecida mas query de teste falhou";
+            }
+        } catch (PDOException $testE) {
+            $dbError = "Erro ao testar conexão: " . $testE->getMessage();
+        }
+    }
+} catch (\PDOException $e) {
+    $dbError = "Erro PDO: " . $e->getMessage();
+    $pdo = null;
+} catch (\Exception $e) {
     $dbError = "Erro ao carregar configuração: " . $e->getMessage();
+    $pdo = null;
+} catch (\Throwable $e) {
+    $dbError = "Erro fatal: " . $e->getMessage();
     $pdo = null;
 }
 
