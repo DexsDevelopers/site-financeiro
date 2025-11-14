@@ -27,8 +27,10 @@ try {
         // Verificar se houve erro de conexão definido pelo db_connect.php
         if (isset($db_connect_error)) {
             $dbError = "Erro ao conectar: " . $db_connect_error . " (Código: " . ($db_connect_error_code ?? 'N/A') . ")";
+            $pdo = null; // Garantir que $pdo é null se houver erro
         } elseif (!isset($pdo)) {
-            $dbError = "Variável \$pdo não foi definida após carregar db_connect.php";
+            // Se $pdo não foi definido e não há $db_connect_error, significa que o arquivo não executou corretamente
+            $dbError = "Variável \$pdo não foi definida após carregar db_connect.php. O arquivo pode não ter sido executado corretamente.";
         } elseif (!$pdo) {
             $dbError = "Conexão com banco de dados retornou null";
         } else {
@@ -54,8 +56,7 @@ try {
     $pdo = null;
 }
 
-// Se ainda não temos $pdo e não temos erro, significa que a exceção não foi capturada
-// Vamos tentar criar a conexão diretamente aqui para debug
+// Se ainda não temos $pdo e não temos erro, tentar criar a conexão diretamente
 if (!isset($pdo) && !$dbError) {
     try {
         $host = 'localhost';
@@ -71,6 +72,8 @@ if (!isset($pdo) && !$dbError) {
         ];
         $pdo = new PDO($dsn, $user, $pass, $options);
         $pdo->exec("SET time_zone = '-03:00'");
+        // Se chegou aqui, a conexão foi bem-sucedida
+        $dbError = null;
     } catch (\PDOException $e) {
         $dbError = "Erro ao conectar diretamente: " . $e->getMessage() . " (Código: " . $e->getCode() . ")";
         $pdo = null;
