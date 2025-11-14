@@ -1,7 +1,19 @@
 <?php
 // criar_tabelas_google_integration.php - Script para criar tabelas de integração Google
 
-require_once 'includes/db_connect.php';
+// Iniciar output buffering para capturar erros
+ob_start();
+
+try {
+    require_once 'includes/db_connect.php';
+} catch (Exception $e) {
+    die("Erro ao carregar configuração: " . $e->getMessage());
+}
+
+// Verificar se $pdo foi definido
+if (!isset($pdo) || !$pdo) {
+    die("Erro: Conexão com banco de dados não estabelecida. Verifique includes/db_connect.php");
+}
 
 // Verificar se o arquivo de configuração existe e carregar novamente se necessário
 $configPath = __DIR__ . '/includes/google_oauth_config.php';
@@ -94,10 +106,11 @@ $oauthConfigured = $hasClientId && $hasClientSecret &&
                         $erros = [];
                         
                         // Verificar conexão com banco
-                        if (!isset($pdo)) {
+                        if (!isset($pdo) || !$pdo) {
                             echo "<div class='alert alert-danger'>";
                             echo "<h5 class='alert-heading'><i class='bi bi-exclamation-triangle me-2'></i>Erro de Conexão</h5>";
                             echo "<p class='mb-0'>Não foi possível conectar ao banco de dados. Verifique a configuração em <code>includes/db_connect.php</code>.</p>";
+                            echo "<p class='mb-0'><small>Erro: " . (isset($e) ? htmlspecialchars($e->getMessage()) : 'Conexão não estabelecida') . "</small></p>";
                             echo "</div>";
                         } else {
                             try {
