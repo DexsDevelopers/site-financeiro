@@ -149,6 +149,19 @@ unset($servico);
                 </p>
             </div>
         </div>
+        
+        <?php
+        // Verificar se Client Secret está configurado
+        $clientSecretMissing = !defined('GOOGLE_CLIENT_SECRET') || empty(constant('GOOGLE_CLIENT_SECRET'));
+        if ($clientSecretMissing):
+        ?>
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            <strong>Atenção:</strong> O Client Secret do Google OAuth não está configurado. 
+            Consulte o arquivo <code>CONFIGURAR_GOOGLE_OAUTH.md</code> para instruções.
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <?php endif; ?>
     <?php endif; ?>
 
     <!-- Cards de Serviços -->
