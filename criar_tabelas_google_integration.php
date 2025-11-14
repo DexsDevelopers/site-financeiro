@@ -92,8 +92,15 @@ $oauthConfigured = $hasClientId && $hasClientSecret &&
                         <?php
                         $tabelasCriadas = [];
                         $erros = [];
-
-                        try {
+                        
+                        // Verificar conexão com banco
+                        if (!isset($pdo)) {
+                            echo "<div class='alert alert-danger'>";
+                            echo "<h5 class='alert-heading'><i class='bi bi-exclamation-triangle me-2'></i>Erro de Conexão</h5>";
+                            echo "<p class='mb-0'>Não foi possível conectar ao banco de dados. Verifique a configuração em <code>includes/db_connect.php</code>.</p>";
+                            echo "</div>";
+                        } else {
+                            try {
                             // Verificar se tabela google_oauth_tokens existe
                             $stmt = $pdo->query("SHOW TABLES LIKE 'google_oauth_tokens'");
                             $tokensExiste = $stmt->rowCount() > 0;
@@ -174,11 +181,12 @@ $oauthConfigured = $hasClientId && $hasClientSecret &&
                                 echo "</div>";
                             }
                             
-                        } catch (PDOException $e) {
-                            echo "<div class='alert alert-danger'>";
-                            echo "<h5 class='alert-heading'><i class='bi bi-exclamation-triangle me-2'></i>Erro de Conexão</h5>";
-                            echo "<p class='mb-0'>Erro ao conectar ao banco de dados: " . htmlspecialchars($e->getMessage()) . "</p>";
-                            echo "</div>";
+                            } catch (PDOException $e) {
+                                echo "<div class='alert alert-danger'>";
+                                echo "<h5 class='alert-heading'><i class='bi bi-exclamation-triangle me-2'></i>Erro de Conexão</h5>";
+                                echo "<p class='mb-0'>Erro ao conectar ao banco de dados: " . htmlspecialchars($e->getMessage()) . "</p>";
+                                echo "</div>";
+                            }
                         }
                         ?>
 
