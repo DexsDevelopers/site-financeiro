@@ -3,9 +3,20 @@
 
 require_once 'includes/db_connect.php';
 
+// Verificar se o arquivo de configuração existe e carregar novamente se necessário
+$configPath = __DIR__ . '/includes/google_oauth_config.php';
+if (file_exists($configPath) && (!defined('GOOGLE_CLIENT_ID') || !defined('GOOGLE_CLIENT_SECRET'))) {
+    require_once $configPath;
+}
+
 // Verificar se as credenciais do Google OAuth estão configuradas
-$oauthConfigured = defined('GOOGLE_CLIENT_ID') && defined('GOOGLE_CLIENT_SECRET') && 
-                  !empty(GOOGLE_CLIENT_ID) && !empty(GOOGLE_CLIENT_SECRET);
+$hasClientId = defined('GOOGLE_CLIENT_ID');
+$hasClientSecret = defined('GOOGLE_CLIENT_SECRET');
+$clientIdValue = $hasClientId ? GOOGLE_CLIENT_ID : '';
+$clientSecretValue = $hasClientSecret ? GOOGLE_CLIENT_SECRET : '';
+
+$oauthConfigured = $hasClientId && $hasClientSecret && 
+                  !empty($clientIdValue) && !empty($clientSecretValue);
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
