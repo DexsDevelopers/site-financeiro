@@ -42,7 +42,7 @@ if (!$menu_config) {
             'financeiro' => ['compras_futuras.php', 'relatorios.php', 'extrato_completo.php', 'recorrentes.php', 'orcamento.php', 'categorias.php', 'regras_categorizacao.php', 'alertas_inteligentes.php'],
             'produtividade' => ['tarefas.php', 'calendario.php', 'pomodoro.php'],
             'personalizacao' => ['temas_customizaveis.php', 'layouts_flexiveis.php', 'preferencias_avancadas.php', 'personalizar_menu.php'],
-            'sistema' => ['perfil.php', 'contas.php', 'whatsapp_admin.php']
+            'sistema' => ['perfil.php', 'contas.php', 'whatsapp_admin.php', 'integracoes_google.php']
         ],
         'ordem_secoes' => ['academy', 'financeiro', 'produtividade', 'personalizacao', 'sistema'],
         'ordem_paginas' => [
@@ -50,7 +50,7 @@ if (!$menu_config) {
             'financeiro' => ['compras_futuras.php', 'relatorios.php', 'extrato_completo.php', 'recorrentes.php', 'orcamento.php', 'categorias.php', 'regras_categorizacao.php', 'alertas_inteligentes.php'],
             'produtividade' => ['tarefas.php', 'calendario.php', 'pomodoro.php'],
             'personalizacao' => ['temas_customizaveis.php', 'layouts_flexiveis.php', 'preferencias_avancadas.php', 'personalizar_menu.php'],
-            'sistema' => ['perfil.php', 'contas.php', 'whatsapp_admin.php']
+            'sistema' => ['perfil.php', 'contas.php', 'whatsapp_admin.php', 'integracoes_google.php']
         ]
     ];
 }
@@ -75,6 +75,14 @@ if (!in_array('whatsapp_admin.php', $menu_config['paginas_visiveis']['sistema'],
 }
 if (!in_array('whatsapp_admin.php', $menu_config['ordem_paginas']['sistema'], true)) {
     $menu_config['ordem_paginas']['sistema'][] = 'whatsapp_admin.php';
+}
+
+// Garante que 'integracoes_google.php' apareça em Sistema
+if (!in_array('integracoes_google.php', $menu_config['paginas_visiveis']['sistema'], true)) {
+    $menu_config['paginas_visiveis']['sistema'][] = 'integracoes_google.php';
+}
+if (!in_array('integracoes_google.php', $menu_config['ordem_paginas']['sistema'], true)) {
+    $menu_config['ordem_paginas']['sistema'][] = 'integracoes_google.php';
 }
 
 // Exibir 'whatsapp_admin.php' apenas para administradores
