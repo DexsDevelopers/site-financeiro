@@ -180,5 +180,6 @@ $paginasInfo = [
     'perfil.php' => ['nome' => 'Meu Perfil', 'icone' => 'bi-person-circle'],
     'contas.php' => ['nome' => 'Contas', 'icone' => 'bi-wallet2'],
     'whatsapp_admin.php' => ['nome' => 'Avisos WhatsApp', 'icone' => 'bi-whatsapp'],
+    'integracoes_google.php' => ['nome' => 'Integrações Google', 'icone' => 'bi-google'],
 ];
 ?>
