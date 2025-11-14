@@ -11,12 +11,18 @@ class GoogleIntegrationManager {
     public function __construct($pdo) {
         $this->pdo = $pdo;
         
-        // Configurações OAuth (devem estar no .env)
-        $this->clientId = getenv('GOOGLE_CLIENT_ID') ?: '';
-        $this->clientSecret = getenv('GOOGLE_CLIENT_SECRET') ?: '';
-        $this->redirectUri = getenv('GOOGLE_REDIRECT_URI') ?: 
-            (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . 
-            '://' . $_SERVER['HTTP_HOST'] . '/seu_projeto/google_oauth_callback.php';
+        // Configurações OAuth (podem estar no .env ou como constantes)
+        // Tenta carregar do .env primeiro, depois de constantes, depois padrão
+        $this->clientId = getenv('GOOGLE_CLIENT_ID') ?: (defined('GOOGLE_CLIENT_ID') ? GOOGLE_CLIENT_ID : '');
+        $this->clientSecret = getenv('GOOGLE_CLIENT_SECRET') ?: (defined('GOOGLE_CLIENT_SECRET') ? GOOGLE_CLIENT_SECRET : '');
+        
+        $redirectUri = getenv('GOOGLE_REDIRECT_URI') ?: (defined('GOOGLE_REDIRECT_URI') ? GOOGLE_REDIRECT_URI : '');
+        if (empty($redirectUri)) {
+            $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
+            $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+            $redirectUri = $protocol . '://' . $host . '/seu_projeto/google_oauth_callback.php';
+        }
+        $this->redirectUri = $redirectUri;
         
         // Scopes necessários para os serviços
         $this->scopes = [
