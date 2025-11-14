@@ -1,6 +1,10 @@
 <?php
 // criar_tabelas_google_integration.php - Script para criar tabelas de integração Google
 
+// Limpar qualquer output anterior
+if (ob_get_level()) {
+    ob_end_clean();
+}
 // Iniciar output buffering para capturar erros
 ob_start();
 
@@ -295,4 +299,10 @@ $oauthConfigured = $hasClientId && $hasClientSecret &&
     </div>
 </body>
 </html>
+<?php
+// Limpar output buffer e enviar
+if (ob_get_level()) {
+    ob_end_flush();
+}
+?>
 
