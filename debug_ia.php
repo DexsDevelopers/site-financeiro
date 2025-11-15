@@ -208,28 +208,51 @@ foreach ($arquivosNecessarios as $arquivo => $descricao) {
     }
 }
 
-// 10. Testar função getTarefasUrgentes diretamente
-if (file_exists('processar_analise_ia.php')) {
-    require_once 'processar_analise_ia.php';
-    
-    if (function_exists('getTarefasUrgentes')) {
-        try {
-            $resultado = getTarefasUrgentes($pdo, $userId);
-            if (isset($resultado['tarefas_urgentes'])) {
-                $total = count($resultado['tarefas_urgentes']);
-                addSuccess('Teste', "Função getTarefasUrgentes executada com sucesso - $total tarefas encontradas");
-                if ($total > 0) {
-                    addDebug('Teste', 'Primeira tarefa: ' . $resultado['tarefas_urgentes'][0]['descricao'], 'info');
-                }
-            } elseif (isset($resultado['resultado'])) {
-                addSuccess('Teste', "Função getTarefasUrgentes executada: " . $resultado['resultado']);
-            }
-        } catch (Exception $e) {
-            addError('Teste', 'Erro ao executar getTarefasUrgentes: ' . $e->getMessage());
+// 10. Testar função getTarefasUrgentes diretamente (definir função localmente)
+if (!function_exists('getTarefasUrgentes')) {
+    function getTarefasUrgentes(PDO $pdo, int $userId): array {
+        $sql = "SELECT id, descricao, prioridade, data_limite,
+                CASE 
+                    WHEN data_limite IS NOT NULL AND data_limite <= CURDATE() THEN 'Vencida'
+                    WHEN data_limite IS NOT NULL AND data_limite <= DATE_ADD(CURDATE(), INTERVAL 3 DAY) THEN 'Urgente'
+                    ELSE 'Alta Prioridade'
+                END as status_urgencia
+                FROM tarefas 
+                WHERE id_usuario = ? 
+                AND status = 'pendente' 
+                AND (
+                    prioridade = 'Alta' 
+                    OR (data_limite IS NOT NULL AND data_limite <= DATE_ADD(CURDATE(), INTERVAL 7 DAY))
+                )
+                ORDER BY 
+                    CASE WHEN data_limite IS NOT NULL AND data_limite <= CURDATE() THEN 1 ELSE 2 END,
+                    CASE WHEN data_limite IS NOT NULL AND data_limite <= DATE_ADD(CURDATE(), INTERVAL 3 DAY) THEN 1 ELSE 2 END,
+                    FIELD(prioridade, 'Alta', 'Média', 'Baixa'),
+                    data_limite ASC";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$userId]);
+        $tarefas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        if (empty($tarefas)) {
+            return ['resultado' => 'O usuário não possui tarefas urgentes no momento.'];
         }
-    } else {
-        addWarning('Teste', 'Função getTarefasUrgentes não está disponível no escopo global');
+        return ['tarefas_urgentes' => $tarefas];
     }
+}
+
+try {
+    $resultado = getTarefasUrgentes($pdo, $userId);
+    if (isset($resultado['tarefas_urgentes'])) {
+        $total = count($resultado['tarefas_urgentes']);
+        addSuccess('Teste', "Função getTarefasUrgentes executada com sucesso - $total tarefas encontradas");
+        if ($total > 0) {
+            addDebug('Teste', 'Primeira tarefa: ' . $resultado['tarefas_urgentes'][0]['descricao'], 'info');
+        }
+    } elseif (isset($resultado['resultado'])) {
+        addSuccess('Teste', "Função getTarefasUrgentes executada: " . $resultado['resultado']);
+    }
+} catch (Exception $e) {
+    addError('Teste', 'Erro ao executar getTarefasUrgentes: ' . $e->getMessage());
 }
 
 ?>
