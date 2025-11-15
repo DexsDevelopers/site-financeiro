@@ -203,7 +203,9 @@ if ($isConnected) {
                                         <i class="bi <?php echo $resultados[$key]['habilitada'] === false ? 'bi-x-circle-fill text-danger' : 'bi-exclamation-triangle-fill text-warning'; ?> me-2"></i>
                                         <strong>Status:</strong> 
                                         <?php 
-                                        if ($resultados[$key]['habilitada'] === false) {
+                                        if (isset($resultados[$key]['tipo_erro']) && $resultados[$key]['tipo_erro'] === 'scope_insuficiente') {
+                                            echo 'Permissão OAuth insuficiente';
+                                        } elseif ($resultados[$key]['habilitada'] === false) {
                                             echo 'API não habilitada';
                                         } else {
                                             echo 'Erro: ' . htmlspecialchars(substr($resultados[$key]['message'], 0, 100));
@@ -211,23 +213,40 @@ if ($isConnected) {
                                         ?>
                                     </div>
                                     
-                                    <?php if (isset($resultados[$key]['tipo_erro']) && $resultados[$key]['tipo_erro'] === 'api_nao_habilitada'): ?>
-                                        <div class="mt-2">
-                                            <a href="<?php echo htmlspecialchars($api['ativacao']); ?>" 
-                                               target="_blank" 
-                                               class="btn btn-primary btn-sm btn-habilitar w-100">
-                                                <i class="bi bi-power me-2"></i>Habilitar API no Google Cloud Console
-                                            </a>
+                                    <?php if (isset($resultados[$key]['tipo_erro'])): ?>
+                                        <?php if ($resultados[$key]['tipo_erro'] === 'api_nao_habilitada'): ?>
+                                            <div class="mt-2">
+                                                <a href="<?php echo htmlspecialchars($api['ativacao']); ?>" 
+                                                   target="_blank" 
+                                                   class="btn btn-primary btn-sm btn-habilitar w-100">
+                                                    <i class="bi bi-power me-2"></i>Habilitar API no Google Cloud Console
+                                                </a>
+                                                <small class="text-muted d-block mt-2">
+                                                    <i class="bi bi-info-circle me-1"></i>
+                                                    Clique no botão acima para abrir o Google Cloud Console e habilitar esta API.
+                                                </small>
+                                            </div>
+                                        <?php elseif ($resultados[$key]['tipo_erro'] === 'scope_insuficiente'): ?>
+                                            <div class="mt-2">
+                                                <div class="alert alert-warning mb-2">
+                                                    <i class="bi bi-exclamation-triangle me-2"></i>
+                                                    <strong>Permissão OAuth insuficiente!</strong><br>
+                                                    Você precisa reconectar sua conta Google para obter as permissões necessárias.
+                                                </div>
+                                                <a href="integracoes_google.php" class="btn btn-warning btn-sm w-100">
+                                                    <i class="bi bi-arrow-clockwise me-2"></i>Reconectar Conta Google
+                                                </a>
+                                                <small class="text-muted d-block mt-2">
+                                                    <i class="bi bi-info-circle me-1"></i>
+                                                    Desconecte e reconecte sua conta Google para obter as novas permissões.
+                                                </small>
+                                            </div>
+                                        <?php else: ?>
                                             <small class="text-muted d-block mt-2">
-                                                <i class="bi bi-info-circle me-1"></i>
-                                                Clique no botão acima para abrir o Google Cloud Console e habilitar esta API.
+                                                <i class="bi bi-exclamation-triangle me-1"></i>
+                                                API habilitada, mas ocorreu um erro. Verifique as permissões OAuth.
                                             </small>
-                                        </div>
-                                    <?php elseif (isset($resultados[$key]['tipo_erro']) && $resultados[$key]['tipo_erro'] === 'outro'): ?>
-                                        <small class="text-muted d-block mt-2">
-                                            <i class="bi bi-exclamation-triangle me-1"></i>
-                                            API habilitada, mas ocorreu um erro. Verifique as permissões OAuth.
-                                        </small>
+                                        <?php endif; ?>
                                     <?php endif; ?>
                                 <?php endif; ?>
                             <?php else: ?>
