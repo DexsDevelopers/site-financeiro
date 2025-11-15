@@ -182,15 +182,23 @@ $tools = [['functionDeclarations' => [
 // LÓGICA DE CHAMADA DA API
 // =================================================================================
 
-$prompt_inicial = "Você é 'Orion', um assistente de finanças e produtividade. Sua tarefa é usar ferramentas para responder às perguntas.
+$prompt_inicial = "Você é 'Orion', um assistente de finanças e produtividade. Sua tarefa é SEMPRE usar ferramentas para responder às perguntas.
 
-REGRAS IMPORTANTES:
-- Se o usuário perguntar sobre 'tarefas urgentes', 'tarefas mais importantes', 'tarefas prioritárias' ou similar, use a função 'getTarefasUrgentes'.
-- Se o usuário perguntar sobre 'tarefas' em geral, use 'getTarefasDoUsuario'.
-- Se o usuário falar 'gastei', 'comprei', o tipo é 'despesa'. Se falar 'recebi', 'ganhei', o tipo é 'receita'.
-- **Ao receber uma lista de resultados (como tarefas), você DEVE apresentá-la ao usuário em formato de lista markdown (usando '-').**
-- Sempre inclua informações relevantes como prioridade e data limite quando disponíveis.
-- Nunca responda de memória. Use a ferramenta apropriada, receba o resultado, e então formule a resposta final.";
+REGRAS OBRIGATÓRIAS:
+1. SEMPRE use uma ferramenta antes de responder. NUNCA responda de memória.
+2. Para perguntas sobre tarefas urgentes/importantes/prioritárias, SEMPRE use 'getTarefasUrgentes'.
+3. Para perguntas sobre tarefas em geral, use 'getTarefasDoUsuario'.
+4. Para transações: 'gastei'/'comprei' = despesa, 'recebi'/'ganhei' = receita.
+5. Ao receber resultados de tarefas, SEMPRE apresente em formato de lista markdown com '-'.
+6. Inclua sempre: descrição, prioridade e data limite (se houver).
+7. Seja amigável e encorajador no tom.
+
+EXEMPLOS:
+- 'Quais são minhas tarefas mais urgentes?' → use getTarefasUrgentes
+- 'Quais são minhas tarefas?' → use getTarefasDoUsuario
+- 'Onde posso economizar?' → use getPrincipaisCategoriasGasto
+
+Lembre-se: SEMPRE use uma ferramenta primeiro, depois formule a resposta baseada no resultado.";
 
 $gemini_api_url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=' . GEMINI_API_KEY;
 $conversationHistory = [['role' => 'user', 'parts' => [['text' => $prompt_inicial]]], ['role' => 'model', 'parts' => [['text' => 'Entendido! Estou pronto para ajudar.']]], ['role' => 'user', 'parts' => [['text' => $pergunta_usuario]]]];
@@ -307,9 +315,52 @@ if ($functionCall) {
         }
         
         $api_response_2 = json_decode($response_string_2, true);
-        $resposta_final_ia = $api_response_2['candidates'][0]['content']['parts'][0]['text'] ?? 'Ação concluída, mas não consegui gerar um resumo.';
+        
+        // Verificar se há erro na resposta
+        if (isset($api_response_2['error'])) {
+            $resposta_final_ia = 'Desculpe, ocorreu um erro ao processar sua pergunta. Tente novamente.';
+        } else {
+            $resposta_final_ia = $api_response_2['candidates'][0]['content']['parts'][0]['text'] ?? 'Ação concluída, mas não consegui gerar um resumo.';
+            
+            // Se a resposta estiver vazia ou for genérica, tentar formatar manualmente
+            if (empty($resposta_final_ia) || $resposta_final_ia === 'Ação concluída, mas não consegui gerar um resumo.') {
+                // Formatar resposta manualmente baseada no resultado da função
+                if (isset($functionResult['tarefas_urgentes']) && !empty($functionResult['tarefas_urgentes'])) {
+                    $resposta_final_ia = "Aqui estão suas tarefas mais urgentes:\n\n";
+                    foreach ($functionResult['tarefas_urgentes'] as $tarefa) {
+                        $data_info = '';
+                        if (!empty($tarefa['data_limite'])) {
+                            $data_formatada = date('d/m/Y', strtotime($tarefa['data_limite']));
+                            $data_info = " (Prazo: {$data_formatada})";
+                        }
+                        $resposta_final_ia .= "- **{$tarefa['descricao']}** - Prioridade: {$tarefa['prioridade']}{$data_info}\n";
+                    }
+                } elseif (isset($functionResult['tarefas_pendentes']) && !empty($functionResult['tarefas_pendentes'])) {
+                    $resposta_final_ia = "Aqui estão suas tarefas pendentes:\n\n";
+                    foreach ($functionResult['tarefas_pendentes'] as $tarefa) {
+                        $data_info = '';
+                        if (!empty($tarefa['data_limite'])) {
+                            $data_formatada = date('d/m/Y', strtotime($tarefa['data_limite']));
+                            $data_info = " (Prazo: {$data_formatada})";
+                        }
+                        $resposta_final_ia .= "- **{$tarefa['descricao']}** - Prioridade: {$tarefa['prioridade']}{$data_info}\n";
+                    }
+                } elseif (isset($functionResult['resultado'])) {
+                    $resposta_final_ia = $functionResult['resultado'];
+                } elseif (isset($functionResult['message'])) {
+                    $resposta_final_ia = $functionResult['message'];
+                }
+            }
+        }
     }
-} else { $resposta_final_ia = $api_response['candidates'][0]['content']['parts'][0]['text'] ?? 'Não consegui entender sua pergunta.'; }
+} else { 
+    // Se não houve function call, verificar se há erro
+    if (isset($api_response['error'])) {
+        $resposta_final_ia = 'Desculpe, ocorreu um erro ao processar sua pergunta. Tente novamente.';
+    } else {
+        $resposta_final_ia = $api_response['candidates'][0]['content']['parts'][0]['text'] ?? 'Não consegui entender sua pergunta. Por favor, tente reformular ou use uma das sugestões disponíveis.';
+    }
+}
 
 if (!empty($resposta_final_ia)) {
     echo json_encode(['success' => true, 'resposta' => $resposta_final_ia]);
