@@ -170,8 +170,19 @@ if (file_exists($dbConnectPath)) {
             }
             
             if (!empty($output)) {
-                addWarning('Banco', 'Output detectado ao carregar db_connect.php (' . strlen($output) . ' bytes): ' . htmlspecialchars(substr($output, 0, 200)));
-                addDebug('Banco', 'Output completo: ' . base64_encode($output), 'error');
+                // Limpar output se for apenas espaços em branco
+                $trimmedOutput = trim($output);
+                if (!empty($trimmedOutput)) {
+                    addWarning('Banco', 'Output detectado ao carregar db_connect.php (' . strlen($output) . ' bytes): ' . htmlspecialchars(substr($trimmedOutput, 0, 200)));
+                    
+                    // Verificar se o output parece ser código PHP
+                    if (strpos($trimmedOutput, '<?php') !== false || strpos($trimmedOutput, 'if (file_exists') !== false) {
+                        addError('Banco', 'Código PHP sendo exibido como texto! Verifique se há BOM (Byte Order Mark) ou espaços antes de <?php nos arquivos.');
+                        addDebug('Banco', 'Primeiros 500 caracteres do output: ' . htmlspecialchars(substr($trimmedOutput, 0, 500)), 'error');
+                    } else {
+                        addDebug('Banco', 'Output completo (base64): ' . base64_encode($trimmedOutput), 'error');
+                    }
+                }
             }
             
             // Verificar se $pdo foi definido
