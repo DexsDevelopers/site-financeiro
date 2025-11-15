@@ -199,6 +199,25 @@ unset($servico);
         <?php endforeach; ?>
     </div>
 
+    <!-- Seção de Verificação de APIs -->
+    <?php if ($isConnected): ?>
+        <div class="card card-custom mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-shield-check me-2"></i>Verificar APIs
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3">
+                    Verifique quais APIs do Google estão habilitadas e funcionando corretamente.
+                </p>
+                <a href="verificar_apis_google.php" class="btn btn-info">
+                    <i class="bi bi-search me-2"></i>Verificar Status das APIs
+                </a>
+            </div>
+        </div>
+    <?php endif; ?>
+
     <!-- Seção de Sincronização -->
     <?php if ($isConnected): ?>
         <div class="card card-custom mt-4">

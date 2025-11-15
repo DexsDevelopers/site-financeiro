@@ -1,0 +1,198 @@
+<?php
+// verificar_apis_google.php - Verificar status das APIs do Google
+
+require_once 'templates/header.php';
+require_once 'includes/google_integration_manager.php';
+
+$manager = new GoogleIntegrationManager($pdo);
+$isConnected = $manager->isConnected($userId);
+
+$apis = [
+    'tasks' => [
+        'nome' => 'Google Tasks API',
+        'url' => 'https://www.googleapis.com/tasks/v1/users/@me/lists',
+        'ativacao' => 'https://console.developers.google.com/apis/api/tasks.googleapis.com/overview?project=945016861625'
+    ],
+    'calendar' => [
+        'nome' => 'Google Calendar API',
+        'url' => 'https://www.googleapis.com/calendar/v3/users/me/calendarList',
+        'ativacao' => 'https://console.developers.google.com/apis/api/calendar-json.googleapis.com/overview?project=945016861625'
+    ],
+    'drive' => [
+        'nome' => 'Google Drive API',
+        'url' => 'https://www.googleapis.com/drive/v3/files',
+        'ativacao' => 'https://console.developers.google.com/apis/api/drive.googleapis.com/overview?project=945016861625'
+    ],
+    'gmail' => [
+        'nome' => 'Gmail API',
+        'url' => 'https://www.googleapis.com/gmail/v1/users/me/profile',
+        'ativacao' => 'https://console.developers.google.com/apis/api/gmail.googleapis.com/overview?project=945016861625'
+    ],
+    'sheets' => [
+        'nome' => 'Google Sheets API',
+        'url' => 'https://www.googleapis.com/drive/v3/files',
+        'ativacao' => 'https://console.developers.google.com/apis/api/sheets.googleapis.com/overview?project=945016861625'
+    ]
+];
+
+$resultados = [];
+
+if ($isConnected) {
+    foreach ($apis as $key => $api) {
+        try {
+            $response = $manager->makeApiRequest($userId, $api['url'], 'GET');
+            $resultados[$key] = [
+                'status' => 'success',
+                'message' => 'API habilitada e funcionando',
+                'dados' => $response
+            ];
+        } catch (Exception $e) {
+            $errorMessage = $e->getMessage();
+            $resultados[$key] = [
+                'status' => 'error',
+                'message' => $errorMessage,
+                'habilitada' => false
+            ];
+            
+            // Verificar se é erro de API não habilitada
+            if (strpos($errorMessage, 'SERVICE_DISABLED') !== false || 
+                strpos($errorMessage, 'accessNotConfigured') !== false ||
+                strpos($errorMessage, 'has not been used') !== false) {
+                $resultados[$key]['habilitada'] = false;
+                $resultados[$key]['tipo_erro'] = 'api_nao_habilitada';
+            } else {
+                $resultados[$key]['habilitada'] = true; // API habilitada mas outro erro
+                $resultados[$key]['tipo_erro'] = 'outro';
+            }
+        }
+    }
+} else {
+    $erroGeral = 'Conta Google não conectada. Conecte sua conta primeiro em <a href="integracoes_google.php">Integrações Google</a>.';
+}
+?>
+
+<style>
+    .api-status {
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+    }
+    .api-status.success {
+        background: rgba(40, 167, 69, 0.1);
+        border-left: 4px solid #28a745;
+    }
+    .api-status.error {
+        background: rgba(220, 53, 69, 0.1);
+        border-left: 4px solid #dc3545;
+    }
+    .api-status.warning {
+        background: rgba(255, 193, 7, 0.1);
+        border-left: 4px solid #ffc107;
+    }
+    .btn-habilitar {
+        margin-top: 0.5rem;
+    }
+</style>
+
+<div class="container-fluid py-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
+        <div>
+            <h1 class="h2 mb-1">
+                <i class="bi bi-shield-check me-2 text-primary"></i>Verificar APIs do Google
+            </h1>
+            <p class="text-muted mb-0">
+                Verifique quais APIs estão habilitadas e funcionando
+            </p>
+        </div>
+        <div>
+            <a href="integracoes_google.php" class="btn btn-secondary">
+                <i class="bi bi-arrow-left me-2"></i>Voltar
+            </a>
+        </div>
+    </div>
+
+    <?php if (isset($erroGeral)): ?>
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            <?php echo $erroGeral; ?>
+        </div>
+    <?php else: ?>
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>
+            <strong>Dica:</strong> Se alguma API não estiver habilitada, clique no botão "Habilitar API" para abrir o Google Cloud Console.
+        </div>
+
+        <div class="row">
+            <?php foreach ($apis as $key => $api): ?>
+                <div class="col-12 col-md-6 col-lg-4 mb-3">
+                    <div class="card card-custom">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="bi bi-<?php 
+                                    echo $key === 'tasks' ? 'check2-square' : 
+                                        ($key === 'calendar' ? 'calendar-event' : 
+                                        ($key === 'drive' ? 'cloud' : 
+                                        ($key === 'gmail' ? 'envelope' : 'table'))); 
+                                ?> me-2"></i>
+                                <?php echo htmlspecialchars($api['nome']); ?>
+                            </h5>
+                            
+                            <?php if (isset($resultados[$key])): ?>
+                                <?php if ($resultados[$key]['status'] === 'success'): ?>
+                                    <div class="api-status success">
+                                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                        <strong>Status:</strong> <?php echo htmlspecialchars($resultados[$key]['message']); ?>
+                                    </div>
+                                <?php else: ?>
+                                    <div class="api-status <?php echo $resultados[$key]['habilitada'] === false ? 'error' : 'warning'; ?>">
+                                        <i class="bi <?php echo $resultados[$key]['habilitada'] === false ? 'bi-x-circle-fill text-danger' : 'bi-exclamation-triangle-fill text-warning'; ?> me-2"></i>
+                                        <strong>Status:</strong> 
+                                        <?php 
+                                        if ($resultados[$key]['habilitada'] === false) {
+                                            echo 'API não habilitada';
+                                        } else {
+                                            echo 'Erro: ' . htmlspecialchars(substr($resultados[$key]['message'], 0, 100));
+                                        }
+                                        ?>
+                                    </div>
+                                    
+                                    <?php if ($resultados[$key]['habilitada'] === false): ?>
+                                        <a href="<?php echo htmlspecialchars($api['ativacao']); ?>" 
+                                           target="_blank" 
+                                           class="btn btn-primary btn-sm btn-habilitar w-100">
+                                            <i class="bi bi-power me-2"></i>Habilitar API
+                                        </a>
+                                    <?php endif; ?>
+                                <?php endif; ?>
+                            <?php else: ?>
+                                <div class="api-status warning">
+                                    <i class="bi bi-hourglass-split text-warning me-2"></i>
+                                    <strong>Status:</strong> Não verificado
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+
+        <div class="card card-custom mt-4">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-book me-2"></i>Guia Completo
+                </h5>
+                <p class="card-text">
+                    Para instruções detalhadas sobre como habilitar as APIs, consulte o arquivo:
+                </p>
+                <a href="GUIA_HABILITAR_APIS_GOOGLE.md" class="btn btn-outline-primary" target="_blank">
+                    <i class="bi bi-file-text me-2"></i>Abrir Guia Completo
+                </a>
+            </div>
+        </div>
+    <?php endif; ?>
+</div>
+
+<?php
+require_once 'templates/footer.php';
+?>
+

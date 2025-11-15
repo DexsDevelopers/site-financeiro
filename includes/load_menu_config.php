@@ -198,5 +198,6 @@ $paginasInfo = [
     'whatsapp_admin.php' => ['nome' => 'Avisos WhatsApp', 'icone' => 'bi-whatsapp'],
     'integracoes_google.php' => ['nome' => 'Integrações Google', 'icone' => 'bi-google'],
     'debug_google_integration.php' => ['nome' => 'Debug Integração Google', 'icone' => 'bi-bug'],
+    'verificar_apis_google.php' => ['nome' => 'Verificar APIs Google', 'icone' => 'bi-shield-check'],
 ];
 ?>
