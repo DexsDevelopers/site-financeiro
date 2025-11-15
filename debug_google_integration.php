@@ -132,7 +132,11 @@ if (file_exists($oauthConfigPath)) {
 }
 
 // 4. Testar conexão com banco de dados
-$pdo = null;
+// Limpar variáveis antes de testar
+unset($pdo);
+unset($db_connect_error);
+unset($db_connect_error_code);
+
 $dbError = null;
 $dbConnectPath = __DIR__ . '/includes/db_connect.php';
 
@@ -140,14 +144,30 @@ if (file_exists($dbConnectPath)) {
     addSuccess('Banco', 'Arquivo db_connect.php encontrado');
     
     try {
+        // Capturar qualquer output antes do require
+        ob_start();
         require_once $dbConnectPath;
+        $output = ob_get_clean();
         
-        // Verificar se houve erro
-        if (isset($db_connect_error)) {
-            addError('Banco', 'Erro ao conectar: ' . $db_connect_error);
-            $dbError = $db_connect_error;
-        } elseif (isset($pdo) && $pdo) {
-            addSuccess('Banco', 'Conexão com banco de dados estabelecida');
+        if (!empty($output)) {
+            addWarning('Banco', 'Output detectado ao carregar db_connect.php: ' . substr($output, 0, 100));
+        }
+        
+        // Verificar se $pdo foi definido
+        if (!isset($pdo)) {
+            addError('Banco', 'Variável $pdo não foi definida após carregar db_connect.php');
+            addDebug('Banco', 'Verificando variáveis: isset($pdo)=' . (isset($pdo) ? 'true' : 'false'), 'info');
+        } elseif ($pdo === null) {
+            // $pdo foi definido mas é null - houve erro
+            if (isset($db_connect_error) && $db_connect_error) {
+                addError('Banco', 'Erro ao conectar: ' . $db_connect_error);
+                $dbError = $db_connect_error;
+                addDebug('Banco', 'Código do erro: ' . ($db_connect_error_code ?? 'N/A'), 'info');
+            } else {
+                addError('Banco', 'Conexão retornou null mas nenhuma mensagem de erro foi definida');
+            }
+        } elseif ($pdo) {
+            addSuccess('Banco', 'Conexão com banco de dados estabelecida via db_connect.php');
             
             // Testar query
             try {
@@ -178,15 +198,16 @@ if (file_exists($dbConnectPath)) {
                     addError('Banco', "Erro ao verificar tabela '$table': " . $e->getMessage());
                 }
             }
-            
-        } else {
-            addError('Banco', 'Variável $pdo não foi definida após carregar db_connect.php');
         }
     } catch (Exception $e) {
         addError('Banco', 'Erro ao carregar db_connect.php: ' . $e->getMessage());
+        addDebug('Banco', 'Stack trace: ' . $e->getTraceAsString(), 'error');
+    } catch (Throwable $e) {
+        addError('Banco', 'Erro fatal ao carregar db_connect.php: ' . $e->getMessage());
+        addDebug('Banco', 'Stack trace: ' . $e->getTraceAsString(), 'error');
     }
 } else {
-    addError('Banco', 'Arquivo db_connect.php não encontrado');
+    addError('Banco', 'Arquivo db_connect.php não encontrado em: ' . $dbConnectPath);
 }
 
 // 5. Tentar criar conexão direta para debug

@@ -1,5 +1,16 @@
 <?php
 // /includes/db_connect.php
+// Garantir que $pdo seja sempre definido (mesmo que null)
+if (!isset($pdo)) {
+    $pdo = null;
+}
+if (!isset($db_connect_error)) {
+    $db_connect_error = null;
+}
+if (!isset($db_connect_error_code)) {
+    $db_connect_error_code = null;
+}
+
 date_default_timezone_set('America/Sao_Paulo');
 
 define('ONESIGNAL_APP_ID', '8b948d38-c99d-402b-a456-e99e66fcc60f');
@@ -18,6 +29,7 @@ if (file_exists(__DIR__ . '/google_oauth_config.php')) {
 }
 // GOOGLE_REDIRECT_URI será gerado automaticamente baseado na URL atual
 
+// Configurações de conexão
 $host = 'localhost';
 $dbname = 'u853242961_financeiro';
 $user = 'u853242961_user7';
@@ -31,17 +43,25 @@ $options = [
     PDO::ATTR_EMULATE_PREPARES   => false,
 ];
 
+// Tentar conectar
 try {
-     $pdo = new PDO($dsn, $user, $pass, $options);
-     $pdo->exec("SET time_zone = '-03:00'");
+    $pdo = new PDO($dsn, $user, $pass, $options);
+    $pdo->exec("SET time_zone = '-03:00'");
+    // Limpar variáveis de erro em caso de sucesso
+    $db_connect_error = null;
+    $db_connect_error_code = null;
 } catch (\PDOException $e) {
-     // Não lançar exceção aqui - deixar que o código que inclui este arquivo trate o erro
-     // Isso permite que scripts possam verificar se $pdo foi definido
-     $pdo = null;
-     $db_connect_error = $e->getMessage();
-     $db_connect_error_code = $e->getCode();
+    // Não lançar exceção aqui - deixar que o código que inclui este arquivo trate o erro
+    // Isso permite que scripts possam verificar se $pdo foi definido
+    $pdo = null;
+    $db_connect_error = $e->getMessage();
+    $db_connect_error_code = $e->getCode();
 }
 
+// Garantir que $pdo está definido (mesmo que null)
+if (!isset($pdo)) {
+    $pdo = null;
+}
 
 ?>
 
