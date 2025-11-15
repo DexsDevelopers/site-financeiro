@@ -1,16 +1,5 @@
 <?php
 // /includes/db_connect.php
-// Garantir que $pdo seja sempre definido (mesmo que null)
-if (!isset($pdo)) {
-    $pdo = null;
-}
-if (!isset($db_connect_error)) {
-    $db_connect_error = null;
-}
-if (!isset($db_connect_error_code)) {
-    $db_connect_error_code = null;
-}
-
 date_default_timezone_set('America/Sao_Paulo');
 
 define('ONESIGNAL_APP_ID', '8b948d38-c99d-402b-a456-e99e66fcc60f');
@@ -19,15 +8,9 @@ define('GEMINI_API_KEY', 'AIzaSyCv3V2FhpTzHEvHLiSNx0jAvsFJEdaQo78');
 
 // Google OAuth (Integrações Google)
 // ⚠️ SEGURANÇA: As credenciais devem ser configuradas em um arquivo separado não versionado
-// Crie o arquivo 'includes/google_oauth_config.php' com:
-// <?php
-// define('GOOGLE_CLIENT_ID', 'seu-client-id');
-// define('GOOGLE_CLIENT_SECRET', 'seu-client-secret');
-// ?>
 if (file_exists(__DIR__ . '/google_oauth_config.php')) {
     require_once __DIR__ . '/google_oauth_config.php';
 }
-// GOOGLE_REDIRECT_URI será gerado automaticamente baseado na URL atual
 
 // Configurações de conexão
 $host = 'localhost';
@@ -52,13 +35,7 @@ try {
     $db_connect_error_code = null;
 } catch (\PDOException $e) {
     // Não lançar exceção aqui - deixar que o código que inclui este arquivo trate o erro
-    // Isso permite que scripts possam verificar se $pdo foi definido
     $pdo = null;
     $db_connect_error = $e->getMessage();
     $db_connect_error_code = $e->getCode();
-}
-
-// Garantir que $pdo está definido (mesmo que null)
-if (!isset($pdo)) {
-    $pdo = null;
 }
