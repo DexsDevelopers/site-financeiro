@@ -75,20 +75,55 @@ function escapeHTML(str) {
         fetch('processar_analise_ia.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ pergunta: pergunta })
+            body: JSON.stringify({ pergunta: pergunta }),
+            signal: AbortSignal.timeout(60000) // Timeout de 60 segundos
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
                 // Usa a biblioteca marked.js para converter o markdown da IA em HTML
                 iaMessageDiv.innerHTML = marked.parse(data.resposta);
             } else {
-                iaMessageDiv.innerHTML = `<p class="text-danger m-0"><strong>Erro:</strong> ${data.message}</p>`;
+                iaMessageDiv.innerHTML = `<p class="text-danger m-0"><strong>Erro:</strong> ${data.message || 'Erro desconhecido'}</p>`;
             }
         })
         .catch(error => {
             console.error('Erro de rede:', error);
-            iaMessageDiv.innerHTML = `<p class="text-danger m-0"><strong>Erro de Rede:</strong> Não foi possível se conectar.</p>`;
+            
+            // Se for erro de rede e a pergunta for sobre tarefas urgentes, tentar endpoint alternativo
+            const perguntaLower = pergunta.toLowerCase();
+            if ((perguntaLower.includes('urgente') || perguntaLower.includes('priorit') || perguntaLower.includes('importante')) && 
+                (error.name === 'TypeError' || error.name === 'NetworkError' || error.message.includes('Failed to fetch'))) {
+                
+                // Tentar buscar diretamente via endpoint alternativo
+                fetch('buscar_tarefas_urgentes_direto.php?pergunta=' + encodeURIComponent(pergunta), {
+                    method: 'GET',
+                    signal: AbortSignal.timeout(10000)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.tarefas && data.tarefas.length > 0) {
+                        let resposta = "Aqui estão suas tarefas mais urgentes:\n\n";
+                        data.tarefas.forEach(tarefa => {
+                            const dataInfo = tarefa.data_limite ? ` (Prazo: ${tarefa.data_limite})` : '';
+                            resposta += `- **${tarefa.descricao}** - Prioridade: ${tarefa.prioridade}${dataInfo}\n`;
+                        });
+                        iaMessageDiv.innerHTML = marked.parse(resposta);
+                    } else {
+                        iaMessageDiv.innerHTML = `<p class="text-warning m-0">Você não possui tarefas urgentes no momento.</p>`;
+                    }
+                })
+                .catch(() => {
+                    iaMessageDiv.innerHTML = `<p class="text-danger m-0"><strong>Erro de Rede:</strong> Não foi possível se conectar ao servidor. Verifique sua conexão e tente novamente.</p>`;
+                });
+            } else {
+                iaMessageDiv.innerHTML = `<p class="text-danger m-0"><strong>Erro de Rede:</strong> Não foi possível se conectar ao servidor. Verifique sua conexão e tente novamente.</p>`;
+            }
         })
         .finally(() => {
             btnAnalisar.disabled = false;
