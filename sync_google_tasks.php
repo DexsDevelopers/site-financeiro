@@ -52,7 +52,7 @@ try {
     
     // Buscar tarefas pendentes do painel
     $stmt = $pdo->prepare("
-        SELECT id, titulo, descricao, data_limite, prioridade
+        SELECT id, descricao, data_limite, prioridade
         FROM tarefas
         WHERE id_usuario = ? 
         AND status = 'pendente'
@@ -66,7 +66,7 @@ try {
     
     foreach ($tarefas as $tarefa) {
         $taskData = [
-            'title' => $tarefa['titulo'],
+            'title' => $tarefa['descricao'] ?? 'Tarefa sem título',
             'notes' => $tarefa['descricao'] ?? '',
             'status' => 'needsAction'
         ];

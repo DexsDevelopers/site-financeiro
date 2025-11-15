@@ -31,7 +31,7 @@ try {
     
     // Buscar eventos do calendário local (tarefas com data_limite)
     $stmt = $pdo->prepare("
-        SELECT id, titulo, descricao, data_limite, prioridade
+        SELECT id, descricao, data_limite, prioridade
         FROM tarefas
         WHERE id_usuario = ? 
         AND status = 'pendente'
@@ -49,7 +49,7 @@ try {
     foreach ($tarefas as $tarefa) {
         // Criar/atualizar evento no Google Calendar
         $eventData = [
-            'summary' => $tarefa['titulo'],
+            'summary' => $tarefa['descricao'] ?? 'Tarefa sem título',
             'description' => $tarefa['descricao'] ?? '',
             'start' => [
                 'dateTime' => date('c', strtotime($tarefa['data_limite'])),
