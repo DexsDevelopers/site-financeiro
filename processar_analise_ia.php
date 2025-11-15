@@ -252,18 +252,56 @@ if ($http_code === 429) {
 $api_response = json_decode($response_string, true);
 
 $resposta_final_ia = '';
-$functionCall = $api_response['candidates'][0]['content']['parts'][0]['functionCall'] ?? null;
-if ($functionCall) {
-    $functionName = $functionCall['name'];
-    $functionArgs = $functionCall['args'];
-    $functionResult = null;
-    switch ($functionName) {
-        case 'getResumoFinanceiro': $functionResult = getResumoFinanceiro($pdo, $userId); break;
-        case 'getPrincipaisCategoriasGasto': $functionResult = getPrincipaisCategoriasGasto($pdo, $userId); break;
-        case 'cadastrarTransacao': $functionResult = cadastrarTransacao($pdo, $userId, $functionArgs['tipo'], $functionArgs['valor'], $functionArgs['descricao'], $functionArgs['nome_categoria']); break;
-        case 'getTarefasDoUsuario': $functionResult = getTarefasDoUsuario($pdo, $userId); break;
-        case 'getTarefasUrgentes': $functionResult = getTarefasUrgentes($pdo, $userId); break;
-        case 'adicionarTarefa': $functionResult = adicionarTarefa($pdo, $userId, $functionArgs['descricao']); break;
+$functionCall = null;
+$functionResult = null;
+
+// Verificar se há erro na primeira resposta
+if (isset($api_response['error'])) {
+    // Se houver erro, tentar usar getTarefasUrgentes diretamente se a pergunta for sobre tarefas urgentes
+    $pergunta_lower = strtolower($pergunta_usuario);
+    if (strpos($pergunta_lower, 'urgente') !== false || 
+        strpos($pergunta_lower, 'priorit') !== false || 
+        strpos($pergunta_lower, 'importante') !== false) {
+        $functionResult = getTarefasUrgentes($pdo, $userId);
+        // Formatar resposta diretamente
+        if (isset($functionResult['tarefas_urgentes']) && !empty($functionResult['tarefas_urgentes'])) {
+            $resposta_final_ia = "Aqui estão suas tarefas mais urgentes:\n\n";
+            foreach ($functionResult['tarefas_urgentes'] as $tarefa) {
+                $data_info = '';
+                if (!empty($tarefa['data_limite'])) {
+                    $data_formatada = date('d/m/Y', strtotime($tarefa['data_limite']));
+                    $data_info = " (Prazo: {$data_formatada})";
+                }
+                $resposta_final_ia .= "- **{$tarefa['descricao']}** - Prioridade: {$tarefa['prioridade']}{$data_info}\n";
+            }
+        } elseif (isset($functionResult['resultado'])) {
+            $resposta_final_ia = $functionResult['resultado'];
+        } else {
+            $resposta_final_ia = 'Desculpe, ocorreu um erro ao processar sua pergunta. Tente novamente.';
+        }
+    } else {
+        $resposta_final_ia = 'Desculpe, ocorreu um erro ao processar sua pergunta. Tente novamente.';
+    }
+} else {
+    $functionCall = $api_response['candidates'][0]['content']['parts'][0]['functionCall'] ?? null;
+    if ($functionCall) {
+        $functionName = $functionCall['name'];
+        $functionArgs = $functionCall['args'] ?? [];
+        
+        try {
+            switch ($functionName) {
+                case 'getResumoFinanceiro': $functionResult = getResumoFinanceiro($pdo, $userId); break;
+                case 'getPrincipaisCategoriasGasto': $functionResult = getPrincipaisCategoriasGasto($pdo, $userId); break;
+                case 'cadastrarTransacao': $functionResult = cadastrarTransacao($pdo, $userId, $functionArgs['tipo'] ?? '', $functionArgs['valor'] ?? 0, $functionArgs['descricao'] ?? '', $functionArgs['nome_categoria'] ?? ''); break;
+                case 'getTarefasDoUsuario': $functionResult = getTarefasDoUsuario($pdo, $userId); break;
+                case 'getTarefasUrgentes': $functionResult = getTarefasUrgentes($pdo, $userId); break;
+                case 'adicionarTarefa': $functionResult = adicionarTarefa($pdo, $userId, $functionArgs['descricao'] ?? ''); break;
+                default: $functionResult = null;
+            }
+        } catch (Exception $e) {
+            error_log("Erro ao executar função $functionName: " . $e->getMessage());
+            $functionResult = null;
+        }
     }
     if ($functionResult !== null) {
         $conversationHistory[] = ['role' => 'model', 'parts' => [['functionCall' => ['name' => $functionName]]]];
@@ -318,9 +356,44 @@ if ($functionCall) {
         
         // Verificar se há erro na resposta
         if (isset($api_response_2['error'])) {
-            $resposta_final_ia = 'Desculpe, ocorreu um erro ao processar sua pergunta. Tente novamente.';
+            // Se houver erro na API, mas temos resultado da função, formatar manualmente
+            if ($functionResult !== null) {
+                if (isset($functionResult['tarefas_urgentes']) && !empty($functionResult['tarefas_urgentes'])) {
+                    $resposta_final_ia = "Aqui estão suas tarefas mais urgentes:\n\n";
+                    foreach ($functionResult['tarefas_urgentes'] as $tarefa) {
+                        $data_info = '';
+                        if (!empty($tarefa['data_limite'])) {
+                            $data_formatada = date('d/m/Y', strtotime($tarefa['data_limite']));
+                            $data_info = " (Prazo: {$data_formatada})";
+                        }
+                        $resposta_final_ia .= "- **{$tarefa['descricao']}** - Prioridade: {$tarefa['prioridade']}{$data_info}\n";
+                    }
+                } elseif (isset($functionResult['tarefas_pendentes']) && !empty($functionResult['tarefas_pendentes'])) {
+                    $resposta_final_ia = "Aqui estão suas tarefas pendentes:\n\n";
+                    foreach ($functionResult['tarefas_pendentes'] as $tarefa) {
+                        $data_info = '';
+                        if (!empty($tarefa['data_limite'])) {
+                            $data_formatada = date('d/m/Y', strtotime($tarefa['data_limite']));
+                            $data_info = " (Prazo: {$data_formatada})";
+                        }
+                        $resposta_final_ia .= "- **{$tarefa['descricao']}** - Prioridade: {$tarefa['prioridade']}{$data_info}\n";
+                    }
+                } elseif (isset($functionResult['resultado'])) {
+                    $resposta_final_ia = $functionResult['resultado'];
+                } elseif (isset($functionResult['message'])) {
+                    $resposta_final_ia = $functionResult['message'];
+                } else {
+                    $resposta_final_ia = 'Desculpe, ocorreu um erro ao processar sua pergunta. Tente novamente.';
+                }
+            } else {
+                $resposta_final_ia = 'Desculpe, ocorreu um erro ao processar sua pergunta. Tente novamente.';
+            }
         } else {
-            $resposta_final_ia = $api_response_2['candidates'][0]['content']['parts'][0]['text'] ?? 'Ação concluída, mas não consegui gerar um resumo.';
+            // Verificar se a resposta tem conteúdo
+            $resposta_final_ia = null;
+            if (isset($api_response_2['candidates'][0]['content']['parts'][0]['text'])) {
+                $resposta_final_ia = $api_response_2['candidates'][0]['content']['parts'][0]['text'];
+            }
             
             // Se a resposta estiver vazia ou for genérica, tentar formatar manualmente
             if (empty($resposta_final_ia) || $resposta_final_ia === 'Ação concluída, mas não consegui gerar um resumo.') {
@@ -349,6 +422,8 @@ if ($functionCall) {
                     $resposta_final_ia = $functionResult['resultado'];
                 } elseif (isset($functionResult['message'])) {
                     $resposta_final_ia = $functionResult['message'];
+                } else {
+                    $resposta_final_ia = 'Ação concluída, mas não consegui gerar um resumo.';
                 }
             }
         }
