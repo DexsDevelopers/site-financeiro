@@ -62,7 +62,3 @@ try {
 if (!isset($pdo)) {
     $pdo = null;
 }
-
-?>
-
-

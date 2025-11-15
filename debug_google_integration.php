@@ -146,27 +146,48 @@ if (file_exists($dbConnectPath)) {
     try {
         // Capturar qualquer output antes do require
         ob_start();
-        require_once $dbConnectPath;
-        $output = ob_get_clean();
+        $oldErrorReporting = error_reporting(E_ALL);
+        $oldDisplayErrors = ini_set('display_errors', 0);
         
-        if (!empty($output)) {
-            addWarning('Banco', 'Output detectado ao carregar db_connect.php: ' . substr($output, 0, 100));
-        }
-        
-        // Verificar se $pdo foi definido
-        if (!isset($pdo)) {
-            addError('Banco', 'Variável $pdo não foi definida após carregar db_connect.php');
-            addDebug('Banco', 'Verificando variáveis: isset($pdo)=' . (isset($pdo) ? 'true' : 'false'), 'info');
-        } elseif ($pdo === null) {
-            // $pdo foi definido mas é null - houve erro
-            if (isset($db_connect_error) && $db_connect_error) {
-                addError('Banco', 'Erro ao conectar: ' . $db_connect_error);
-                $dbError = $db_connect_error;
-                addDebug('Banco', 'Código do erro: ' . ($db_connect_error_code ?? 'N/A'), 'info');
+        // Incluir o arquivo
+        if (!@include_once $dbConnectPath) {
+            $includeError = error_get_last();
+            ob_end_clean();
+            if ($includeError) {
+                addError('Banco', 'Erro ao incluir db_connect.php: ' . $includeError['message']);
             } else {
-                addError('Banco', 'Conexão retornou null mas nenhuma mensagem de erro foi definida');
+                addError('Banco', 'Erro ao incluir db_connect.php: arquivo não encontrado ou não pode ser incluído');
             }
-        } elseif ($pdo) {
+            error_reporting($oldErrorReporting);
+            if ($oldDisplayErrors !== false) {
+                ini_set('display_errors', $oldDisplayErrors);
+            }
+        } else {
+            $output = ob_get_clean();
+            error_reporting($oldErrorReporting);
+            if ($oldDisplayErrors !== false) {
+                ini_set('display_errors', $oldDisplayErrors);
+            }
+            
+            if (!empty($output)) {
+                addWarning('Banco', 'Output detectado ao carregar db_connect.php (' . strlen($output) . ' bytes): ' . htmlspecialchars(substr($output, 0, 200)));
+                addDebug('Banco', 'Output completo: ' . base64_encode($output), 'error');
+            }
+            
+            // Verificar se $pdo foi definido
+            if (!isset($pdo)) {
+                addError('Banco', 'Variável $pdo não foi definida após carregar db_connect.php');
+                addDebug('Banco', 'Verificando variáveis: isset($pdo)=' . (isset($pdo) ? 'true' : 'false'), 'info');
+            } elseif ($pdo === null) {
+                // $pdo foi definido mas é null - houve erro
+                if (isset($db_connect_error) && $db_connect_error) {
+                    addError('Banco', 'Erro ao conectar: ' . $db_connect_error);
+                    $dbError = $db_connect_error;
+                    addDebug('Banco', 'Código do erro: ' . ($db_connect_error_code ?? 'N/A'), 'info');
+                } else {
+                    addError('Banco', 'Conexão retornou null mas nenhuma mensagem de erro foi definida');
+                }
+            } elseif ($pdo) {
             addSuccess('Banco', 'Conexão com banco de dados estabelecida via db_connect.php');
             
             // Testar query
