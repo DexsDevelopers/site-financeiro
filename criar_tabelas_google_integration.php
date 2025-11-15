@@ -175,15 +175,32 @@ $oauthConfigured = $hasClientId && $hasClientSecret &&
                             echo "<div class='alert alert-danger'>";
                             echo "<h5 class='alert-heading'><i class='bi bi-exclamation-triangle me-2'></i>Erro de Conexão</h5>";
                             echo "<p class='mb-0'>Não foi possível conectar ao banco de dados. Verifique a configuração em <code>includes/db_connect.php</code>.</p>";
+                            
+                            // Mostrar detalhes do erro de forma mais destacada
                             if ($dbError) {
-                                echo "<p class='mb-0'><small><strong>Detalhes do erro:</strong> " . htmlspecialchars($dbError) . "</small></p>";
+                                echo "<div class='mt-3 p-3 bg-dark text-white rounded'>";
+                                echo "<strong><i class='bi bi-bug me-2'></i>Detalhes do Erro:</strong><br>";
+                                echo "<code class='text-warning'>" . htmlspecialchars($dbError) . "</code>";
+                                echo "</div>";
                             }
-                            echo "<p class='mb-0 mt-2'><small>Verifique se:</small></p>";
+                            
+                            // Debug: mostrar variáveis para diagnóstico
+                            echo "<div class='mt-3 p-2 bg-secondary text-white rounded small'>";
+                            echo "<strong>Debug:</strong><br>";
+                            echo "\$pdo definido: " . (isset($pdo) ? 'Sim' : 'Não') . "<br>";
+                            echo "\$dbError definido: " . (isset($dbError) && $dbError ? 'Sim' : 'Não') . "<br>";
+                            if (isset($db_connect_error)) {
+                                echo "\$db_connect_error: " . htmlspecialchars($db_connect_error) . "<br>";
+                            }
+                            echo "</div>";
+                            
+                            echo "<p class='mb-0 mt-3'><small><strong>Verifique se:</strong></small></p>";
                             echo "<ul class='mb-0'><small>";
                             echo "<li>O servidor MySQL está rodando</li>";
                             echo "<li>As credenciais em <code>includes/db_connect.php</code> estão corretas</li>";
                             echo "<li>O banco de dados <code>u853242961_financeiro</code> existe</li>";
                             echo "<li>O usuário tem permissões adequadas</li>";
+                            echo "<li>O host está correto (pode não ser 'localhost' em produção)</li>";
                             echo "</small></ul>";
                             echo "</div>";
                         } else {
