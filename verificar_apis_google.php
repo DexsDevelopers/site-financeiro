@@ -40,30 +40,52 @@ $resultados = [];
 if ($isConnected) {
     foreach ($apis as $key => $api) {
         try {
+            // Para cada API, fazer uma requisição de teste
             $response = $manager->makeApiRequest($userId, $api['url'], 'GET');
             $resultados[$key] = [
                 'status' => 'success',
                 'message' => 'API habilitada e funcionando',
-                'dados' => $response
+                'habilitada' => true
             ];
         } catch (Exception $e) {
             $errorMessage = $e->getMessage();
+            $errorData = json_decode($errorMessage, true);
+            
+            // Verificar se é erro de API não habilitada
+            $isApiDisabled = false;
+            $isAccessNotConfigured = false;
+            
+            // Verificar no JSON de erro
+            if (is_array($errorData)) {
+                if (isset($errorData['error']['errors'])) {
+                    foreach ($errorData['error']['errors'] as $error) {
+                        if (isset($error['reason']) && $error['reason'] === 'accessNotConfigured') {
+                            $isAccessNotConfigured = true;
+                        }
+                        if (isset($error['domain']) && $error['domain'] === 'googleapis.com' && 
+                            isset($error['reason']) && $error['reason'] === 'SERVICE_DISABLED') {
+                            $isApiDisabled = true;
+                        }
+                    }
+                }
+            }
+            
+            // Verificar na mensagem de texto
+            if (strpos($errorMessage, 'SERVICE_DISABLED') !== false || 
+                strpos($errorMessage, 'accessNotConfigured') !== false ||
+                strpos($errorMessage, 'has not been used') !== false ||
+                strpos($errorMessage, 'not been used in project') !== false ||
+                strpos($errorMessage, 'it is disabled') !== false) {
+                $isApiDisabled = true;
+                $isAccessNotConfigured = true;
+            }
+            
             $resultados[$key] = [
                 'status' => 'error',
                 'message' => $errorMessage,
-                'habilitada' => false
+                'habilitada' => !$isApiDisabled && !$isAccessNotConfigured,
+                'tipo_erro' => ($isApiDisabled || $isAccessNotConfigured) ? 'api_nao_habilitada' : 'outro'
             ];
-            
-            // Verificar se é erro de API não habilitada
-            if (strpos($errorMessage, 'SERVICE_DISABLED') !== false || 
-                strpos($errorMessage, 'accessNotConfigured') !== false ||
-                strpos($errorMessage, 'has not been used') !== false) {
-                $resultados[$key]['habilitada'] = false;
-                $resultados[$key]['tipo_erro'] = 'api_nao_habilitada';
-            } else {
-                $resultados[$key]['habilitada'] = true; // API habilitada mas outro erro
-                $resultados[$key]['tipo_erro'] = 'outro';
-            }
         }
     }
 } else {
@@ -156,12 +178,23 @@ if ($isConnected) {
                                         ?>
                                     </div>
                                     
-                                    <?php if ($resultados[$key]['habilitada'] === false): ?>
-                                        <a href="<?php echo htmlspecialchars($api['ativacao']); ?>" 
-                                           target="_blank" 
-                                           class="btn btn-primary btn-sm btn-habilitar w-100">
-                                            <i class="bi bi-power me-2"></i>Habilitar API
-                                        </a>
+                                    <?php if (isset($resultados[$key]['tipo_erro']) && $resultados[$key]['tipo_erro'] === 'api_nao_habilitada'): ?>
+                                        <div class="mt-2">
+                                            <a href="<?php echo htmlspecialchars($api['ativacao']); ?>" 
+                                               target="_blank" 
+                                               class="btn btn-primary btn-sm btn-habilitar w-100">
+                                                <i class="bi bi-power me-2"></i>Habilitar API no Google Cloud Console
+                                            </a>
+                                            <small class="text-muted d-block mt-2">
+                                                <i class="bi bi-info-circle me-1"></i>
+                                                Clique no botão acima para abrir o Google Cloud Console e habilitar esta API.
+                                            </small>
+                                        </div>
+                                    <?php elseif (isset($resultados[$key]['tipo_erro']) && $resultados[$key]['tipo_erro'] === 'outro'): ?>
+                                        <small class="text-muted d-block mt-2">
+                                            <i class="bi bi-exclamation-triangle me-1"></i>
+                                            API habilitada, mas ocorreu um erro. Verifique as permissões OAuth.
+                                        </small>
                                     <?php endif; ?>
                                 <?php endif; ?>
                             <?php else: ?>
