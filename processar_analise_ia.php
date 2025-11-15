@@ -429,11 +429,42 @@ if (isset($api_response['error'])) {
         }
     }
 } else { 
-    // Se não houve function call, verificar se há erro
-    if (isset($api_response['error'])) {
-        $resposta_final_ia = 'Desculpe, ocorreu um erro ao processar sua pergunta. Tente novamente.';
+    // Se não houve function call, verificar se a pergunta é sobre tarefas urgentes
+    $pergunta_lower = strtolower($pergunta_usuario);
+    $isPerguntaUrgente = (strpos($pergunta_lower, 'urgente') !== false || 
+                          strpos($pergunta_lower, 'priorit') !== false || 
+                          strpos($pergunta_lower, 'importante') !== false);
+    
+    if ($isPerguntaUrgente) {
+        // Se a pergunta for sobre tarefas urgentes, buscar diretamente
+        try {
+            $functionResult = getTarefasUrgentes($pdo, $userId);
+            if (isset($functionResult['tarefas_urgentes']) && !empty($functionResult['tarefas_urgentes'])) {
+                $resposta_final_ia = "Aqui estão suas tarefas mais urgentes:\n\n";
+                foreach ($functionResult['tarefas_urgentes'] as $tarefa) {
+                    $data_info = '';
+                    if (!empty($tarefa['data_limite'])) {
+                        $data_formatada = date('d/m/Y', strtotime($tarefa['data_limite']));
+                        $data_info = " (Prazo: {$data_formatada})";
+                    }
+                    $resposta_final_ia .= "- **{$tarefa['descricao']}** - Prioridade: {$tarefa['prioridade']}{$data_info}\n";
+                }
+            } elseif (isset($functionResult['resultado'])) {
+                $resposta_final_ia = $functionResult['resultado'];
+            } else {
+                $resposta_final_ia = 'Você não possui tarefas urgentes no momento.';
+            }
+        } catch (Exception $e) {
+            error_log("Erro ao buscar tarefas urgentes: " . $e->getMessage());
+            $resposta_final_ia = 'Desculpe, ocorreu um erro ao buscar suas tarefas. Tente novamente.';
+        }
     } else {
-        $resposta_final_ia = $api_response['candidates'][0]['content']['parts'][0]['text'] ?? 'Não consegui entender sua pergunta. Por favor, tente reformular ou use uma das sugestões disponíveis.';
+        // Se não for sobre tarefas urgentes, verificar se há erro
+        if (isset($api_response['error'])) {
+            $resposta_final_ia = 'Desculpe, ocorreu um erro ao processar sua pergunta. Tente novamente.';
+        } else {
+            $resposta_final_ia = $api_response['candidates'][0]['content']['parts'][0]['text'] ?? 'Não consegui entender sua pergunta. Por favor, tente reformular ou use uma das sugestões disponíveis.';
+        }
     }
 }
 
