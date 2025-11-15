@@ -42,7 +42,7 @@ if (!$menu_config) {
             'financeiro' => ['compras_futuras.php', 'relatorios.php', 'extrato_completo.php', 'recorrentes.php', 'orcamento.php', 'categorias.php', 'regras_categorizacao.php', 'alertas_inteligentes.php'],
             'produtividade' => ['tarefas.php', 'calendario.php', 'pomodoro.php'],
             'personalizacao' => ['temas_customizaveis.php', 'layouts_flexiveis.php', 'preferencias_avancadas.php', 'personalizar_menu.php'],
-            'sistema' => ['perfil.php', 'contas.php', 'whatsapp_admin.php', 'integracoes_google.php', 'debug_google_integration.php']
+            'sistema' => ['perfil.php', 'contas.php', 'whatsapp_admin.php', 'integracoes_google.php', 'debug_google_integration.php', 'verificar_apis_google.php', 'debug_ia.php']
         ],
         'ordem_secoes' => ['academy', 'financeiro', 'produtividade', 'personalizacao', 'sistema'],
         'ordem_paginas' => [
@@ -50,7 +50,7 @@ if (!$menu_config) {
             'financeiro' => ['compras_futuras.php', 'relatorios.php', 'extrato_completo.php', 'recorrentes.php', 'orcamento.php', 'categorias.php', 'regras_categorizacao.php', 'alertas_inteligentes.php'],
             'produtividade' => ['tarefas.php', 'calendario.php', 'pomodoro.php'],
             'personalizacao' => ['temas_customizaveis.php', 'layouts_flexiveis.php', 'preferencias_avancadas.php', 'personalizar_menu.php'],
-            'sistema' => ['perfil.php', 'contas.php', 'whatsapp_admin.php', 'integracoes_google.php', 'debug_google_integration.php']
+            'sistema' => ['perfil.php', 'contas.php', 'whatsapp_admin.php', 'integracoes_google.php', 'debug_google_integration.php', 'verificar_apis_google.php', 'debug_ia.php']
         ]
     ];
 }
@@ -199,5 +199,6 @@ $paginasInfo = [
     'integracoes_google.php' => ['nome' => 'Integrações Google', 'icone' => 'bi-google'],
     'debug_google_integration.php' => ['nome' => 'Debug Integração Google', 'icone' => 'bi-bug'],
     'verificar_apis_google.php' => ['nome' => 'Verificar APIs Google', 'icone' => 'bi-shield-check'],
+    'debug_ia.php' => ['nome' => 'Debug Assistente Orion', 'icone' => 'bi-robot'],
 ];
 ?>
