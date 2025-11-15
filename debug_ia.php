@@ -1,17 +1,10 @@
 <?php
-// debug_ia.php - Página de Debug Completa para o Assistente Orion
+// debug_ia.php - Página de Debug para o Assistente IA (Orion)
 
-session_start();
+require_once 'templates/header.php';
 require_once 'includes/db_connect.php';
 require_once 'includes/rate_limiter.php';
 
-// Verificar se está logado
-if (!isset($_SESSION['user_id'])) {
-    header('Location: login.php');
-    exit();
-}
-
-$userId = $_SESSION['user_id'];
 $debugInfo = [];
 $errors = [];
 $warnings = [];
@@ -46,123 +39,115 @@ function addSuccess($category, $message) {
     addDebug($category, $message, 'success');
 }
 
-// 1. Verificar PHP e extensões
+// 1. Verificar configuração básica
 addDebug('Sistema', 'PHP Version: ' . phpversion(), 'info');
-addDebug('Sistema', 'Server: ' . ($_SERVER['SERVER_SOFTWARE'] ?? 'N/A'), 'info');
+addDebug('Sistema', 'User ID: ' . $userId, 'info');
 
-if (!extension_loaded('curl')) {
-    addError('PHP', 'Extensão cURL não está carregada');
-} else {
-    addSuccess('PHP', 'Extensão cURL está carregada');
-    $curlVersion = curl_version();
-    addDebug('PHP', 'cURL Version: ' . ($curlVersion['version'] ?? 'N/A'), 'info');
-}
-
-// 2. Verificar configuração da API Gemini
+// 2. Verificar API Key
 if (defined('GEMINI_API_KEY')) {
     $apiKey = GEMINI_API_KEY;
     if (!empty($apiKey)) {
-        addSuccess('API Gemini', 'GEMINI_API_KEY está configurado');
-        addDebug('API Gemini', 'API Key: ' . substr($apiKey, 0, 10) . '...', 'info');
+        addSuccess('Configuração', 'GEMINI_API_KEY está configurado');
+        addDebug('Configuração', 'API Key: ' . substr($apiKey, 0, 20) . '...', 'info');
     } else {
-        addError('API Gemini', 'GEMINI_API_KEY está definido mas vazio');
+        addError('Configuração', 'GEMINI_API_KEY está definido mas vazio');
     }
 } else {
-    addError('API Gemini', 'GEMINI_API_KEY não está definido');
+    addError('Configuração', 'GEMINI_API_KEY não está definido');
 }
 
-// 3. Verificar conexão com banco
-if (isset($pdo) && $pdo) {
-    addSuccess('Banco', 'Conexão com banco de dados estabelecida');
+// 3. Verificar extensões PHP
+if (extension_loaded('curl')) {
+    addSuccess('PHP', 'Extensão cURL está carregada');
+} else {
+    addError('PHP', 'Extensão cURL não está carregada');
+}
+
+if (extension_loaded('json')) {
+    addSuccess('PHP', 'Extensão JSON está carregada');
+} else {
+    addError('PHP', 'Extensão JSON não está carregada');
+}
+
+// 4. Verificar Rate Limiter
+try {
+    $rateLimiter = new RateLimiter($pdo);
+    addSuccess('Rate Limiter', 'RateLimiter instanciado com sucesso');
     
-    try {
-        $testQuery = $pdo->query("SELECT 1");
-        if ($testQuery) {
-            addSuccess('Banco', 'Query de teste executada com sucesso');
-        }
-    } catch (PDOException $e) {
-        addError('Banco', 'Erro ao executar query de teste: ' . $e->getMessage());
+    $rateLimitCheck = $rateLimiter->checkRateLimit($userId, 'gemini');
+    if ($rateLimitCheck['allowed']) {
+        addSuccess('Rate Limiter', 'Rate limit OK - você pode fazer requisições');
+        addDebug('Rate Limiter', 'Limite por minuto: ' . ($rateLimitCheck['limit_type'] ?? 'N/A'), 'info');
+    } else {
+        addWarning('Rate Limiter', 'Rate limit atingido: ' . ($rateLimitCheck['message'] ?? 'Limite excedido'));
+        addDebug('Rate Limiter', 'Retry após: ' . ($rateLimitCheck['retry_after'] ?? 'N/A') . ' segundos', 'info');
     }
-} else {
-    addError('Banco', 'Conexão com banco de dados não disponível');
+    
+    $usageStats = $rateLimiter->getUsageStats($userId, 'gemini');
+    addDebug('Rate Limiter', 'Estatísticas: ' . json_encode($usageStats), 'info');
+} catch (Exception $e) {
+    addError('Rate Limiter', 'Erro ao verificar rate limiter: ' . $e->getMessage());
 }
 
-// 4. Verificar tabela de tarefas
-if (isset($pdo) && $pdo) {
-    try {
-        $stmt = $pdo->query("SHOW TABLES LIKE 'tarefas'");
-        if ($stmt->rowCount() > 0) {
-            addSuccess('Banco', "Tabela 'tarefas' existe");
-            
-            // Verificar estrutura
-            $stmt = $pdo->query("DESCRIBE tarefas");
-            $columns = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            $columnNames = array_column($columns, 'Field');
-            
-            $requiredColumns = ['id', 'id_usuario', 'descricao', 'prioridade', 'status', 'data_limite'];
-            $missingColumns = array_diff($requiredColumns, $columnNames);
-            
-            if (empty($missingColumns)) {
-                addSuccess('Banco', "Tabela 'tarefas' tem todas as colunas necessárias");
-            } else {
-                addWarning('Banco', "Tabela 'tarefas' está faltando colunas: " . implode(', ', $missingColumns));
-            }
-            
-            // Contar tarefas do usuário
-            $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM tarefas WHERE id_usuario = ?");
-            $stmt->execute([$userId]);
-            $totalTarefas = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
-            addDebug('Banco', "Você possui {$totalTarefas} tarefa(s) no total", 'info');
-            
-            // Contar tarefas urgentes
-            $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM tarefas WHERE id_usuario = ? AND status = 'pendente' AND (prioridade = 'Alta' OR (data_limite IS NOT NULL AND data_limite <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)))");
-            $stmt->execute([$userId]);
-            $tarefasUrgentes = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
-            addDebug('Banco', "Você possui {$tarefasUrgentes} tarefa(s) urgente(s)", 'info');
-            
-        } else {
-            addError('Banco', "Tabela 'tarefas' não existe");
-        }
-    } catch (PDOException $e) {
-        addError('Banco', "Erro ao verificar tabela 'tarefas': " . $e->getMessage());
+// 5. Verificar funções disponíveis
+$funcoesDisponiveis = [
+    'getResumoFinanceiro',
+    'getPrincipaisCategoriasGasto',
+    'cadastrarTransacao',
+    'getTarefasDoUsuario',
+    'getTarefasUrgentes',
+    'adicionarTarefa'
+];
+
+addDebug('Funções', 'Verificando funções disponíveis...', 'info');
+foreach ($funcoesDisponiveis as $funcao) {
+    if (function_exists($funcao)) {
+        addSuccess('Funções', "Função '$funcao' está disponível");
+    } else {
+        addWarning('Funções', "Função '$funcao' não está disponível (pode estar no escopo do arquivo)");
     }
 }
 
-// 5. Testar função getTarefasUrgentes
-if (isset($pdo) && $pdo) {
-    try {
-        require_once 'processar_analise_ia.php';
-        
-        // Testar função diretamente
-        $resultado = getTarefasUrgentes($pdo, $userId);
-        
-        if (isset($resultado['tarefas_urgentes'])) {
-            $total = count($resultado['tarefas_urgentes']);
-            addSuccess('Função', "getTarefasUrgentes() executada com sucesso - encontrou {$total} tarefa(s)");
-            
-            if ($total > 0) {
-                addDebug('Função', 'Primeira tarefa: ' . $resultado['tarefas_urgentes'][0]['descricao'], 'info');
-            }
-        } elseif (isset($resultado['resultado'])) {
-            addWarning('Função', 'getTarefasUrgentes() retornou: ' . $resultado['resultado']);
-        } else {
-            addWarning('Função', 'getTarefasUrgentes() retornou resultado inesperado');
-        }
-    } catch (Exception $e) {
-        addError('Função', 'Erro ao testar getTarefasUrgentes(): ' . $e->getMessage());
+// 6. Testar conexão com banco de dados
+try {
+    $testQuery = $pdo->query("SELECT 1");
+    if ($testQuery) {
+        addSuccess('Banco de Dados', 'Conexão com banco de dados OK');
     }
+} catch (PDOException $e) {
+    addError('Banco de Dados', 'Erro ao conectar: ' . $e->getMessage());
 }
 
-// 6. Testar conexão com API Gemini
+// 7. Verificar se há tarefas no banco
+try {
+    $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM tarefas WHERE id_usuario = ? AND status = 'pendente'");
+    $stmt->execute([$userId]);
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    $totalTarefas = $result['total'] ?? 0;
+    addDebug('Dados', "Total de tarefas pendentes: $totalTarefas", 'info');
+    
+    if ($totalTarefas > 0) {
+        // Verificar tarefas urgentes
+        $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM tarefas WHERE id_usuario = ? AND status = 'pendente' AND (prioridade = 'Alta' OR (data_limite IS NOT NULL AND data_limite <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)))");
+        $stmt->execute([$userId]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        $totalUrgentes = $result['total'] ?? 0;
+        addDebug('Dados', "Total de tarefas urgentes: $totalUrgentes", 'info');
+    }
+} catch (PDOException $e) {
+    addError('Dados', 'Erro ao verificar tarefas: ' . $e->getMessage());
+}
+
+// 8. Testar requisição direta à API do Gemini (se API key estiver configurada)
 if (defined('GEMINI_API_KEY') && !empty(GEMINI_API_KEY)) {
-    addDebug('API Test', 'Testando conexão com API Gemini...', 'info');
+    addDebug('API', 'Testando conexão com API do Gemini...', 'info');
     
     $testUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=' . GEMINI_API_KEY;
     $testData = [
         'contents' => [
             [
                 'role' => 'user',
-                'parts' => [['text' => 'Responda apenas: OK']]
+                'parts' => [['text' => 'Teste de conexão']]
             ]
         ]
     ];
@@ -179,105 +164,71 @@ if (defined('GEMINI_API_KEY') && !empty(GEMINI_API_KEY)) {
     $curlError = curl_error($ch);
     curl_close($ch);
     
-    if ($curlError) {
-        addError('API Test', 'Erro cURL: ' . $curlError);
-    } elseif ($httpCode === 200) {
+    if ($httpCode === 200) {
         $responseData = json_decode($response, true);
         if (isset($responseData['candidates'][0]['content']['parts'][0]['text'])) {
-            addSuccess('API Test', 'Conexão com API Gemini bem-sucedida!');
-            addDebug('API Test', 'Resposta: ' . substr($responseData['candidates'][0]['content']['parts'][0]['text'], 0, 100), 'info');
+            addSuccess('API', 'Conexão com API do Gemini OK');
+            addDebug('API', 'Resposta de teste recebida', 'info');
         } else {
-            addWarning('API Test', 'API respondeu mas formato inesperado');
-            addDebug('API Test', 'Resposta completa: ' . substr($response, 0, 200), 'info');
+            addWarning('API', 'API respondeu mas formato inesperado');
+            addDebug('API', 'Resposta: ' . substr($response, 0, 200), 'warning');
         }
     } elseif ($httpCode === 429) {
         $responseData = json_decode($response, true);
-        $errorMsg = $responseData['error']['message'] ?? 'Limite de requisições excedido';
-        addWarning('API Test', "HTTP 429 - Limite de requisições: {$errorMsg}");
+        $errorMsg = $responseData['error']['message'] ?? 'Rate limit excedido';
+        addWarning('API', 'Rate limit da API: ' . $errorMsg);
+        
+        if (stripos($errorMsg, 'quota') !== false || stripos($errorMsg, 'limit: 0') !== false) {
+            addError('API', 'COTA EXCEDIDA - A cota gratuita da API foi excedida');
+        }
     } elseif ($httpCode === 403) {
-        addError('API Test', 'HTTP 403 - Acesso negado. Verifique se a API Key está correta e se a API está habilitada.');
-    } elseif ($httpCode === 400) {
-        $responseData = json_decode($response, true);
-        $errorMsg = $responseData['error']['message'] ?? 'Requisição inválida';
-        addError('API Test', "HTTP 400 - Erro na requisição: {$errorMsg}");
+        addError('API', 'Acesso negado (403) - Verifique se a API Key está correta e se a API está habilitada');
+    } elseif ($httpCode === 401) {
+        addError('API', 'Não autorizado (401) - API Key inválida');
     } else {
-        addError('API Test', "HTTP {$httpCode} - Erro desconhecido");
-        addDebug('API Test', 'Resposta: ' . substr($response, 0, 200), 'error');
+        addError('API', "Erro HTTP $httpCode: " . ($curlError ?: substr($response, 0, 200)));
     }
 } else {
-    addWarning('API Test', 'Não foi possível testar API - GEMINI_API_KEY não configurado');
-}
-
-// 7. Testar Rate Limiter
-try {
-    if (isset($rateLimiter) && $rateLimiter !== null) {
-        $rateLimitCheck = $rateLimiter->checkRateLimit($userId, 'gemini');
-        if ($rateLimitCheck['allowed']) {
-            addSuccess('Rate Limiter', 'Rate limiter funcionando - requisições permitidas');
-            addDebug('Rate Limiter', 'Limite: ' . ($rateLimitCheck['limit_type'] ?? 'N/A'), 'info');
-        } else {
-            addWarning('Rate Limiter', 'Rate limiter bloqueando: ' . ($rateLimitCheck['message'] ?? 'Limite excedido'));
-        }
-    } else {
-        addWarning('Rate Limiter', 'Rate limiter não disponível');
-    }
-} catch (Exception $e) {
-    addWarning('Rate Limiter', 'Erro ao verificar rate limiter: ' . $e->getMessage());
-}
-
-// 8. Testar processamento completo (simulado)
-if (isset($pdo) && $pdo && defined('GEMINI_API_KEY') && !empty(GEMINI_API_KEY)) {
-    addDebug('Teste Completo', 'Testando processamento completo...', 'info');
-    
-    // Simular uma pergunta
-    $perguntaTeste = "Quais são minhas tarefas mais urgentes?";
-    
-    try {
-        // Verificar se a função existe
-        if (function_exists('getTarefasUrgentes')) {
-            $resultado = getTarefasUrgentes($pdo, $userId);
-            
-            if (isset($resultado['tarefas_urgentes']) && !empty($resultado['tarefas_urgentes'])) {
-                addSuccess('Teste Completo', 'Função getTarefasUrgentes retornou dados corretamente');
-                
-                // Testar formatação
-                $respostaFormatada = "Aqui estão suas tarefas mais urgentes:\n\n";
-                foreach ($resultado['tarefas_urgentes'] as $tarefa) {
-                    $data_info = '';
-                    if (!empty($tarefa['data_limite'])) {
-                        $data_formatada = date('d/m/Y', strtotime($tarefa['data_limite']));
-                        $data_info = " (Prazo: {$data_formatada})";
-                    }
-                    $respostaFormatada .= "- **{$tarefa['descricao']}** - Prioridade: {$tarefa['prioridade']}{$data_info}\n";
-                }
-                
-                addSuccess('Teste Completo', 'Formatação de resposta funcionando corretamente');
-                addDebug('Teste Completo', 'Resposta formatada: ' . substr($respostaFormatada, 0, 200) . '...', 'info');
-            } else {
-                addWarning('Teste Completo', 'Função retornou sem tarefas urgentes');
-            }
-        } else {
-            addError('Teste Completo', 'Função getTarefasUrgentes não está disponível');
-        }
-    } catch (Exception $e) {
-        addError('Teste Completo', 'Erro no teste completo: ' . $e->getMessage());
-    }
+    addWarning('API', 'Não foi possível testar API - GEMINI_API_KEY não configurado');
 }
 
 // 9. Verificar arquivos necessários
-$requiredFiles = [
+$arquivosNecessarios = [
     'processar_analise_ia.php' => 'Processador principal da IA',
     'analista_ia.php' => 'Interface do assistente',
-    'buscar_tarefas_urgentes_direto.php' => 'Endpoint alternativo',
+    'buscar_tarefas_urgentes_direto.php' => 'Endpoint alternativo para tarefas urgentes',
     'includes/rate_limiter.php' => 'Rate limiter'
 ];
 
-foreach ($requiredFiles as $file => $description) {
-    $fullPath = __DIR__ . '/' . $file;
-    if (file_exists($fullPath)) {
-        addSuccess('Arquivos', "$description encontrado: $file");
+foreach ($arquivosNecessarios as $arquivo => $descricao) {
+    if (file_exists($arquivo)) {
+        addSuccess('Arquivos', "$descricao encontrado: $arquivo");
     } else {
-        addError('Arquivos', "$description não encontrado: $file");
+        addError('Arquivos', "$descricao não encontrado: $arquivo");
+    }
+}
+
+// 10. Testar função getTarefasUrgentes diretamente
+if (file_exists('processar_analise_ia.php')) {
+    require_once 'processar_analise_ia.php';
+    
+    if (function_exists('getTarefasUrgentes')) {
+        try {
+            $resultado = getTarefasUrgentes($pdo, $userId);
+            if (isset($resultado['tarefas_urgentes'])) {
+                $total = count($resultado['tarefas_urgentes']);
+                addSuccess('Teste', "Função getTarefasUrgentes executada com sucesso - $total tarefas encontradas");
+                if ($total > 0) {
+                    addDebug('Teste', 'Primeira tarefa: ' . $resultado['tarefas_urgentes'][0]['descricao'], 'info');
+                }
+            } elseif (isset($resultado['resultado'])) {
+                addSuccess('Teste', "Função getTarefasUrgentes executada: " . $resultado['resultado']);
+            }
+        } catch (Exception $e) {
+            addError('Teste', 'Erro ao executar getTarefasUrgentes: ' . $e->getMessage());
+        }
+    } else {
+        addWarning('Teste', 'Função getTarefasUrgentes não está disponível no escopo global');
     }
 }
 
@@ -287,7 +238,7 @@ foreach ($requiredFiles as $file => $description) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Debug - Assistente Orion</title>
+    <title>Debug - Assistente IA</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
@@ -333,17 +284,6 @@ foreach ($requiredFiles as $file => $description) {
             border: 1px solid rgba(255,255,255,0.2);
             color: white;
         }
-        .code-block {
-            background: #1e1e1e;
-            color: #d4d4d4;
-            padding: 1rem;
-            border-radius: 8px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.875rem;
-            overflow-x: auto;
-            max-height: 300px;
-            overflow-y: auto;
-        }
         .test-section {
             background: rgba(255,255,255,0.05);
             border-radius: 10px;
@@ -359,9 +299,9 @@ foreach ($requiredFiles as $file => $description) {
                 <div class="card debug-card">
                     <div class="card-header bg-primary text-white">
                         <h2 class="mb-0">
-                            <i class="bi bi-robot me-2"></i>Debug - Assistente Orion
+                            <i class="bi bi-robot me-2"></i>Debug - Assistente IA (Orion)
                         </h2>
-                        <small>Análise completa do sistema de IA e correção automática de problemas</small>
+                        <small>Análise completa do sistema de IA e diagnóstico de problemas</small>
                     </div>
                     <div class="card-body">
                         <!-- Estatísticas -->
@@ -412,18 +352,6 @@ foreach ($requiredFiles as $file => $description) {
                         </div>
                         <?php endif; ?>
 
-                        <!-- Seção de Teste Interativo -->
-                        <div class="test-section">
-                            <h5 class="mb-3"><i class="bi bi-play-circle me-2"></i>Teste Interativo</h5>
-                            <div class="input-group mb-3">
-                                <input type="text" id="testPergunta" class="form-control" placeholder="Digite uma pergunta para testar..." value="Quais são minhas tarefas mais urgentes?">
-                                <button class="btn btn-primary" id="btnTestar">
-                                    <i class="bi bi-send me-2"></i>Testar
-                                </button>
-                            </div>
-                            <div id="testResult" class="mt-3"></div>
-                        </div>
-
                         <!-- Log de Debug -->
                         <h5 class="mt-4 mb-3"><i class="bi bi-list-ul me-2"></i>Log de Debug</h5>
                         <div class="debug-log" style="max-height: 600px; overflow-y: auto;">
@@ -461,27 +389,30 @@ foreach ($requiredFiles as $file => $description) {
                             ?>
                         </div>
 
-                        <!-- Informações do Sistema -->
-                        <div class="mt-4">
-                            <h5><i class="bi bi-info-circle me-2"></i>Informações do Sistema</h5>
-                            <div class="code-block">
-                                <div><strong>PHP Version:</strong> <?php echo phpversion(); ?></div>
-                                <div><strong>Server Software:</strong> <?php echo $_SERVER['SERVER_SOFTWARE'] ?? 'N/A'; ?></div>
-                                <div><strong>Extensions:</strong> 
-                                    cURL: <?php echo extension_loaded('curl') ? '✓' : '✗'; ?> | 
-                                    PDO: <?php echo extension_loaded('pdo') ? '✓' : '✗'; ?> |
-                                    JSON: <?php echo extension_loaded('json') ? '✓' : '✗'; ?>
+                        <!-- Seção de Teste -->
+                        <div class="test-section">
+                            <h5 class="mb-3"><i class="bi bi-play-circle me-2"></i>Teste Rápido</h5>
+                            <p class="text-muted">Teste o assistente IA com uma pergunta simples:</p>
+                            <div class="d-flex gap-2 mb-3">
+                                <input type="text" id="testPergunta" class="form-control" placeholder="Digite uma pergunta de teste..." value="Quais são minhas tarefas mais urgentes?">
+                                <button class="btn btn-primary" id="btnTestar">
+                                    <i class="bi bi-play-fill me-2"></i>Testar
+                                </button>
+                            </div>
+                            <div id="testResult" class="mt-3" style="display: none;">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6>Resultado do Teste:</h6>
+                                        <div id="testResultContent"></div>
+                                    </div>
                                 </div>
-                                <?php if (defined('GEMINI_API_KEY')): ?>
-                                <div><strong>GEMINI_API_KEY:</strong> <?php echo substr(GEMINI_API_KEY, 0, 10) . '...'; ?></div>
-                                <?php endif; ?>
                             </div>
                         </div>
 
                         <!-- Botões de Ação -->
                         <div class="mt-4 d-flex gap-2 flex-wrap">
                             <a href="analista_ia.php" class="btn btn-primary">
-                                <i class="bi bi-robot me-2"></i>Ir para Assistente Orion
+                                <i class="bi bi-robot me-2"></i>Ir para Assistente IA
                             </a>
                             <a href="dashboard.php" class="btn btn-secondary">
                                 <i class="bi bi-arrow-left me-2"></i>Voltar ao Dashboard
@@ -497,22 +428,25 @@ foreach ($requiredFiles as $file => $description) {
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
         const btnTestar = document.getElementById('btnTestar');
         const testPergunta = document.getElementById('testPergunta');
         const testResult = document.getElementById('testResult');
+        const testResultContent = document.getElementById('testResultContent');
         
         btnTestar.addEventListener('click', function() {
             const pergunta = testPergunta.value.trim();
             if (!pergunta) {
-                testResult.innerHTML = '<div class="alert alert-warning">Digite uma pergunta para testar.</div>';
+                alert('Digite uma pergunta para testar');
                 return;
             }
             
             btnTestar.disabled = true;
             btnTestar.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Testando...';
-            testResult.innerHTML = '<div class="alert alert-info"><i class="bi bi-hourglass-split me-2"></i>Processando...</div>';
+            testResult.style.display = 'block';
+            testResultContent.innerHTML = '<div class="spinner-border spinner-border-sm text-primary"></div> Testando...';
             
             fetch('processar_analise_ia.php', {
                 method: 'POST',
@@ -527,48 +461,24 @@ foreach ($requiredFiles as $file => $description) {
             })
             .then(data => {
                 if (data.success) {
-                    testResult.innerHTML = `
-                        <div class="alert alert-success">
-                            <h6><i class="bi bi-check-circle me-2"></i>Teste Bem-Sucedido!</h6>
-                            <div class="mt-2 p-3 bg-dark text-white rounded">
-                                <strong>Resposta da IA:</strong><br>
-                                ${data.resposta.replace(/\n/g, '<br>')}
-                            </div>
-                        </div>
-                    `;
+                    testResultContent.innerHTML = '<div class="alert alert-success"><strong>Sucesso!</strong></div>' + 
+                        '<div class="mt-2">' + marked.parse(data.resposta) + '</div>';
                 } else {
-                    testResult.innerHTML = `
-                        <div class="alert alert-danger">
-                            <h6><i class="bi bi-x-circle me-2"></i>Erro no Teste</h6>
-                            <p class="mb-0">${data.message || 'Erro desconhecido'}</p>
-                        </div>
-                    `;
+                    testResultContent.innerHTML = '<div class="alert alert-danger"><strong>Erro:</strong> ' + 
+                        (data.message || 'Erro desconhecido') + '</div>';
                 }
             })
             .catch(error => {
                 console.error('Erro:', error);
-                testResult.innerHTML = `
-                    <div class="alert alert-danger">
-                        <h6><i class="bi bi-exclamation-triangle me-2"></i>Erro de Rede</h6>
-                        <p class="mb-0">${error.message}</p>
-                        <small class="d-block mt-2">Verifique a conexão e tente novamente.</small>
-                    </div>
-                `;
+                testResultContent.innerHTML = '<div class="alert alert-danger"><strong>Erro de Rede:</strong> ' + 
+                    error.message + '</div>';
             })
             .finally(() => {
                 btnTestar.disabled = false;
-                btnTestar.innerHTML = '<i class="bi bi-send me-2"></i>Testar';
+                btnTestar.innerHTML = '<i class="bi bi-play-fill me-2"></i>Testar';
             });
-        });
-        
-        // Permitir Enter no input
-        testPergunta.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                btnTestar.click();
-            }
         });
     });
     </script>
 </body>
 </html>
-

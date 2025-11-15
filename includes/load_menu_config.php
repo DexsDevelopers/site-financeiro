@@ -93,6 +93,14 @@ if (!in_array('debug_google_integration.php', $menu_config['ordem_paginas']['sis
     $menu_config['ordem_paginas']['sistema'][] = 'debug_google_integration.php';
 }
 
+// Garante que 'debug_ia.php' apareça em Sistema
+if (!in_array('debug_ia.php', $menu_config['paginas_visiveis']['sistema'], true)) {
+    $menu_config['paginas_visiveis']['sistema'][] = 'debug_ia.php';
+}
+if (!in_array('debug_ia.php', $menu_config['ordem_paginas']['sistema'], true)) {
+    $menu_config['ordem_paginas']['sistema'][] = 'debug_ia.php';
+}
+
 // Exibir 'whatsapp_admin.php' apenas para administradores
 try {
     $stmtTipo = $pdo->prepare("SELECT tipo FROM usuarios WHERE id = ? LIMIT 1");
