@@ -89,12 +89,25 @@ function cadastrarTransacao(PDO $pdo, int $userId, string $tipo, float $valor, s
     } catch (PDOException $e) { error_log("Erro ao cadastrar transação: " . $e->getMessage()); return ['success' => false, 'message' => 'Erro no banco de dados.']; }
 }
 
-// ***** MUDANÇA AQUI: Simplificando a resposta da função de tarefas *****
 /**
  * Busca as tarefas pendentes do usuário.
  */
 function getTarefasDoUsuario(PDO $pdo, int $userId): array {
-    $sql = "SELECT id, descricao, prioridade FROM tarefas WHERE id_usuario = ? AND status = 'pendente' ORDER BY FIELD(prioridade, 'Alta', 'Média', 'Baixa'), ordem ASC";
+    $sql = "SELECT id, descricao, prioridade, data_limite, 
+            CASE 
+                WHEN data_limite IS NOT NULL AND data_limite <= CURDATE() THEN 'Vencida'
+                WHEN data_limite IS NOT NULL AND data_limite <= DATE_ADD(CURDATE(), INTERVAL 3 DAY) THEN 'Urgente'
+                WHEN prioridade = 'Alta' THEN 'Alta Prioridade'
+                ELSE 'Normal'
+            END as status_urgencia
+            FROM tarefas 
+            WHERE id_usuario = ? AND status = 'pendente' 
+            ORDER BY 
+                CASE WHEN data_limite IS NOT NULL AND data_limite <= CURDATE() THEN 1 ELSE 2 END,
+                CASE WHEN data_limite IS NOT NULL AND data_limite <= DATE_ADD(CURDATE(), INTERVAL 3 DAY) THEN 1 ELSE 2 END,
+                FIELD(prioridade, 'Alta', 'Média', 'Baixa'),
+                data_limite ASC,
+                ordem ASC";
     $stmt = $pdo->prepare($sql);
     $stmt->execute([$userId]);
     $tarefas = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -105,6 +118,38 @@ function getTarefasDoUsuario(PDO $pdo, int $userId): array {
     }
     // Retorna a lista de tarefas, que a IA vai formatar.
     return ['tarefas_pendentes' => $tarefas];
+}
+
+/**
+ * Busca as tarefas mais urgentes do usuário (prioridade Alta ou com data limite próxima/vencida).
+ */
+function getTarefasUrgentes(PDO $pdo, int $userId): array {
+    $sql = "SELECT id, descricao, prioridade, data_limite,
+            CASE 
+                WHEN data_limite IS NOT NULL AND data_limite <= CURDATE() THEN 'Vencida'
+                WHEN data_limite IS NOT NULL AND data_limite <= DATE_ADD(CURDATE(), INTERVAL 3 DAY) THEN 'Urgente'
+                ELSE 'Alta Prioridade'
+            END as status_urgencia
+            FROM tarefas 
+            WHERE id_usuario = ? 
+            AND status = 'pendente' 
+            AND (
+                prioridade = 'Alta' 
+                OR (data_limite IS NOT NULL AND data_limite <= DATE_ADD(CURDATE(), INTERVAL 7 DAY))
+            )
+            ORDER BY 
+                CASE WHEN data_limite IS NOT NULL AND data_limite <= CURDATE() THEN 1 ELSE 2 END,
+                CASE WHEN data_limite IS NOT NULL AND data_limite <= DATE_ADD(CURDATE(), INTERVAL 3 DAY) THEN 1 ELSE 2 END,
+                FIELD(prioridade, 'Alta', 'Média', 'Baixa'),
+                data_limite ASC";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$userId]);
+    $tarefas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    if (empty($tarefas)) {
+        return ['resultado' => 'O usuário não possui tarefas urgentes no momento.'];
+    }
+    return ['tarefas_urgentes' => $tarefas];
 }
 
 function adicionarTarefa(PDO $pdo, int $userId, string $descricao): array { /* ...código sem alteração... */
@@ -124,14 +169,28 @@ function adicionarTarefa(PDO $pdo, int $userId, string $descricao): array { /* .
 // =================================================================================
 // DEFINIÇÃO DAS FERRAMENTAS
 // =================================================================================
-$tools = [['functionDeclarations' => [['name' => 'getResumoFinanceiro', 'description' => 'Obtém o resumo de receitas e despesas totais do mês atual do usuário.', 'parameters' => ['type' => 'OBJECT', 'properties' => (object)[]]], ['name' => 'getPrincipaisCategoriasGasto', 'description' => 'Obtém as 3 principais categorias de despesas do usuário nos últimos 30 dias.', 'parameters' => ['type' => 'OBJECT', 'properties' => (object)[]]], ['name' => 'cadastrarTransacao', 'description' => 'Cadastra uma nova transação financeira (receita ou despesa) para o usuário.', 'parameters' => ['type' => 'OBJECT', 'properties' => ['tipo' => ['type' => 'STRING'], 'valor' => ['type' => 'NUMBER'], 'descricao' => ['type' => 'STRING'], 'nome_categoria' => ['type' => 'STRING']], 'required' => ['tipo', 'valor', 'descricao', 'nome_categoria']]], ['name' => 'getTarefasDoUsuario', 'description' => 'Obtém a lista de tarefas pendentes do usuário, incluindo descrição e prioridade.', 'parameters' => ['type' => 'OBJECT', 'properties' => (object)[]]], ['name' => 'adicionarTarefa', 'description' => 'Adiciona um novo item à lista de tarefas do usuário.', 'parameters' => ['type' => 'OBJECT', 'properties' => ['descricao' => ['type' => 'STRING']], 'required' => ['descricao']]]]]];
+$tools = [['functionDeclarations' => [
+    ['name' => 'getResumoFinanceiro', 'description' => 'Obtém o resumo de receitas e despesas totais do mês atual do usuário.', 'parameters' => ['type' => 'OBJECT', 'properties' => (object)[]]], 
+    ['name' => 'getPrincipaisCategoriasGasto', 'description' => 'Obtém as 3 principais categorias de despesas do usuário nos últimos 30 dias.', 'parameters' => ['type' => 'OBJECT', 'properties' => (object)[]]], 
+    ['name' => 'cadastrarTransacao', 'description' => 'Cadastra uma nova transação financeira (receita ou despesa) para o usuário.', 'parameters' => ['type' => 'OBJECT', 'properties' => ['tipo' => ['type' => 'STRING'], 'valor' => ['type' => 'NUMBER'], 'descricao' => ['type' => 'STRING'], 'nome_categoria' => ['type' => 'STRING']], 'required' => ['tipo', 'valor', 'descricao', 'nome_categoria']]], 
+    ['name' => 'getTarefasDoUsuario', 'description' => 'Obtém a lista completa de tarefas pendentes do usuário, ordenadas por urgência (vencidas primeiro, depois por prioridade e data limite).', 'parameters' => ['type' => 'OBJECT', 'properties' => (object)[]]], 
+    ['name' => 'getTarefasUrgentes', 'description' => 'Obtém apenas as tarefas mais urgentes do usuário: tarefas com prioridade Alta OU com data limite nos próximos 7 dias. Use esta função quando o usuário perguntar sobre tarefas urgentes, importantes ou prioritárias.', 'parameters' => ['type' => 'OBJECT', 'properties' => (object)[]]], 
+    ['name' => 'adicionarTarefa', 'description' => 'Adiciona um novo item à lista de tarefas do usuário.', 'parameters' => ['type' => 'OBJECT', 'properties' => ['descricao' => ['type' => 'STRING']], 'required' => ['descricao']]]
+]]];
 
 // =================================================================================
 // LÓGICA DE CHAMADA DA API
 // =================================================================================
 
-// ***** MUDANÇA AQUI: Prompt mais específico sobre como apresentar listas *****
-$prompt_inicial = "Você é 'Orion', um assistente de finanças e produtividade. Sua tarefa é usar ferramentas para responder às perguntas. Se o usuário falar 'gastei', 'comprei', o tipo é 'despesa'. Se falar 'recebi', 'ganhei', o tipo é 'receita'. **Ao receber uma lista de resultados (como tarefas), você DEVE apresentá-la ao usuário em formato de lista markdown (usando '-').** Nunca responda de memória. Use a ferramenta apropriada, receba o resultado, e então formule a resposta final.";
+$prompt_inicial = "Você é 'Orion', um assistente de finanças e produtividade. Sua tarefa é usar ferramentas para responder às perguntas.
+
+REGRAS IMPORTANTES:
+- Se o usuário perguntar sobre 'tarefas urgentes', 'tarefas mais importantes', 'tarefas prioritárias' ou similar, use a função 'getTarefasUrgentes'.
+- Se o usuário perguntar sobre 'tarefas' em geral, use 'getTarefasDoUsuario'.
+- Se o usuário falar 'gastei', 'comprei', o tipo é 'despesa'. Se falar 'recebi', 'ganhei', o tipo é 'receita'.
+- **Ao receber uma lista de resultados (como tarefas), você DEVE apresentá-la ao usuário em formato de lista markdown (usando '-').**
+- Sempre inclua informações relevantes como prioridade e data limite quando disponíveis.
+- Nunca responda de memória. Use a ferramenta apropriada, receba o resultado, e então formule a resposta final.";
 
 $gemini_api_url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=' . GEMINI_API_KEY;
 $conversationHistory = [['role' => 'user', 'parts' => [['text' => $prompt_inicial]]], ['role' => 'model', 'parts' => [['text' => 'Entendido! Estou pronto para ajudar.']]], ['role' => 'user', 'parts' => [['text' => $pergunta_usuario]]]];
@@ -195,6 +254,7 @@ if ($functionCall) {
         case 'getPrincipaisCategoriasGasto': $functionResult = getPrincipaisCategoriasGasto($pdo, $userId); break;
         case 'cadastrarTransacao': $functionResult = cadastrarTransacao($pdo, $userId, $functionArgs['tipo'], $functionArgs['valor'], $functionArgs['descricao'], $functionArgs['nome_categoria']); break;
         case 'getTarefasDoUsuario': $functionResult = getTarefasDoUsuario($pdo, $userId); break;
+        case 'getTarefasUrgentes': $functionResult = getTarefasUrgentes($pdo, $userId); break;
         case 'adicionarTarefa': $functionResult = adicionarTarefa($pdo, $userId, $functionArgs['descricao']); break;
     }
     if ($functionResult !== null) {
