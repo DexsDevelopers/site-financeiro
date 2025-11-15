@@ -30,6 +30,7 @@ class GoogleIntegrationManager {
             'https://www.googleapis.com/auth/drive.file',
             'https://www.googleapis.com/auth/tasks',
             'https://www.googleapis.com/auth/gmail.send',
+            'https://www.googleapis.com/auth/gmail.readonly', // Para verificar perfil
             'https://www.googleapis.com/auth/spreadsheets'
         ];
         

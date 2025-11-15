@@ -98,6 +98,9 @@ unset($servico);
                 <span class="connection-status status-connected">
                     <i class="bi bi-check-circle me-1"></i>Conectado
                 </span>
+                <a href="<?php echo htmlspecialchars($manager->getAuthUrl($userId)); ?>" class="btn btn-warning">
+                    <i class="bi bi-arrow-clockwise me-2"></i>Reconectar (Atualizar Permissões)
+                </a>
                 <button class="btn btn-outline-danger" id="btn-desconectar-google">
                     <i class="bi bi-x-circle me-2"></i>Desconectar
                 </button>

@@ -26,7 +26,8 @@ $apis = [
     'gmail' => [
         'nome' => 'Gmail API',
         'url' => 'https://www.googleapis.com/gmail/v1/users/me/profile',
-        'ativacao' => 'https://console.developers.google.com/apis/api/gmail.googleapis.com/overview?project=945016861625'
+        'ativacao' => 'https://console.developers.google.com/apis/api/gmail.googleapis.com/overview?project=945016861625',
+        'scope_necessario' => 'https://www.googleapis.com/auth/gmail.readonly'
     ],
     'sheets' => [
         'nome' => 'Google Sheets API',
@@ -38,8 +39,25 @@ $apis = [
 $resultados = [];
 
 if ($isConnected) {
+    // Verificar scopes atuais do usuário
+    $stmt = $pdo->prepare("SELECT scope FROM google_oauth_tokens WHERE id_usuario = ?");
+    $stmt->execute([$userId]);
+    $tokenInfo = $stmt->fetch(PDO::FETCH_ASSOC);
+    $scopesAtuais = $tokenInfo ? explode(' ', $tokenInfo['scope']) : [];
+    
     foreach ($apis as $key => $api) {
         try {
+            // Verificar se o scope necessário está presente (para Gmail)
+            if (isset($api['scope_necessario']) && !in_array($api['scope_necessario'], $scopesAtuais)) {
+                $resultados[$key] = [
+                    'status' => 'error',
+                    'message' => 'Permissão OAuth insuficiente. Reconecte sua conta Google para obter as permissões necessárias.',
+                    'habilitada' => true,
+                    'tipo_erro' => 'scope_insuficiente'
+                ];
+                continue;
+            }
+            
             // Para cada API, fazer uma requisição de teste
             $response = $manager->makeApiRequest($userId, $api['url'], 'GET');
             $resultados[$key] = [
@@ -54,6 +72,14 @@ if ($isConnected) {
             // Verificar se é erro de API não habilitada
             $isApiDisabled = false;
             $isAccessNotConfigured = false;
+            $isInsufficientAuth = false;
+            
+            // Verificar se é erro 403 de autenticação insuficiente
+            if (strpos($errorMessage, 'insufficient authentication') !== false || 
+                strpos($errorMessage, 'insufficient authent') !== false ||
+                (is_array($errorData) && isset($errorData['error']['code']) && $errorData['error']['code'] == 403)) {
+                $isInsufficientAuth = true;
+            }
             
             // Verificar no JSON de erro
             if (is_array($errorData)) {
@@ -80,11 +106,18 @@ if ($isConnected) {
                 $isAccessNotConfigured = true;
             }
             
+            $tipoErro = 'outro';
+            if ($isApiDisabled || $isAccessNotConfigured) {
+                $tipoErro = 'api_nao_habilitada';
+            } elseif ($isInsufficientAuth) {
+                $tipoErro = 'scope_insuficiente';
+            }
+            
             $resultados[$key] = [
                 'status' => 'error',
                 'message' => $errorMessage,
                 'habilitada' => !$isApiDisabled && !$isAccessNotConfigured,
-                'tipo_erro' => ($isApiDisabled || $isAccessNotConfigured) ? 'api_nao_habilitada' : 'outro'
+                'tipo_erro' => $tipoErro
             ];
         }
     }
