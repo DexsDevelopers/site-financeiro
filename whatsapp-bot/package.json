@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "node index.js"
+    "dev": "node kill-port.js && node index.js",
+    "kill-port": "node kill-port.js"
   },
   "dependencies": {
     "@whiskeysockets/baileys": "^6.7.21",
