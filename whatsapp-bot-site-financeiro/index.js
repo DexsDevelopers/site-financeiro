@@ -154,10 +154,10 @@ async function start() {
       }
     }
     
-    // Processar comandos que começam com /
+    // Processar comandos que começam com !
     const text = msg.message.conversation || msg.message.extendedTextMessage?.text || '';
     
-    if (text.startsWith('/')) {
+    if (text.startsWith('!')) {
       try {
         const parts = text.trim().split(/\s+/);
         const command = parts[0].toLowerCase();
@@ -165,8 +165,8 @@ async function start() {
         
         console.log(`[COMMAND] ${phoneNumber}: ${command} ${args.join(' ')}`);
         
-        // Se for comando /comprovante, aguardar foto
-        if (command === '/comprovante' && args.length > 0) {
+        // Se for comando !comprovante, aguardar foto
+        if (command === '!comprovante' && args.length > 0) {
           const transactionId = args[0];
           waitingForPhoto.set(jid, {
             transactionId,
@@ -211,7 +211,7 @@ async function start() {
       lastReplyAt.set(jid, now);
 
       try {
-        await sock.sendMessage(jid, { text: 'Olá! Sou o assistente financeiro. Digite /menu para ver os comandos disponíveis.' });
+        await sock.sendMessage(jid, { text: 'Olá! Sou o assistente financeiro. Digite !menu para ver os comandos disponíveis.' });
         console.log(`[AUTO-REPLY] Enviado para ${jid}`);
       } catch (e) {
         console.error('[AUTO-REPLY] Erro:', e);

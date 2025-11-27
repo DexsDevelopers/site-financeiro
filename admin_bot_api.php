@@ -76,41 +76,44 @@ $response = ['success' => false, 'message' => 'Comando não reconhecido'];
 
 try {
     switch ($command) {
+        case '!menu':
+        case '!help':
         case '/menu':
         case '/help':
             $response = [
                 'success' => true,
                 'message' => "📋 *MENU DE COMANDOS*\n\n" .
                            "*FINANCEIRO*\n" .
-                           "💰 /receita VALOR DESCRIÇÃO [CLIENTE]\n" .
-                           "💸 /despesa VALOR DESCRIÇÃO [CATEGORIA]\n" .
-                           "💵 /saldo [MÊS]\n" .
-                           "📊 /extrato [INÍCIO] [FIM]\n" .
-                           "🗑️ /deletar ID\n\n" .
+                           "💰 !receita VALOR DESCRIÇÃO [CLIENTE]\n" .
+                           "💸 !despesa VALOR DESCRIÇÃO [CATEGORIA]\n" .
+                           "💵 !saldo [MÊS]\n" .
+                           "📊 !extrato [INÍCIO] [FIM]\n" .
+                           "🗑️ !deletar ID\n\n" .
                            "*CLIENTES*\n" .
-                           "👤 /cliente NOME TELEFONE [EMAIL]\n" .
-                           "📋 /clientes\n" .
-                           "ℹ️ /clienteinfo ID\n" .
-                           "⚠️ /pendencias [ID]\n\n" .
+                           "👤 !cliente NOME TELEFONE [EMAIL]\n" .
+                           "📋 !clientes\n" .
+                           "ℹ️ !clienteinfo ID\n" .
+                           "⚠️ !pendencias [ID]\n\n" .
                            "*COMPROVANTES*\n" .
-                           "📸 /comprovante ID\n" .
-                           "👁️ /vercomprovante ID\n\n" .
+                           "📸 !comprovante ID\n" .
+                           "👁️ !vercomprovante ID\n\n" .
                            "*RELATÓRIOS*\n" .
-                           "📈 /relatorio [MÊS]\n" .
-                           "📊 /dashboard\n" .
-                           "🏆 /topo [LIMITE]\n\n" .
+                           "📈 !relatorio [MÊS]\n" .
+                           "📊 !dashboard\n" .
+                           "🏆 !topo [LIMITE]\n\n" .
                            "*COBRANÇAS*\n" .
-                           "💳 /cobrar CLIENTE_ID VALOR VENCIMENTO DESCRIÇÃO\n" .
-                           "🔔 /lembrar COBRANCA_ID\n" .
-                           "📨 /notificar CLIENTE_ID MENSAGEM\n" .
-                           "✅ /pagar COBRANCA_ID\n\n" .
-                           "💡 Digite /ajuda COMANDO para detalhes"
+                           "💳 !cobrar CLIENTE_ID VALOR VENCIMENTO DESCRIÇÃO\n" .
+                           "🔔 !lembrar COBRANCA_ID\n" .
+                           "📨 !notificar CLIENTE_ID MENSAGEM\n" .
+                           "✅ !pagar COBRANCA_ID\n\n" .
+                           "💡 Digite !ajuda COMANDO para detalhes"
             ];
             break;
 
+        case '!receita':
         case '/receita':
             if (count($args) < 2) {
-                $response = ['success' => false, 'message' => '❌ Uso: /receita VALOR DESCRIÇÃO [CLIENTE]'];
+                $response = ['success' => false, 'message' => '❌ Uso: !receita VALOR DESCRIÇÃO [CLIENTE]'];
                 break;
             }
             
@@ -149,9 +152,10 @@ try {
             }
             break;
 
+        case '!despesa':
         case '/despesa':
             if (count($args) < 2) {
-                $response = ['success' => false, 'message' => '❌ Uso: /despesa VALOR DESCRIÇÃO [CATEGORIA]'];
+                $response = ['success' => false, 'message' => '❌ Uso: !despesa VALOR DESCRIÇÃO [CATEGORIA]'];
                 break;
             }
             
@@ -178,6 +182,7 @@ try {
             }
             break;
 
+        case '!saldo':
         case '/saldo':
             $month = isset($args[0]) ? (int)$args[0] : null;
             $year = isset($args[1]) ? (int)$args[1] : (int)date('Y');
@@ -205,6 +210,7 @@ try {
             }
             break;
 
+        case '!extrato':
         case '/extrato':
             $startDate = isset($args[0]) ? $args[0] : date('Y-m-01');
             $endDate = isset($args[1]) ? $args[1] : date('Y-m-t');
@@ -229,6 +235,7 @@ try {
             }
             break;
 
+        case '!clientes':
         case '/clientes':
             $stmt = $pdo->query("SELECT id, name, phone, whatsapp_number FROM clients ORDER BY name LIMIT 50");
             $clients = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -244,6 +251,7 @@ try {
             $response = ['success' => true, 'message' => $msg];
             break;
 
+        case '!pendencias':
         case '/pendencias':
             $clientId = isset($args[0]) ? (int)$args[0] : null;
             $pendencies = getClientPendencies($pdo, $clientId);
@@ -272,6 +280,7 @@ try {
             }
             break;
 
+        case '!relatorio':
         case '/relatorio':
             $month = isset($args[0]) ? (int)$args[0] : null;
             $year = isset($args[1]) ? (int)$args[1] : (int)date('Y');
@@ -313,6 +322,7 @@ try {
             }
             break;
 
+        case '!dashboard':
         case '/dashboard':
             $balance = getBalance($pdo);
             $pendencies = getClientPendencies($pdo);
@@ -327,7 +337,7 @@ try {
             break;
 
         default:
-            $response = ['success' => false, 'message' => '❌ Comando não reconhecido. Digite /menu para ver os comandos disponíveis.'];
+            $response = ['success' => false, 'message' => '❌ Comando não reconhecido. Digite !menu para ver os comandos disponíveis.'];
     }
 } catch (Exception $e) {
     $response = ['success' => false, 'message' => '❌ Erro: ' . $e->getMessage()];
