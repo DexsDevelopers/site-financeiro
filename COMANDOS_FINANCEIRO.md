@@ -348,6 +348,191 @@ AUTO_REPLY_MESSAGE=Olá! Sou o assistente financeiro. Digite !menu para ver os c
 - Verifique se o tamanho é menor que 10MB
 - Verifique permissões do diretório `uploads/comprovantes/`
 
+---
+
+## 📋 Comandos de Tarefas
+
+### `!tarefas` ou `!tarefa`
+Lista todas as tarefas pendentes do usuário.
+
+**Exemplo:**
+```
+!tarefas
+```
+
+**Resposta:**
+```
+📋 SUAS TAREFAS PENDENTES
+
+ID: #1
+🟡 Média
+📝 Estudar PHP
+📅 20/01/2025
+
+ID: #2
+🔴 Alta
+📝 Reunião importante
+📅 Urgente (18/01/2025)
+
+━━━━━━━━━━━━━━━━━━━━━
+Total: 2 tarefa(s)
+
+💡 Use !concluir ID para concluir uma tarefa
+```
+
+---
+
+### `!addtarefa` ou `!adicionar` ou `!novatarefa`
+Adiciona uma nova tarefa.
+
+**Sintaxe:**
+```
+!addtarefa DESCRIÇÃO [PRIORIDADE] [DATA]
+```
+
+**Parâmetros:**
+- `DESCRIÇÃO`: Descrição da tarefa (obrigatório)
+- `PRIORIDADE`: Alta, Média ou Baixa (opcional, padrão: Média)
+- `DATA`: Data limite no formato YYYY-MM-DD ou DD/MM/YYYY (opcional)
+
+**Exemplos:**
+```
+!addtarefa Estudar JavaScript
+!addtarefa Reunião com cliente Alta
+!addtarefa Entregar projeto Alta 2025-01-25
+!addtarefa Comprar presente Baixa 25/01/2025
+```
+
+**Resposta:**
+```
+✅ Tarefa Criada!
+
+📝 Estudar JavaScript
+🟡 Média
+ID: #3
+
+Use !tarefas para ver todas as tarefas
+```
+
+---
+
+### `!concluir` ou `!feito`
+Conclui uma tarefa pelo ID.
+
+**Sintaxe:**
+```
+!concluir ID
+```
+
+**Exemplo:**
+```
+!concluir 5
+```
+
+**Resposta:**
+```
+✅ Tarefa #5 concluída!
+
+Parabéns! 🎉
+
+Use !tarefas para ver suas tarefas pendentes
+```
+
+---
+
+### `!urgentes` ou `!prioritarias`
+Lista tarefas urgentes (alta prioridade ou com data limite nos próximos 7 dias).
+
+**Exemplo:**
+```
+!urgentes
+```
+
+**Resposta:**
+```
+🚨 TAREFAS URGENTES
+
+ID: #2
+🔴 Alta
+📝 Reunião importante
+📅 Urgente (18/01/2025)
+⚠️ Urgente
+
+━━━━━━━━━━━━━━━━━━━━━
+Total: 1 tarefa(s) urgente(s)
+```
+
+---
+
+### `!tarefahoje` ou `!hoje`
+Lista tarefas de hoje (com data limite hoje ou sem data limite).
+
+**Exemplo:**
+```
+!tarefahoje
+```
+
+**Resposta:**
+```
+📅 TAREFAS DE HOJE
+
+ID: #1
+🟡 Média
+📝 Estudar PHP
+📅 20/01/2025
+
+━━━━━━━━━━━━━━━━━━━━━
+Total: 1 tarefa(s)
+```
+
+---
+
+### `!deletartarefa` ou `!remover`
+Deleta uma tarefa pelo ID.
+
+**Sintaxe:**
+```
+!deletartarefa ID
+```
+
+**Exemplo:**
+```
+!deletartarefa 3
+```
+
+**Resposta:**
+```
+✅ Tarefa #3 deletada!
+
+Use !tarefas para ver suas tarefas
+```
+
+---
+
+### `!estatisticas` ou `!stats`
+Mostra estatísticas das tarefas do usuário.
+
+**Exemplo:**
+```
+!estatisticas
+```
+
+**Resposta:**
+```
+📊 ESTATÍSTICAS DE TAREFAS
+
+📋 Total: 10
+✅ Concluídas: 7
+⏳ Pendentes: 3
+🔴 Alta Prioridade: 1
+⚠️ Vencidas: 0
+
+━━━━━━━━━━━━━━━━━━━━━
+📈 Progresso: 70%
+```
+
+---
+
 ## 📞 Suporte
 
 Para mais informações, consulte:
