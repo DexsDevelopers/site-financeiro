@@ -6,12 +6,14 @@
  *   POST /send  { to: "55DDDNUMERO", text: "mensagem" }  Header: x-api-token
  *   POST /check { to: "55DDDNUMERO" } Header: x-api-token
  */
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, Browsers, proto } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, Browsers, proto, downloadMediaMessage } = require('@whiskeysockets/baileys');
 const qrcode = require('qrcode-terminal');
 const QRCodeImg = require('qrcode');
 const express = require('express');
 const cors = require('cors');
 const pino = require('pino');
+const axios = require('axios');
+const FormData = require('form-data');
 require('dotenv').config();
 
 const app = express();
@@ -23,6 +25,11 @@ const PORT = Number(process.env.API_PORT || 3001); // Porta diferente do outro p
 const API_TOKEN = process.env.API_TOKEN || 'site-financeiro-token-2024';
 const AUTO_REPLY = String(process.env.AUTO_REPLY || 'false').toLowerCase() === 'true';
 const AUTO_REPLY_WINDOW_MS = Number(process.env.AUTO_REPLY_WINDOW_MS || 3600000); // 1h
+const ADMIN_API_URL = process.env.ADMIN_API_URL || 'http://localhost';
+const ADMIN_NUMBERS = (process.env.ADMIN_NUMBERS || '').split(',').map(n => n.trim()).filter(Boolean);
+
+// Estado para aguardar fotos de comprovantes
+const waitingForPhoto = new Map(); // key: jid, value: { transactionId, timestamp }
 
 let sock;
 let isReady = false;
@@ -91,24 +98,120 @@ async function start() {
   });
 
   sock.ev.on('messages.upsert', async (m) => {
-    if (!AUTO_REPLY || !isReady) return;
+    if (!isReady) return;
     const msg = m.messages[0];
     if (!msg || msg.key.fromMe || !msg.message) return;
 
     const jid = msg.key.remoteJid;
     if (!jid || jid.includes('@g.us')) return; // Ignora grupos
 
-    const now = Date.now();
-    const lastReply = lastReplyAt.get(jid) || 0;
-    if (now - lastReply < AUTO_REPLY_WINDOW_MS) return;
+    // Extrair número do JID
+    const phoneNumber = jid.split('@')[0];
+    
+    // Verificar se está aguardando foto
+    const waiting = waitingForPhoto.get(jid);
+    if (waiting && (Date.now() - waiting.timestamp) < 300000) { // 5 minutos
+      if (msg.message.imageMessage || msg.message.documentMessage) {
+        try {
+          // Processar upload de foto
+          const media = msg.message.imageMessage || msg.message.documentMessage;
+          const stream = await downloadMediaMessage(msg, 'buffer', {});
+          const buffer = Buffer.from(await stream.toArray());
+          
+          // Enviar para API de upload
+          const formData = new FormData();
+          formData.append('photo', buffer, {
+            filename: `comprovante_${waiting.transactionId}_${Date.now()}.jpg`,
+            contentType: 'image/jpeg'
+          });
+          formData.append('transaction_id', waiting.transactionId);
+          formData.append('phone', phoneNumber);
+          
+          const uploadResponse = await axios.post(`${ADMIN_API_URL}/admin_bot_photo.php`, formData, {
+            headers: {
+              ...formData.getHeaders(),
+              'Authorization': `Bearer ${API_TOKEN}`
+            }
+          });
+          
+          if (uploadResponse.data.success) {
+            await sock.sendMessage(jid, { text: `✅ Comprovante anexado ao ID #${waiting.transactionId}` });
+          } else {
+            await sock.sendMessage(jid, { text: `❌ Erro ao anexar comprovante: ${uploadResponse.data.error || 'Erro desconhecido'}` });
+          }
+          
+          waitingForPhoto.delete(jid);
+        } catch (e) {
+          console.error('[PHOTO-UPLOAD] Erro:', e);
+          await sock.sendMessage(jid, { text: '❌ Erro ao processar foto. Tente novamente.' });
+          waitingForPhoto.delete(jid);
+        }
+        return;
+      }
+    }
+    
+    // Processar comandos que começam com /
+    const text = msg.message.conversation || msg.message.extendedTextMessage?.text || '';
+    
+    if (text.startsWith('/')) {
+      try {
+        const parts = text.trim().split(/\s+/);
+        const command = parts[0].toLowerCase();
+        const args = parts.slice(1);
+        
+        console.log(`[COMMAND] ${phoneNumber}: ${command} ${args.join(' ')}`);
+        
+        // Se for comando /comprovante, aguardar foto
+        if (command === '/comprovante' && args.length > 0) {
+          const transactionId = args[0];
+          waitingForPhoto.set(jid, {
+            transactionId,
+            timestamp: Date.now()
+          });
+          await sock.sendMessage(jid, { text: '📸 Envie o comprovante agora (foto ou documento)' });
+          return;
+        }
+        
+        // Enviar comando para API PHP
+        const apiResponse = await axios.post(`${ADMIN_API_URL}/admin_bot_api.php`, {
+          phone: phoneNumber,
+          command: command,
+          args: args,
+          message: text
+        }, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${API_TOKEN}`
+          },
+          timeout: 30000
+        });
+        
+        if (apiResponse.data && apiResponse.data.message) {
+          await sock.sendMessage(jid, { text: apiResponse.data.message });
+        } else {
+          await sock.sendMessage(jid, { text: '❌ Erro ao processar comando' });
+        }
+      } catch (e) {
+        console.error('[COMMAND] Erro:', e.message);
+        await sock.sendMessage(jid, { text: '❌ Erro ao processar comando. Tente novamente.' });
+      }
+      return;
+    }
+    
+    // Auto-reply padrão (se habilitado)
+    if (AUTO_REPLY) {
+      const now = Date.now();
+      const lastReply = lastReplyAt.get(jid) || 0;
+      if (now - lastReply < AUTO_REPLY_WINDOW_MS) return;
 
-    lastReplyAt.set(jid, now);
+      lastReplyAt.set(jid, now);
 
-    try {
-      await sock.sendMessage(jid, { text: 'Olá! Como posso ajudar?' });
-      console.log(`[AUTO-REPLY] Enviado para ${jid}`);
-    } catch (e) {
-      console.error('[AUTO-REPLY] Erro:', e);
+      try {
+        await sock.sendMessage(jid, { text: 'Olá! Sou o assistente financeiro. Digite /menu para ver os comandos disponíveis.' });
+        console.log(`[AUTO-REPLY] Enviado para ${jid}`);
+      } catch (e) {
+        console.error('[AUTO-REPLY] Erro:', e);
+      }
     }
   });
 }
