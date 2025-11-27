@@ -115,8 +115,12 @@ async function start() {
         try {
           // Processar upload de foto
           const media = msg.message.imageMessage || msg.message.documentMessage;
-          const stream = await downloadMediaMessage(msg, 'buffer', {});
-          const buffer = Buffer.from(await stream.toArray());
+          const stream = await downloadMediaMessage(msg, 'buffer', {}, { logger: pino({ level: 'silent' }) });
+          const chunks = [];
+          for await (const chunk of stream) {
+            chunks.push(chunk);
+          }
+          const buffer = Buffer.concat(chunks);
           
           // Enviar para API de upload
           const formData = new FormData();
