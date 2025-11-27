@@ -88,11 +88,11 @@ function getExtract(PDO $pdo, ?string $startDate = null, ?string $endDate = null
         if (!$startDate) $startDate = date('Y-m-01');
         if (!$endDate) $endDate = date('Y-m-t');
         
-        $where = "DATE(created_at) BETWEEN ? AND ?";
+        $where = "DATE(t.created_at) BETWEEN ? AND ?";
         $params = [$startDate, $endDate];
         
         if ($userId) {
-            $where .= " AND id_usuario = ?";
+            $where .= " AND t.id_usuario = ?";
             $params[] = $userId;
         }
         
@@ -184,11 +184,11 @@ function generateMonthReport(PDO $pdo, ?int $month = null, ?int $year = null, ?i
         }
         
         // Top clientes
-        $where = "YEAR(created_at) = ? AND MONTH(created_at) = ? AND type = 'receita' AND client_id IS NOT NULL";
+        $where = "YEAR(t.created_at) = ? AND MONTH(t.created_at) = ? AND t.type = 'receita' AND t.client_id IS NOT NULL";
         $params = [$year, $month];
         
         if ($userId) {
-            $where .= " AND id_usuario = ?";
+            $where .= " AND t.id_usuario = ?";
             $params[] = $userId;
         }
         
@@ -206,7 +206,7 @@ function generateMonthReport(PDO $pdo, ?int $month = null, ?int $year = null, ?i
         // Top categorias de despesa
         $sqlTopCat = "SELECT category, SUM(value) as total 
                       FROM transactions 
-                      WHERE type = 'despesa' AND YEAR(created_at) = ? AND MONTH(created_at) = ? AND category IS NOT NULL";
+                      WHERE type = 'despesa' AND YEAR(transactions.created_at) = ? AND MONTH(transactions.created_at) = ? AND category IS NOT NULL";
         $paramsCat = [$year, $month];
         if ($userId) {
             $sqlTopCat .= " AND id_usuario = ?";
