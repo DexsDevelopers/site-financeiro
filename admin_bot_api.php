@@ -72,6 +72,93 @@ foreach ($config['ADMIN_WHATSAPP_NUMBERS'] as $adminNum) {
     }
 }
 
+// Função para obter usuário logado via WhatsApp
+function getWhatsAppUser(PDO $pdo, string $phone): ?array {
+    try {
+        $sql = "SELECT ws.user_id, u.id, u.nome, u.email, u.tipo 
+                FROM whatsapp_sessions ws 
+                JOIN usuarios u ON ws.user_id = u.id 
+                WHERE ws.phone_number = ? AND ws.is_active = 1 
+                ORDER BY ws.last_activity DESC 
+                LIMIT 1";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$phone]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($user) {
+            // Atualizar última atividade
+            $updateStmt = $pdo->prepare("UPDATE whatsapp_sessions SET last_activity = NOW() WHERE phone_number = ?");
+            $updateStmt->execute([$phone]);
+        }
+        
+        return $user ?: null;
+    } catch (PDOException $e) {
+        error_log("Erro ao buscar usuário WhatsApp: " . $e->getMessage());
+        return null;
+    }
+}
+
+// Função para fazer login via WhatsApp
+function loginWhatsApp(PDO $pdo, string $phone, string $email, string $password): array {
+    try {
+        // Buscar usuário por email
+        $stmt = $pdo->prepare("SELECT id, nome, email, senha FROM usuarios WHERE email = ? LIMIT 1");
+        $stmt->execute([$email]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$user) {
+            return ['success' => false, 'message' => '❌ Email não encontrado.'];
+        }
+        
+        // Verificar senha (assumindo que está em hash)
+        if (!password_verify($password, $user['senha'])) {
+            return ['success' => false, 'message' => '❌ Senha incorreta.'];
+        }
+        
+        // Criar ou atualizar sessão
+        $sql = "INSERT INTO whatsapp_sessions (phone_number, user_id, logged_in_at, last_activity, is_active) 
+                VALUES (?, ?, NOW(), NOW(), 1)
+                ON DUPLICATE KEY UPDATE 
+                    user_id = VALUES(user_id),
+                    logged_in_at = NOW(),
+                    last_activity = NOW(),
+                    is_active = 1";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$phone, $user['id']]);
+        
+        return [
+            'success' => true,
+            'message' => "✅ *Login realizado com sucesso!*\n\n" .
+                        "Bem-vindo, " . $user['nome'] . "!\n" .
+                        "Sua conta está conectada ao WhatsApp.\n\n" .
+                        "Digite !menu para ver os comandos disponíveis."
+        ];
+    } catch (PDOException $e) {
+        return ['success' => false, 'message' => '❌ Erro ao fazer login: ' . $e->getMessage()];
+    }
+}
+
+// Função para fazer logout
+function logoutWhatsApp(PDO $pdo, string $phone): array {
+    try {
+        $stmt = $pdo->prepare("UPDATE whatsapp_sessions SET is_active = 0 WHERE phone_number = ?");
+        $stmt->execute([$phone]);
+        
+        return [
+            'success' => true,
+            'message' => "✅ *Logout realizado com sucesso!*\n\n" .
+                        "Sua sessão foi encerrada.\n" .
+                        "Use !login para conectar novamente."
+        ];
+    } catch (PDOException $e) {
+        return ['success' => false, 'message' => '❌ Erro ao fazer logout: ' . $e->getMessage()];
+    }
+}
+
+// Obter usuário logado
+$loggedUser = getWhatsAppUser($pdo, $phoneNormalized);
+$userId = $loggedUser ? (int)$loggedUser['id'] : null;
+
 // Função de log
 function writeLog(PDO $pdo, string $phone, string $command, string $message, string $response, bool $success): void {
     try {
@@ -89,6 +176,42 @@ $response = ['success' => false, 'message' => 'Comando não reconhecido'];
 
 try {
     switch ($command) {
+        case '!login':
+            if (count($args) < 2) {
+                $response = ['success' => false, 'message' => '❌ Uso: !login EMAIL SENHA\n\nExemplo: !login usuario@email.com minhasenha123'];
+                break;
+            }
+            $email = $args[0];
+            $password = $args[1];
+            $response = loginWhatsApp($pdo, $phoneNormalized, $email, $password);
+            break;
+
+        case '!logout':
+            $response = logoutWhatsApp($pdo, $phoneNormalized);
+            break;
+
+        case '!status':
+            if ($loggedUser) {
+                $response = [
+                    'success' => true,
+                    'message' => "✅ *Você está logado!*\n\n" .
+                               "👤 Nome: " . $loggedUser['nome'] . "\n" .
+                               "📧 Email: " . $loggedUser['email'] . "\n" .
+                               "🆔 ID: #" . $loggedUser['id'] . "\n" .
+                               "📱 Telefone: " . $phoneNormalized . "\n\n" .
+                               "Todas as transações serão associadas à sua conta."
+                ];
+            } else {
+                $response = [
+                    'success' => false,
+                    'message' => "⚠️ *Você não está logado!*\n\n" .
+                               "Para usar os comandos, faça login primeiro:\n" .
+                               "!login EMAIL SENHA\n\n" .
+                               "Exemplo: !login usuario@email.com minhasenha123"
+                ];
+            }
+            break;
+
         case '!menu':
         case '!help':
         case '/menu':
@@ -96,6 +219,11 @@ try {
             $response = [
                 'success' => true,
                 'message' => "📋 *MENU DE COMANDOS*\n\n" .
+                           ($loggedUser ? "✅ Logado como: " . $loggedUser['nome'] . "\n\n" : "⚠️ *Você não está logado!*\nUse: !login EMAIL SENHA\n\n") .
+                           "*AUTENTICAÇÃO*\n" .
+                           "🔐 !login EMAIL SENHA\n" .
+                           "🚪 !logout\n" .
+                           "ℹ️ !status\n\n" .
                            "*FINANCEIRO*\n" .
                            "💰 !receita VALOR DESCRIÇÃO [CLIENTE]\n" .
                            "💸 !despesa VALOR DESCRIÇÃO [CATEGORIA]\n" .
@@ -125,6 +253,11 @@ try {
 
         case '!receita':
         case '/receita':
+            if (!$userId) {
+                $response = ['success' => false, 'message' => '⚠️ Você precisa estar logado! Use: !login EMAIL SENHA'];
+                break;
+            }
+            
             if (count($args) < 2) {
                 $response = ['success' => false, 'message' => '❌ Uso: !receita VALOR DESCRIÇÃO [CLIENTE]'];
                 break;
@@ -138,15 +271,15 @@ try {
             $clientId = null;
             if (count($args) > 2) {
                 $clientName = $args[count($args) - 1];
-                $stmt = $pdo->prepare("SELECT id FROM clients WHERE name LIKE ? LIMIT 1");
-                $stmt->execute(["%$clientName%"]);
+                $stmt = $pdo->prepare("SELECT id FROM clients WHERE name LIKE ? AND (id_usuario = ? OR id_usuario IS NULL) LIMIT 1");
+                $stmt->execute(["%$clientName%", $userId]);
                 $client = $stmt->fetch(PDO::FETCH_ASSOC);
                 if ($client) {
                     $clientId = $client['id'];
                 }
             }
             
-            $result = registerTransaction($pdo, 'receita', $value, $description, null, $clientId, null, $phoneNormalized);
+            $result = registerTransaction($pdo, 'receita', $value, $description, null, $clientId, $userId, $phoneNormalized);
             
             if ($result['success']) {
                 $balance = getBalance($pdo);
@@ -167,6 +300,11 @@ try {
 
         case '!despesa':
         case '/despesa':
+            if (!$userId) {
+                $response = ['success' => false, 'message' => '⚠️ Você precisa estar logado! Use: !login EMAIL SENHA'];
+                break;
+            }
+            
             if (count($args) < 2) {
                 $response = ['success' => false, 'message' => '❌ Uso: !despesa VALOR DESCRIÇÃO [CATEGORIA]'];
                 break;
@@ -176,7 +314,7 @@ try {
             $description = implode(' ', array_slice($args, 1, -1));
             $category = count($args) > 2 ? $args[count($args) - 1] : null;
             
-            $result = registerTransaction($pdo, 'despesa', $value, $description, $category, null, null, $phoneNormalized);
+            $result = registerTransaction($pdo, 'despesa', $value, $description, $category, null, $userId, $phoneNormalized);
             
             if ($result['success']) {
                 $balance = getBalance($pdo);
@@ -197,11 +335,16 @@ try {
 
         case '!saldo':
         case '/saldo':
+            if (!$userId) {
+                $response = ['success' => false, 'message' => '⚠️ Você precisa estar logado! Use: !login EMAIL SENHA'];
+                break;
+            }
+            
             $month = isset($args[0]) ? (int)$args[0] : null;
             $year = isset($args[1]) ? (int)$args[1] : (int)date('Y');
             if (!$month) $month = (int)date('m');
             
-            $balance = getBalance($pdo, $month, $year);
+            $balance = getBalance($pdo, $month, $year, $userId);
             
             if ($balance['success']) {
                 $monthName = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
@@ -225,10 +368,15 @@ try {
 
         case '!extrato':
         case '/extrato':
+            if (!$userId) {
+                $response = ['success' => false, 'message' => '⚠️ Você precisa estar logado! Use: !login EMAIL SENHA'];
+                break;
+            }
+            
             $startDate = isset($args[0]) ? $args[0] : date('Y-m-01');
             $endDate = isset($args[1]) ? $args[1] : date('Y-m-t');
             
-            $extract = getExtract($pdo, $startDate, $endDate, null, 20);
+            $extract = getExtract($pdo, $startDate, $endDate, $userId, 20);
             
             if ($extract['success']) {
                 $msg = "📊 *EXTRATO*\n\n";
@@ -250,7 +398,13 @@ try {
 
         case '!clientes':
         case '/clientes':
-            $stmt = $pdo->query("SELECT id, name, phone, whatsapp_number FROM clients ORDER BY name LIMIT 50");
+            if (!$userId) {
+                $response = ['success' => false, 'message' => '⚠️ Você precisa estar logado! Use: !login EMAIL SENHA'];
+                break;
+            }
+            
+            $stmt = $pdo->prepare("SELECT id, name, phone, whatsapp_number FROM clients WHERE id_usuario = ? OR id_usuario IS NULL ORDER BY name LIMIT 50");
+            $stmt->execute([$userId]);
             $clients = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
             $msg = "👥 *CLIENTES*\n\n";
@@ -266,8 +420,13 @@ try {
 
         case '!pendencias':
         case '/pendencias':
+            if (!$userId) {
+                $response = ['success' => false, 'message' => '⚠️ Você precisa estar logado! Use: !login EMAIL SENHA'];
+                break;
+            }
+            
             $clientId = isset($args[0]) ? (int)$args[0] : null;
-            $pendencies = getClientPendencies($pdo, $clientId);
+            $pendencies = getClientPendencies($pdo, $clientId, $userId);
             
             if ($pendencies['success']) {
                 if (empty($pendencies['pendencies'])) {
@@ -295,11 +454,16 @@ try {
 
         case '!relatorio':
         case '/relatorio':
+            if (!$userId) {
+                $response = ['success' => false, 'message' => '⚠️ Você precisa estar logado! Use: !login EMAIL SENHA'];
+                break;
+            }
+            
             $month = isset($args[0]) ? (int)$args[0] : null;
             $year = isset($args[1]) ? (int)$args[1] : (int)date('Y');
             if (!$month) $month = (int)date('m');
             
-            $report = generateMonthReport($pdo, $month, $year);
+            $report = generateMonthReport($pdo, $month, $year, $userId);
             
             if ($report['success']) {
                 $monthName = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
@@ -337,8 +501,13 @@ try {
 
         case '!dashboard':
         case '/dashboard':
-            $balance = getBalance($pdo);
-            $pendencies = getClientPendencies($pdo);
+            if (!$userId) {
+                $response = ['success' => false, 'message' => '⚠️ Você precisa estar logado! Use: !login EMAIL SENHA'];
+                break;
+            }
+            
+            $balance = getBalance($pdo, null, null, $userId);
+            $pendencies = getClientPendencies($pdo, null, $userId);
             
             $msg = "📊 *DASHBOARD GERAL*\n\n";
             $msg .= "💰 Receitas: " . formatMoney($balance['receitas']['total']) . "\n";
