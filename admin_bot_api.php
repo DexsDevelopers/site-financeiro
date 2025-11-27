@@ -12,6 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 require_once 'includes/db_connect.php';
 require_once 'includes/finance_helper.php';
+require_once 'includes/tasks_helper.php';
 
 // Carregar configuração
 $config = json_decode(file_get_contents(__DIR__ . '/config.json'), true);
@@ -327,6 +328,14 @@ try {
                            "🔔 !lembrar COBRANCA_ID\n" .
                            "📨 !notificar CLIENTE_ID MENSAGEM\n" .
                            "✅ !pagar COBRANCA_ID\n\n" .
+                           "*TAREFAS*\n" .
+                           "📋 !tarefas\n" .
+                           "➕ !addtarefa DESCRIÇÃO [PRIORIDADE] [DATA]\n" .
+                           "✅ !concluir ID\n" .
+                           "🚨 !urgentes\n" .
+                           "📅 !tarefahoje\n" .
+                           "🗑️ !deletartarefa ID\n" .
+                           "📊 !estatisticas\n\n" .
                            "💡 Digite !ajuda COMANDO para detalhes"
             ];
             break;
@@ -636,6 +645,275 @@ try {
                 error_log("Erro no comando dashboard: " . $e->getMessage());
                 $response = ['success' => false, 'message' => '❌ Erro ao gerar dashboard: ' . $e->getMessage()];
             }
+            break;
+
+        // ============================================
+        // COMANDOS DE TAREFAS
+        // ============================================
+        case '!tarefas':
+        case '!tarefa':
+        case '/tarefas':
+        case '/tarefa':
+            if (!$userId) {
+                $response = ['success' => false, 'message' => '⚠️ Você precisa estar logado! Use: !login EMAIL SENHA'];
+                break;
+            }
+            
+            $tasks = getTasks($pdo, $userId, 'pendente', 10);
+            
+            if (!$tasks['success']) {
+                $response = ['success' => false, 'message' => '❌ ' . $tasks['error']];
+                break;
+            }
+            
+            if ($tasks['count'] === 0) {
+                $response = [
+                    'success' => true,
+                    'message' => "✅ *Nenhuma tarefa pendente!*\n\nVocê está em dia! 🎉"
+                ];
+                break;
+            }
+            
+            $msg = "📋 *SUAS TAREFAS PENDENTES*\n\n";
+            foreach ($tasks['tasks'] as $task) {
+                $msg .= "ID: #" . $task['id'] . "\n";
+                $msg .= formatPriority($task['prioridade']) . "\n";
+                $msg .= "📝 " . $task['descricao'] . "\n";
+                $msg .= "📅 " . formatTaskDate($task['data_limite']) . "\n\n";
+            }
+            $msg .= "━━━━━━━━━━━━━━━━━━━━━\n";
+            $msg .= "Total: " . $tasks['count'] . " tarefa(s)\n\n";
+            $msg .= "💡 Use !concluir ID para concluir uma tarefa";
+            
+            $response = ['success' => true, 'message' => $msg];
+            break;
+
+        case '!addtarefa':
+        case '!adicionar':
+        case '!novatarefa':
+        case '/addtarefa':
+            if (!$userId) {
+                $response = ['success' => false, 'message' => '⚠️ Você precisa estar logado! Use: !login EMAIL SENHA'];
+                break;
+            }
+            
+            if (count($args) < 1) {
+                $response = ['success' => false, 'message' => '❌ Uso: !addtarefa DESCRIÇÃO [PRIORIDADE] [DATA]\n\nExemplo: !addtarefa Estudar PHP Alta 2025-01-20'];
+                break;
+            }
+            
+            $description = implode(' ', array_slice($args, 0, -2));
+            $priority = 'Média';
+            $dueDate = null;
+            
+            // Tentar identificar prioridade e data nos últimos argumentos
+            $lastArgs = array_slice($args, -2);
+            $priorities = ['Alta', 'Média', 'Baixa'];
+            
+            foreach ($lastArgs as $arg) {
+                if (in_array(ucfirst(strtolower($arg)), $priorities)) {
+                    $priority = ucfirst(strtolower($arg));
+                } elseif (preg_match('/^\d{4}-\d{2}-\d{2}$/', $arg) || preg_match('/^\d{2}\/\d{2}\/\d{4}$/', $arg)) {
+                    // Formato YYYY-MM-DD ou DD/MM/YYYY
+                    if (strpos($arg, '/') !== false) {
+                        $parts = explode('/', $arg);
+                        $dueDate = $parts[2] . '-' . $parts[1] . '-' . $parts[0];
+                    } else {
+                        $dueDate = $arg;
+                    }
+                }
+            }
+            
+            // Se a descrição ficou vazia, usar todos os args exceto prioridade e data
+            if (empty($description)) {
+                $description = implode(' ', array_filter($args, function($arg) use ($priority, $dueDate) {
+                    return strtolower($arg) !== strtolower($priority) && $arg !== $dueDate;
+                }));
+            }
+            
+            if (empty($description)) {
+                $response = ['success' => false, 'message' => '❌ Descrição da tarefa não pode estar vazia'];
+                break;
+            }
+            
+            $result = addTask($pdo, $userId, $description, $priority, $dueDate);
+            
+            if ($result['success']) {
+                $msg = "✅ *Tarefa Criada!*\n\n";
+                $msg .= "📝 " . $description . "\n";
+                $msg .= formatPriority($priority) . "\n";
+                if ($dueDate) {
+                    $msg .= "📅 " . formatTaskDate($dueDate) . "\n";
+                }
+                $msg .= "ID: #" . $result['task_id'] . "\n\n";
+                $msg .= "Use !tarefas para ver todas as tarefas";
+                
+                $response = ['success' => true, 'message' => $msg];
+            } else {
+                $response = ['success' => false, 'message' => '❌ ' . $result['error']];
+            }
+            break;
+
+        case '!concluir':
+        case '!feito':
+        case '/concluir':
+            if (!$userId) {
+                $response = ['success' => false, 'message' => '⚠️ Você precisa estar logado! Use: !login EMAIL SENHA'];
+                break;
+            }
+            
+            if (count($args) < 1) {
+                $response = ['success' => false, 'message' => '❌ Uso: !concluir ID\n\nExemplo: !concluir 5'];
+                break;
+            }
+            
+            $taskId = (int)$args[0];
+            $result = completeTask($pdo, $taskId, $userId);
+            
+            if ($result['success']) {
+                $response = [
+                    'success' => true,
+                    'message' => "✅ *Tarefa #$taskId concluída!*\n\nParabéns! 🎉\n\nUse !tarefas para ver suas tarefas pendentes"
+                ];
+            } else {
+                $response = ['success' => false, 'message' => '❌ ' . $result['error']];
+            }
+            break;
+
+        case '!urgentes':
+        case '!prioritarias':
+        case '/urgentes':
+            if (!$userId) {
+                $response = ['success' => false, 'message' => '⚠️ Você precisa estar logado! Use: !login EMAIL SENHA'];
+                break;
+            }
+            
+            $tasks = getUrgentTasks($pdo, $userId, 10);
+            
+            if (!$tasks['success']) {
+                $response = ['success' => false, 'message' => '❌ ' . $tasks['error']];
+                break;
+            }
+            
+            if ($tasks['count'] === 0) {
+                $response = [
+                    'success' => true,
+                    'message' => "✅ *Nenhuma tarefa urgente!*\n\nVocê está em dia! 🎉"
+                ];
+                break;
+            }
+            
+            $msg = "🚨 *TAREFAS URGENTES*\n\n";
+            foreach ($tasks['tasks'] as $task) {
+                $msg .= "ID: #" . $task['id'] . "\n";
+                $msg .= formatPriority($task['prioridade']) . "\n";
+                $msg .= "📝 " . $task['descricao'] . "\n";
+                $msg .= "📅 " . formatTaskDate($task['data_limite']) . "\n";
+                $msg .= "⚠️ " . $task['status_urgencia'] . "\n\n";
+            }
+            $msg .= "━━━━━━━━━━━━━━━━━━━━━\n";
+            $msg .= "Total: " . $tasks['count'] . " tarefa(s) urgente(s)";
+            
+            $response = ['success' => true, 'message' => $msg];
+            break;
+
+        case '!tarefahoje':
+        case '!hoje':
+        case '/tarefahoje':
+            if (!$userId) {
+                $response = ['success' => false, 'message' => '⚠️ Você precisa estar logado! Use: !login EMAIL SENHA'];
+                break;
+            }
+            
+            $tasks = getTodayTasks($pdo, $userId);
+            
+            if (!$tasks['success']) {
+                $response = ['success' => false, 'message' => '❌ ' . $tasks['error']];
+                break;
+            }
+            
+            if ($tasks['count'] === 0) {
+                $response = [
+                    'success' => true,
+                    'message' => "✅ *Nenhuma tarefa para hoje!*\n\nAproveite o dia! 😊"
+                ];
+                break;
+            }
+            
+            $msg = "📅 *TAREFAS DE HOJE*\n\n";
+            foreach ($tasks['tasks'] as $task) {
+                $msg .= "ID: #" . $task['id'] . "\n";
+                $msg .= formatPriority($task['prioridade']) . "\n";
+                $msg .= "📝 " . $task['descricao'] . "\n";
+                if ($task['data_limite']) {
+                    $msg .= "📅 " . formatTaskDate($task['data_limite']) . "\n";
+                }
+                $msg .= "\n";
+            }
+            $msg .= "━━━━━━━━━━━━━━━━━━━━━\n";
+            $msg .= "Total: " . $tasks['count'] . " tarefa(s)";
+            
+            $response = ['success' => true, 'message' => $msg];
+            break;
+
+        case '!deletartarefa':
+        case '!remover':
+        case '/deletartarefa':
+            if (!$userId) {
+                $response = ['success' => false, 'message' => '⚠️ Você precisa estar logado! Use: !login EMAIL SENHA'];
+                break;
+            }
+            
+            if (count($args) < 1) {
+                $response = ['success' => false, 'message' => '❌ Uso: !deletartarefa ID\n\nExemplo: !deletartarefa 5'];
+                break;
+            }
+            
+            $taskId = (int)$args[0];
+            $result = deleteTask($pdo, $taskId, $userId);
+            
+            if ($result['success']) {
+                $response = [
+                    'success' => true,
+                    'message' => "✅ *Tarefa #$taskId deletada!*\n\nUse !tarefas para ver suas tarefas"
+                ];
+            } else {
+                $response = ['success' => false, 'message' => '❌ ' . $result['error']];
+            }
+            break;
+
+        case '!estatisticas':
+        case '!stats':
+        case '/estatisticas':
+            if (!$userId) {
+                $response = ['success' => false, 'message' => '⚠️ Você precisa estar logado! Use: !login EMAIL SENHA'];
+                break;
+            }
+            
+            $stats = getTaskStats($pdo, $userId);
+            
+            if (!$stats['success']) {
+                $response = ['success' => false, 'message' => '❌ ' . $stats['error']];
+                break;
+            }
+            
+            $msg = "📊 *ESTATÍSTICAS DE TAREFAS*\n\n";
+            $msg .= "📋 Total: " . $stats['total'] . "\n";
+            $msg .= "✅ Concluídas: " . $stats['concluidas'] . "\n";
+            $msg .= "⏳ Pendentes: " . $stats['pendentes'] . "\n";
+            $msg .= "🔴 Alta Prioridade: " . $stats['alta_prioridade'] . "\n";
+            
+            if ($stats['vencidas'] > 0) {
+                $msg .= "⚠️ Vencidas: " . $stats['vencidas'] . "\n";
+            }
+            
+            if ($stats['total'] > 0) {
+                $percent = round(($stats['concluidas'] / $stats['total']) * 100);
+                $msg .= "\n━━━━━━━━━━━━━━━━━━━━━\n";
+                $msg .= "📈 Progresso: $percent%";
+            }
+            
+            $response = ['success' => true, 'message' => $msg];
             break;
 
         default:
