@@ -587,7 +587,16 @@ try {
             }
             
             $balance = getBalance($pdo, null, null, $userId);
+            if (!$balance['success']) {
+                $response = ['success' => false, 'message' => '❌ Erro ao calcular saldo: ' . ($balance['error'] ?? 'Erro desconhecido')];
+                break;
+            }
+            
             $pendencies = getClientPendencies($pdo, null, $userId);
+            if (!$pendencies['success']) {
+                $response = ['success' => false, 'message' => '❌ Erro ao buscar pendências: ' . ($pendencies['error'] ?? 'Erro desconhecido')];
+                break;
+            }
             
             $msg = "📊 *DASHBOARD GERAL*\n\n";
             $msg .= "💰 Receitas: " . formatMoney($balance['receitas']['total']) . "\n";
