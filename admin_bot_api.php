@@ -246,13 +246,27 @@ try {
             $email = $args[0];
             $password = $args[1];
             $response = loginWhatsApp($pdo, $phoneNormalized, $email, $password);
+            // Recalcular usuário logado após login bem-sucedido
+            if ($response['success']) {
+                $loggedUser = getWhatsAppUser($pdo, $phoneNormalized);
+                $userId = $loggedUser ? (int)$loggedUser['id'] : null;
+            }
             break;
 
         case '!logout':
             $response = logoutWhatsApp($pdo, $phoneNormalized);
+            // Recalcular usuário logado após logout
+            if ($response['success']) {
+                $loggedUser = null;
+                $userId = null;
+            }
             break;
 
         case '!status':
+            // Recalcular usuário logado para garantir que está atualizado
+            $loggedUser = getWhatsAppUser($pdo, $phoneNormalized);
+            $userId = $loggedUser ? (int)$loggedUser['id'] : null;
+            
             if ($loggedUser) {
                 $response = [
                     'success' => true,
@@ -278,6 +292,10 @@ try {
         case '!help':
         case '/menu':
         case '/help':
+            // Recalcular usuário logado para garantir que está atualizado
+            $loggedUser = getWhatsAppUser($pdo, $phoneNormalized);
+            $userId = $loggedUser ? (int)$loggedUser['id'] : null;
+            
             $response = [
                 'success' => true,
                 'message' => "📋 *MENU DE COMANDOS*\n\n" .
