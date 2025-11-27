@@ -406,7 +406,20 @@ try {
             $result = registerTransaction($pdo, 'despesa', $value, $description, $category, null, $userId, $phoneNormalized);
             
             if ($result['success']) {
-                $balance = getBalance($pdo);
+                $balance = getBalance($pdo, null, null, $userId);
+                
+                // Verificar se é um gasto alto e alertar
+                $mensagemAlerta = "";
+                if ($value >= 500) {
+                    $mensagemAlerta = "\n⚠️ *Alerta: Gasto alto detectado!*\n";
+                    if ($balance['success'] && $balance['receitas']['total'] > 0) {
+                        $percent = ($value / $balance['receitas']['total']) * 100;
+                        if ($percent > 10) {
+                            $mensagemAlerta .= "Este gasto representa " . round($percent, 1) . "% da sua receita do mês!\n";
+                        }
+                    }
+                }
+                
                 $response = [
                     'success' => true,
                     'message' => "💸 *Despesa Registrada*\n\n" .
@@ -414,9 +427,26 @@ try {
                                "Descrição: $description\n" .
                                ($category ? "Categoria: $category\n" : "") .
                                "ID: #" . $result['transaction_id'] . "\n" .
-                               "Data: " . date('d/m/Y H:i') . "\n\n" .
-                               "✅ Registrado com sucesso!"
+                               "Data: " . date('d/m/Y H:i') . "\n" .
+                               $mensagemAlerta .
+                               "\n✅ Registrado com sucesso!"
                 ];
+                
+                // Enviar alerta assíncrono se for gasto alto
+                if ($value >= 500) {
+                    // Executar script de alerta em background (não bloqueia resposta)
+                    if (function_exists('exec')) {
+                        $scriptPath = __DIR__ . '/enviar_alertas_gastos.php';
+                        if (file_exists($scriptPath)) {
+                            // Executar em background (não esperar resposta)
+                            if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+                                pclose(popen("start /B php \"$scriptPath\"", "r"));
+                            } else {
+                                exec("php \"$scriptPath\" > /dev/null 2>&1 &");
+                            }
+                        }
+                    }
+                }
             } else {
                 $response = ['success' => false, 'message' => '❌ ' . $result['error']];
             }

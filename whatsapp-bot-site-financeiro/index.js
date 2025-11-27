@@ -100,10 +100,18 @@ async function start() {
     }
   });
 
+  // Tratamento de erros de descriptografia
   sock.ev.on('messages.upsert', async (m) => {
     if (!isReady) return;
-    const msg = m.messages[0];
-    if (!msg || msg.key.fromMe || !msg.message) return;
+    
+    try {
+      const msg = m.messages[0];
+      if (!msg || msg.key.fromMe || !msg.message) return;
+      
+      // Ignorar mensagens com erro de descriptografia
+      if (msg.messageStubType === 1 || msg.messageStubType === 2) {
+        return; // Mensagem deletada ou erro
+      }
 
     const jid = msg.key.remoteJid;
     if (!jid || jid.includes('@g.us')) return; // Ignora grupos
