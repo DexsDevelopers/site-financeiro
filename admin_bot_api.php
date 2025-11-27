@@ -102,7 +102,8 @@ function getWhatsAppUser(PDO $pdo, string $phone): ?array {
 function loginWhatsApp(PDO $pdo, string $phone, string $email, string $password): array {
     try {
         // Buscar usuário por email ou nome de usuário
-        $stmt = $pdo->prepare("SELECT id, nome, email, senha, usuario FROM usuarios WHERE email = ? OR usuario = ? LIMIT 1");
+        // Tenta primeiro com senha_hash (campo padrão), depois com senha (compatibilidade)
+        $stmt = $pdo->prepare("SELECT id, nome_completo as nome, email, senha_hash, senha, usuario FROM usuarios WHERE email = ? OR usuario = ? LIMIT 1");
         $stmt->execute([$email, $email]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
         
@@ -110,14 +111,20 @@ function loginWhatsApp(PDO $pdo, string $phone, string $email, string $password)
             return ['success' => false, 'message' => '❌ Email/usuário não encontrado.'];
         }
         
-        // Verificar senha (pode estar em hash ou texto simples)
+        // Verificar senha (suporta senha_hash e senha para compatibilidade)
         $senhaValida = false;
-        if (isset($user['senha'])) {
+        
+        // Prioridade: senha_hash (campo padrão do sistema)
+        if (!empty($user['senha_hash']) && password_verify($password, $user['senha_hash'])) {
+            $senhaValida = true;
+        }
+        // Fallback: campo senha (compatibilidade)
+        elseif (!empty($user['senha'])) {
             // Se a senha está em hash
             if (password_verify($password, $user['senha'])) {
                 $senhaValida = true;
             }
-            // Se a senha está em texto simples (fallback para compatibilidade)
+            // Se a senha está em texto simples ou MD5 (compatibilidade)
             elseif ($user['senha'] === $password || md5($password) === $user['senha']) {
                 $senhaValida = true;
             }
