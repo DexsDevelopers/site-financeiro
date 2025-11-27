@@ -25,6 +25,9 @@ const PORT = Number(process.env.API_PORT || 3001); // Porta diferente do outro p
 const API_TOKEN = process.env.API_TOKEN || 'site-financeiro-token-2024';
 const AUTO_REPLY = String(process.env.AUTO_REPLY || 'false').toLowerCase() === 'true';
 const AUTO_REPLY_WINDOW_MS = Number(process.env.AUTO_REPLY_WINDOW_MS || 3600000); // 1h
+// URL da API PHP - ajuste conforme seu ambiente
+// Para desenvolvimento local: http://localhost/seu_projeto
+// Para produção: https://seu-dominio.com
 const ADMIN_API_URL = process.env.ADMIN_API_URL || 'http://localhost/seu_projeto';
 const ADMIN_NUMBERS = (process.env.ADMIN_NUMBERS || '').split(',').map(n => n.trim()).filter(Boolean);
 
