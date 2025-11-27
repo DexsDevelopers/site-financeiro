@@ -25,7 +25,7 @@ const PORT = Number(process.env.API_PORT || 3001); // Porta diferente do outro p
 const API_TOKEN = process.env.API_TOKEN || 'site-financeiro-token-2024';
 const AUTO_REPLY = String(process.env.AUTO_REPLY || 'false').toLowerCase() === 'true';
 const AUTO_REPLY_WINDOW_MS = Number(process.env.AUTO_REPLY_WINDOW_MS || 3600000); // 1h
-const ADMIN_API_URL = process.env.ADMIN_API_URL || 'http://localhost';
+const ADMIN_API_URL = process.env.ADMIN_API_URL || 'http://localhost/seu_projeto';
 const ADMIN_NUMBERS = (process.env.ADMIN_NUMBERS || '').split(',').map(n => n.trim()).filter(Boolean);
 
 // Estado para aguardar fotos de comprovantes
@@ -177,7 +177,10 @@ async function start() {
         }
         
         // Enviar comando para API PHP
-        const apiResponse = await axios.post(`${ADMIN_API_URL}/admin_bot_api.php`, {
+        const apiUrl = `${ADMIN_API_URL}/admin_bot_api.php`;
+        console.log(`[COMMAND] Enviando para: ${apiUrl}`);
+        
+        const apiResponse = await axios.post(apiUrl, {
           phone: phoneNumber,
           command: command,
           args: args,
@@ -190,14 +193,31 @@ async function start() {
           timeout: 30000
         });
         
+        console.log(`[COMMAND] Resposta da API:`, apiResponse.status, apiResponse.data);
+        
         if (apiResponse.data && apiResponse.data.message) {
           await sock.sendMessage(jid, { text: apiResponse.data.message });
         } else {
-          await sock.sendMessage(jid, { text: '❌ Erro ao processar comando' });
+          await sock.sendMessage(jid, { text: '❌ Erro ao processar comando. Resposta inválida da API.' });
         }
       } catch (e) {
-        console.error('[COMMAND] Erro:', e.message);
-        await sock.sendMessage(jid, { text: '❌ Erro ao processar comando. Tente novamente.' });
+        console.error('[COMMAND] Erro completo:', e);
+        console.error('[COMMAND] Erro message:', e.message);
+        console.error('[COMMAND] Erro response:', e.response?.data);
+        console.error('[COMMAND] Erro status:', e.response?.status);
+        
+        let errorMsg = '❌ Erro ao processar comando.';
+        if (e.code === 'ECONNREFUSED') {
+          errorMsg = '❌ Não foi possível conectar à API. Verifique se o servidor está rodando.';
+        } else if (e.response?.status === 401) {
+          errorMsg = '❌ Token de autenticação inválido.';
+        } else if (e.response?.status === 500) {
+          errorMsg = '❌ Erro no servidor. Verifique os logs.';
+        } else if (e.response?.data?.error) {
+          errorMsg = `❌ ${e.response.data.error}`;
+        }
+        
+        await sock.sendMessage(jid, { text: errorMsg });
       }
       return;
     }
