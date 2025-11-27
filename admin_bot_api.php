@@ -102,8 +102,20 @@ function getWhatsAppUser(PDO $pdo, string $phone): ?array {
 function loginWhatsApp(PDO $pdo, string $phone, string $email, string $password): array {
     try {
         // Buscar usuário por email ou nome de usuário
-        // Tenta primeiro com senha_hash (campo padrão), depois com senha (compatibilidade)
-        $stmt = $pdo->prepare("SELECT id, nome_completo as nome, email, senha_hash, senha, usuario FROM usuarios WHERE email = ? OR usuario = ? LIMIT 1");
+        // Verificar quais colunas existem na tabela
+        $stmtCheck = $pdo->query("SHOW COLUMNS FROM usuarios LIKE 'senha%'");
+        $senhaColumns = $stmtCheck->fetchAll(PDO::FETCH_COLUMN);
+        
+        // Montar SELECT dinamicamente baseado nas colunas disponíveis
+        $selectFields = "id, nome_completo as nome, email, usuario";
+        if (in_array('senha_hash', $senhaColumns)) {
+            $selectFields .= ", senha_hash";
+        }
+        if (in_array('senha', $senhaColumns)) {
+            $selectFields .= ", senha";
+        }
+        
+        $stmt = $pdo->prepare("SELECT $selectFields FROM usuarios WHERE email = ? OR usuario = ? LIMIT 1");
         $stmt->execute([$email, $email]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
         
@@ -115,11 +127,11 @@ function loginWhatsApp(PDO $pdo, string $phone, string $email, string $password)
         $senhaValida = false;
         
         // Prioridade: senha_hash (campo padrão do sistema)
-        if (!empty($user['senha_hash']) && password_verify($password, $user['senha_hash'])) {
+        if (isset($user['senha_hash']) && !empty($user['senha_hash']) && password_verify($password, $user['senha_hash'])) {
             $senhaValida = true;
         }
         // Fallback: campo senha (compatibilidade)
-        elseif (!empty($user['senha'])) {
+        elseif (isset($user['senha']) && !empty($user['senha'])) {
             // Se a senha está em hash
             if (password_verify($password, $user['senha'])) {
                 $senhaValida = true;
