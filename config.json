@@ -1,0 +1,18 @@
+{
+  "titulo_sistema": "Painel Financeiro Pro",
+  "moeda": "BRL",
+  "formato_data": "d/m/Y",
+  "WHATSAPP_API_URL": "http://localhost:3001",
+  "WHATSAPP_API_TOKEN": "site-financeiro-token-2024",
+  "WHATSAPP_API_ENABLED": true,
+  "ADMIN_WHATSAPP_NUMBERS": [
+    "5551996148568",
+    "551996148568",
+    "5537991101425",
+    "553791101425"
+  ],
+  "LIMITE_UPLOAD_MB": 10,
+  "COMPROVANTES_DIR": "uploads/comprovantes/",
+  "TIMEZONE": "America/Sao_Paulo"
+}
+
