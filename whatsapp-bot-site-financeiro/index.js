@@ -248,6 +248,14 @@ async function start() {
         console.error('[AUTO-REPLY] Erro:', e);
       }
     }
+    } catch (err) {
+      // Ignorar erros de descriptografia silenciosamente
+      if (err.message && err.message.includes('MessageCounterError')) {
+        // Sessão corrompida - será tratada no próximo restart
+        return;
+      }
+      console.error('[MESSAGE] Erro ao processar mensagem:', err.message);
+    }
   });
 }
 
