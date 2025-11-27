@@ -1,7 +1,7 @@
 {
-  "name": "whatsapp-bot",
+  "name": "whatsapp-bot-site-financeiro",
   "version": "1.0.0",
-  "description": "Bot WhatsApp local para seu painel (Baileys + Express).",
+  "description": "Bot WhatsApp específico para o Site Financeiro (Baileys + Express).",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
@@ -18,3 +18,4 @@
     "qrcode-terminal": "^0.12.0"
   }
 }
+

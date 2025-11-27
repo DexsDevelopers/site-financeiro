@@ -4,11 +4,11 @@
 function wpp_get_config(): array {
     $base = getenv('WHATSAPP_API_URL')
         ?: ($_ENV['WHATSAPP_API_URL'] ?? null)
-        ?: ($_SERVER['WHATSAPP_API_URL'] ?? 'http://localhost:3000');
+        ?: ($_SERVER['WHATSAPP_API_URL'] ?? 'http://localhost:3001'); // Porta 3001 para Site Financeiro
 
     $token = getenv('WHATSAPP_API_TOKEN')
         ?: ($_ENV['WHATSAPP_API_TOKEN'] ?? null)
-        ?: ($_SERVER['WHATSAPP_API_TOKEN'] ?? 'troque-este-token');
+        ?: ($_SERVER['WHATSAPP_API_TOKEN'] ?? 'site-financeiro-token-2024');
 
     return ['base' => rtrim($base, '/'), 'token' => $token];
 }

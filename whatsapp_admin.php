@@ -107,14 +107,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="card card-glass">
         <div class="card-body p-4">
             <div class="row mb-3">
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <div class="alert alert-secondary p-2 mb-2">Usuários: <strong><?php echo (int)$info['total']; ?></strong></div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <div class="alert alert-secondary p-2 mb-2">Com telefone: <strong><?php echo (int)$info['com_tel']; ?></strong></div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <div class="alert alert-info p-2 mb-2">Status Bot: <code><?php $cfg = wpp_get_config(); echo htmlspecialchars($cfg['base']); ?></code></div>
+                </div>
+                <div class="col-md-3">
+                    <a href="whatsapp_qr.php" class="btn btn-success w-100">
+                        <i class="bi bi-qr-code me-2"></i>Ver QR Code
+                    </a>
                 </div>
             </div>
             <form method="POST" class="row g-3">
@@ -142,6 +147,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
                 <div class="col-12 d-flex gap-2">
                     <button type="submit" class="btn btn-custom-red"><i class="bi bi-send me-1"></i>Enviar</button>
+                    <a href="whatsapp_qr.php" class="btn btn-success"><i class="bi bi-qr-code me-1"></i>Ver QR Code</a>
                     <a href="whatsapp_admin.php" class="btn btn-secondary">Limpar</a>
                 </div>
             </form>

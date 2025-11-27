@@ -1,8 +1,8 @@
-// kill-port.js - Script para matar processo na porta 3000
+// kill-port.js - Script para matar processo na porta 3001 (Site Financeiro)
 const { exec } = require('child_process');
 const os = require('os');
 
-const PORT = process.env.API_PORT || 3000;
+const PORT = process.env.API_PORT || 3001;
 
 console.log(`🔍 Verificando processos na porta ${PORT}...`);
 

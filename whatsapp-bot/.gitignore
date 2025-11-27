@@ -1,8 +1,0 @@
-auth/
-node_modules/
-.env
-npm-debug.log
-pnpm-lock.yaml
-yarn.lock
-
-

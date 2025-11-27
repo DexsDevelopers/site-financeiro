@@ -42,7 +42,7 @@ if (!$menu_config) {
             'financeiro' => ['compras_futuras.php', 'relatorios.php', 'extrato_completo.php', 'recorrentes.php', 'orcamento.php', 'categorias.php', 'regras_categorizacao.php', 'alertas_inteligentes.php'],
             'produtividade' => ['tarefas.php', 'calendario.php', 'pomodoro.php'],
             'personalizacao' => ['temas_customizaveis.php', 'layouts_flexiveis.php', 'preferencias_avancadas.php', 'personalizar_menu.php'],
-            'sistema' => ['perfil.php', 'contas.php', 'whatsapp_admin.php', 'integracoes_google.php', 'debug_google_integration.php', 'verificar_apis_google.php', 'debug_ia.php']
+            'sistema' => ['perfil.php', 'contas.php', 'whatsapp_admin.php', 'whatsapp_qr.php', 'integracoes_google.php', 'debug_google_integration.php', 'verificar_apis_google.php', 'debug_ia.php']
         ],
         'ordem_secoes' => ['academy', 'financeiro', 'produtividade', 'personalizacao', 'sistema'],
         'ordem_paginas' => [
@@ -50,7 +50,7 @@ if (!$menu_config) {
             'financeiro' => ['compras_futuras.php', 'relatorios.php', 'extrato_completo.php', 'recorrentes.php', 'orcamento.php', 'categorias.php', 'regras_categorizacao.php', 'alertas_inteligentes.php'],
             'produtividade' => ['tarefas.php', 'calendario.php', 'pomodoro.php'],
             'personalizacao' => ['temas_customizaveis.php', 'layouts_flexiveis.php', 'preferencias_avancadas.php', 'personalizar_menu.php'],
-            'sistema' => ['perfil.php', 'contas.php', 'whatsapp_admin.php', 'integracoes_google.php', 'debug_google_integration.php', 'verificar_apis_google.php', 'debug_ia.php']
+            'sistema' => ['perfil.php', 'contas.php', 'whatsapp_admin.php', 'whatsapp_qr.php', 'integracoes_google.php', 'debug_google_integration.php', 'verificar_apis_google.php', 'debug_ia.php']
         ]
     ];
 }
@@ -101,7 +101,7 @@ if (!in_array('debug_ia.php', $menu_config['ordem_paginas']['sistema'], true)) {
     $menu_config['ordem_paginas']['sistema'][] = 'debug_ia.php';
 }
 
-// Exibir 'whatsapp_admin.php' apenas para administradores
+// Exibir 'whatsapp_admin.php' e 'whatsapp_qr.php' apenas para administradores
 try {
     $stmtTipo = $pdo->prepare("SELECT tipo FROM usuarios WHERE id = ? LIMIT 1");
     $stmtTipo->execute([$userId]);
@@ -110,11 +110,11 @@ try {
         // Remove da lista se não for admin
         $menu_config['paginas_visiveis']['sistema'] = array_values(array_filter(
             $menu_config['paginas_visiveis']['sistema'],
-            fn($p) => $p !== 'whatsapp_admin.php'
+            fn($p) => $p !== 'whatsapp_admin.php' && $p !== 'whatsapp_qr.php'
         ));
         $menu_config['ordem_paginas']['sistema'] = array_values(array_filter(
             $menu_config['ordem_paginas']['sistema'],
-            fn($p) => $p !== 'whatsapp_admin.php'
+            fn($p) => $p !== 'whatsapp_admin.php' && $p !== 'whatsapp_qr.php'
         ));
     }
 } catch (Throwable $e) {
@@ -204,6 +204,7 @@ $paginasInfo = [
     'perfil.php' => ['nome' => 'Meu Perfil', 'icone' => 'bi-person-circle'],
     'contas.php' => ['nome' => 'Contas', 'icone' => 'bi-wallet2'],
     'whatsapp_admin.php' => ['nome' => 'Avisos WhatsApp', 'icone' => 'bi-whatsapp'],
+    'whatsapp_qr.php' => ['nome' => 'QR Code WhatsApp', 'icone' => 'bi-qr-code'],
     'integracoes_google.php' => ['nome' => 'Integrações Google', 'icone' => 'bi-google'],
     'debug_google_integration.php' => ['nome' => 'Debug Integração Google', 'icone' => 'bi-bug'],
     'verificar_apis_google.php' => ['nome' => 'Verificar APIs Google', 'icone' => 'bi-shield-check'],
