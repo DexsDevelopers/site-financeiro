@@ -586,25 +586,36 @@ try {
                 break;
             }
             
-            $balance = getBalance($pdo, null, null, $userId);
-            if (!$balance['success']) {
-                $response = ['success' => false, 'message' => '❌ Erro ao calcular saldo: ' . ($balance['error'] ?? 'Erro desconhecido')];
-                break;
+            try {
+                $balance = getBalance($pdo, null, null, $userId);
+                if (!$balance['success']) {
+                    $response = ['success' => false, 'message' => '❌ Erro ao calcular saldo: ' . ($balance['error'] ?? 'Erro desconhecido')];
+                    break;
+                }
+                
+                // Tentar buscar pendências, mas não falhar se a tabela não existir
+                $pendencies = ['success' => true, 'count' => 0, 'total' => 0];
+                try {
+                    $pendenciesResult = getClientPendencies($pdo, null, $userId);
+                    if ($pendenciesResult['success']) {
+                        $pendencies = $pendenciesResult;
+                    }
+                } catch (Exception $e) {
+                    error_log("Erro ao buscar pendências no dashboard: " . $e->getMessage());
+                    // Continuar sem pendências se houver erro
+                }
+                
+                $msg = "📊 *DASHBOARD GERAL*\n\n";
+                $msg .= "💰 Receitas: " . formatMoney($balance['receitas']['total']) . "\n";
+                $msg .= "💸 Despesas: " . formatMoney($balance['despesas']['total']) . "\n";
+                $msg .= "💵 Saldo: " . formatMoney($balance['saldo']) . "\n\n";
+                $msg .= "⚠️ Pendências: " . $pendencies['count'] . " (" . formatMoney($pendencies['total']) . ")";
+                
+                $response = ['success' => true, 'message' => $msg];
+            } catch (Exception $e) {
+                error_log("Erro no comando dashboard: " . $e->getMessage());
+                $response = ['success' => false, 'message' => '❌ Erro ao gerar dashboard: ' . $e->getMessage()];
             }
-            
-            $pendencies = getClientPendencies($pdo, null, $userId);
-            if (!$pendencies['success']) {
-                $response = ['success' => false, 'message' => '❌ Erro ao buscar pendências: ' . ($pendencies['error'] ?? 'Erro desconhecido')];
-                break;
-            }
-            
-            $msg = "📊 *DASHBOARD GERAL*\n\n";
-            $msg .= "💰 Receitas: " . formatMoney($balance['receitas']['total']) . "\n";
-            $msg .= "💸 Despesas: " . formatMoney($balance['despesas']['total']) . "\n";
-            $msg .= "💵 Saldo: " . formatMoney($balance['saldo']) . "\n\n";
-            $msg .= "⚠️ Pendências: " . $pendencies['count'] . " (" . formatMoney($pendencies['total']) . ")";
-            
-            $response = ['success' => true, 'message' => $msg];
             break;
 
         default:
