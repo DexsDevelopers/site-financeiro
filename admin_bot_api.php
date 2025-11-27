@@ -26,9 +26,22 @@ $headers = getallheaders();
 $token = $headers['Authorization'] ?? $headers['authorization'] ?? '';
 $token = str_replace('Bearer ', '', $token);
 
+// Debug: log do token recebido (apenas primeiros caracteres por segurança)
+error_log("Token recebido: " . substr($token, 0, 10) . "...");
+error_log("Token esperado: " . substr($config['WHATSAPP_API_TOKEN'], 0, 10) . "...");
+
 if ($token !== $config['WHATSAPP_API_TOKEN']) {
     http_response_code(401);
-    echo json_encode(['success' => false, 'error' => 'Token inválido']);
+    echo json_encode([
+        'success' => false, 
+        'error' => 'Token inválido',
+        'debug' => [
+            'token_recebido_length' => strlen($token),
+            'token_esperado_length' => strlen($config['WHATSAPP_API_TOKEN']),
+            'token_recebido_preview' => substr($token, 0, 10) . '...',
+            'token_esperado_preview' => substr($config['WHATSAPP_API_TOKEN'], 0, 10) . '...'
+        ]
+    ]);
     exit;
 }
 
