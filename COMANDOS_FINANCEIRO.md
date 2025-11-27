@@ -7,6 +7,12 @@
    Acesse: setup_finance_tables.php
    ```
 
+2. **Configurar autenticação:**
+   ```
+   Acesse: setup_whatsapp_auth.php
+   ```
+   Isso cria a tabela `whatsapp_sessions` para gerenciar logins.
+
 2. **Configurar bot:**
    ```bash
    cd whatsapp-bot-site-financeiro
@@ -25,6 +31,47 @@
    - Ou veja no console do bot
 
 ## 📋 Comandos Disponíveis
+
+### 🔐 Autenticação (OBRIGATÓRIO)
+
+**⚠️ IMPORTANTE:** Você precisa fazer login antes de usar os comandos financeiros!
+
+#### `!login EMAIL SENHA`
+Faz login na sua conta do painel financeiro.
+
+**Exemplos:**
+```
+!login usuario@email.com minhasenha123
+!login meuusuario minhasenha123
+```
+
+**Após o login:**
+- Todas as transações serão associadas à sua conta
+- Você poderá ver apenas seus próprios dados
+- Sua sessão permanece ativa até fazer logout
+
+#### `!logout`
+Encerra sua sessão no WhatsApp.
+
+#### `!status`
+Verifica se você está logado e mostra informações da sua conta.
+
+**Exemplo:**
+```
+!status
+```
+
+**Resposta:**
+```
+✅ Você está logado!
+
+👤 Nome: João Silva
+📧 Email: joao@email.com
+🆔 ID: #123
+📱 Telefone: 553791101425
+
+Todas as transações serão associadas à sua conta.
+```
 
 ### 💰 Financeiro
 
@@ -251,16 +298,22 @@ AUTO_REPLY_MESSAGE=Olá! Sou o assistente financeiro. Digite !menu para ver os c
 
 ## 📝 Exemplos de Uso
 
-### Fluxo Completo: Registrar Receita com Comprovante
+### Fluxo Completo: Login e Registrar Receita
 
 ```
-1. Admin: !receita 1500 Consultoria João Silva
-   Bot: ✅ Receita registrada! ID #1234
+1. Usuário: !login joao@email.com minhasenha123
+   Bot: ✅ Login realizado com sucesso!
+        Bem-vindo, João Silva!
+        Sua conta está conectada ao WhatsApp.
 
-2. Admin: !comprovante 1234
+2. Usuário: !receita 1500 Consultoria João Silva
+   Bot: ✅ Receita registrada! ID #1234
+        (Transação associada à conta do usuário logado)
+
+3. Usuário: !comprovante 1234
    Bot: 📸 Envie o comprovante agora
 
-3. Admin: [Envia foto]
+4. Usuário: [Envia foto]
    Bot: ✅ Comprovante anexado ao ID #1234
 ```
 

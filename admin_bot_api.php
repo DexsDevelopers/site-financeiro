@@ -101,17 +101,29 @@ function getWhatsAppUser(PDO $pdo, string $phone): ?array {
 // Função para fazer login via WhatsApp
 function loginWhatsApp(PDO $pdo, string $phone, string $email, string $password): array {
     try {
-        // Buscar usuário por email
-        $stmt = $pdo->prepare("SELECT id, nome, email, senha FROM usuarios WHERE email = ? LIMIT 1");
-        $stmt->execute([$email]);
+        // Buscar usuário por email ou nome de usuário
+        $stmt = $pdo->prepare("SELECT id, nome, email, senha, usuario FROM usuarios WHERE email = ? OR usuario = ? LIMIT 1");
+        $stmt->execute([$email, $email]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if (!$user) {
-            return ['success' => false, 'message' => '❌ Email não encontrado.'];
+            return ['success' => false, 'message' => '❌ Email/usuário não encontrado.'];
         }
         
-        // Verificar senha (assumindo que está em hash)
-        if (!password_verify($password, $user['senha'])) {
+        // Verificar senha (pode estar em hash ou texto simples)
+        $senhaValida = false;
+        if (isset($user['senha'])) {
+            // Se a senha está em hash
+            if (password_verify($password, $user['senha'])) {
+                $senhaValida = true;
+            }
+            // Se a senha está em texto simples (fallback para compatibilidade)
+            elseif ($user['senha'] === $password || md5($password) === $user['senha']) {
+                $senhaValida = true;
+            }
+        }
+        
+        if (!$senhaValida) {
             return ['success' => false, 'message' => '❌ Senha incorreta.'];
         }
         
