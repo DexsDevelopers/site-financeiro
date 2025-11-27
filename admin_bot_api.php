@@ -424,11 +424,31 @@ try {
             $year = isset($args[1]) ? (int)$args[1] : (int)date('Y');
             if (!$month) $month = (int)date('m');
             
+            // Debug: verificar transações do usuário
+            error_log("!saldo: userId=$userId, month=$month, year=$year");
+            
+            // Verificar quantas transações o usuário tem
+            try {
+                $checkStmt = $pdo->prepare("SELECT COUNT(*) as total, 
+                                           SUM(CASE WHEN type = 'receita' THEN value ELSE 0 END) as receitas,
+                                           SUM(CASE WHEN type = 'despesa' THEN value ELSE 0 END) as despesas
+                                           FROM transactions 
+                                           WHERE id_usuario = ? AND YEAR(created_at) = ? AND MONTH(created_at) = ?");
+                $checkStmt->execute([$userId, $year, $month]);
+                $checkResult = $checkStmt->fetch(PDO::FETCH_ASSOC);
+                error_log("!saldo: Transações encontradas - Total: {$checkResult['total']}, Receitas: {$checkResult['receitas']}, Despesas: {$checkResult['despesas']}");
+            } catch (Exception $e) {
+                error_log("!saldo: Erro ao verificar transações: " . $e->getMessage());
+            }
+            
             $balance = getBalance($pdo, $month, $year, $userId);
             
             if ($balance['success']) {
                 $monthName = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
                              'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+                
+                // Debug: log do resultado
+                error_log("!saldo: Resultado - Receitas: {$balance['receitas']['total']}, Despesas: {$balance['despesas']['total']}, Saldo: {$balance['saldo']}");
                 
                 $response = [
                     'success' => true,
@@ -439,7 +459,7 @@ try {
                                " (" . $balance['despesas']['count'] . " transações)\n" .
                                "━━━━━━━━━━━━━━━━━━━━━\n" .
                                "💵 Saldo: " . formatMoney($balance['saldo']) . "\n\n" .
-                               "📊 _Use /relatorio para detalhes_"
+                               "📊 _Use !relatorio para detalhes_"
                 ];
             } else {
                 $response = ['success' => false, 'message' => '❌ ' . $balance['error']];
