@@ -167,21 +167,24 @@ async function start() {
     
     // Processar comandos que começam com ! ou comandos naturais
     const text = msg.message.conversation || msg.message.extendedTextMessage?.text || '';
+    const textLower = text.trim().toLowerCase();
     
-    // Processar comandos que começam com ! ou comandos naturais
-    if (text.startsWith('!') || text.match(/^(recebi|ganhei|gastei|paguei|saldo|tarefas|tarefa|menu|ajuda)/i)) {
+    // Verificar se é um comando (começa com !) ou comando natural
+    const isCommand = text.startsWith('!') || 
+                     textLower.match(/^(recebi|ganhei|gastei|paguei|saldo|tarefas|tarefa|menu|ajuda|help|quanto tenho|quanto falta|dinheiro|o que fazer|o que tenho|pendentes)/i);
+    
+    if (isCommand) {
       try {
         let parts = text.trim().split(/\s+/);
         let command = parts[0].toLowerCase();
+        let args = parts.slice(1);
         
-        // Se não começar com !, manter o comando natural
+        // Se não começar com !, enviar mensagem completa para processamento natural
         if (!command.startsWith('!')) {
-          // Comandos naturais serão processados pelo PHP
+          // Para comandos naturais, enviar a mensagem completa como comando
           command = text.trim();
-          parts = [];
+          args = [];
         }
-        
-        const args = parts.slice(1);
         
         console.log(`[COMMAND] ${phoneNumber}: ${command} ${args.join(' ')}`);
         
