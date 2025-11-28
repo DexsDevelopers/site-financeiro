@@ -1018,8 +1018,156 @@ try {
             $response = ['success' => true, 'message' => $msg];
             break;
 
+        case '!semana':
+        case '!resumosemanal':
+        case 'resumo semanal':
+            if (!$userId) {
+                $response = ['success' => false, 'message' => '⚠️ Você precisa estar logado! Use: !login EMAIL SENHA'];
+                break;
+            }
+            
+            // Calcular início e fim da semana (segunda a domingo)
+            $today = new DateTime();
+            $dayOfWeek = (int)$today->format('w'); // 0 = domingo, 1 = segunda
+            $monday = clone $today;
+            $monday->modify('-' . (($dayOfWeek == 0 ? 7 : $dayOfWeek) - 1) . ' days');
+            $sunday = clone $monday;
+            $sunday->modify('+6 days');
+            
+            $startDate = $monday->format('Y-m-d');
+            $endDate = $sunday->format('Y-m-d');
+            
+            // Receitas da semana
+            $sqlReceitas = "SELECT COALESCE(SUM(value), 0) as total, COUNT(*) as count 
+                           FROM transactions 
+                           WHERE type = 'receita' 
+                           AND id_usuario = ?
+                           AND DATE(created_at) BETWEEN ? AND ?";
+            $stmt = $pdo->prepare($sqlReceitas);
+            $stmt->execute([$userId, $startDate, $endDate]);
+            $receitas = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            // Despesas da semana
+            $sqlDespesas = "SELECT COALESCE(SUM(value), 0) as total, COUNT(*) as count 
+                           FROM transactions 
+                           WHERE type = 'despesa' 
+                           AND id_usuario = ?
+                           AND DATE(created_at) BETWEEN ? AND ?";
+            $stmt = $pdo->prepare($sqlDespesas);
+            $stmt->execute([$userId, $startDate, $endDate]);
+            $despesas = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            // Tarefas concluídas da semana
+            $tasksWeek = getTasks($pdo, $userId, 'concluida', 100);
+            $tasksConcluidas = 0;
+            if ($tasksWeek['success']) {
+                foreach ($tasksWeek['tasks'] as $task) {
+                    $taskDate = new DateTime($task['data_criacao']);
+                    if ($taskDate >= $monday && $taskDate <= $sunday) {
+                        $tasksConcluidas++;
+                    }
+                }
+            }
+            
+            $saldoSemana = $receitas['total'] - $despesas['total'];
+            
+            $msg = "📊 *RESUMO SEMANAL*\n\n";
+            $msg .= "📅 Período: " . $monday->format('d/m') . " a " . $sunday->format('d/m/Y') . "\n\n";
+            $msg .= "💰 *Receitas*\n";
+            $msg .= "Total: " . formatMoney($receitas['total']) . "\n";
+            $msg .= "Transações: " . $receitas['count'] . "\n\n";
+            $msg .= "💸 *Despesas*\n";
+            $msg .= "Total: " . formatMoney($despesas['total']) . "\n";
+            $msg .= "Transações: " . $despesas['count'] . "\n\n";
+            $msg .= "━━━━━━━━━━━━━━━━━━━━━\n";
+            $msg .= "💵 Saldo da Semana: " . formatMoney($saldoSemana) . "\n\n";
+            $msg .= "✅ Tarefas Concluídas: $tasksConcluidas";
+            
+            $response = ['success' => true, 'message' => $msg];
+            break;
+
+        case '!comparar':
+        case '!comparacao':
+            if (!$userId) {
+                $response = ['success' => false, 'message' => '⚠️ Você precisa estar logado! Use: !login EMAIL SENHA'];
+                break;
+            }
+            
+            $currentMonth = (int)date('m');
+            $currentYear = (int)date('Y');
+            $lastMonth = $currentMonth - 1;
+            $lastYear = $currentYear;
+            if ($lastMonth < 1) {
+                $lastMonth = 12;
+                $lastYear--;
+            }
+            
+            $balanceCurrent = getBalance($pdo, $currentMonth, $currentYear, $userId);
+            $balanceLast = getBalance($pdo, $lastMonth, $lastYear, $userId);
+            
+            if (!$balanceCurrent['success'] || !$balanceLast['success']) {
+                $response = ['success' => false, 'message' => '❌ Erro ao calcular comparação'];
+                break;
+            }
+            
+            $monthNames = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
+                          'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+            
+            $diffReceitas = $balanceCurrent['receitas']['total'] - $balanceLast['receitas']['total'];
+            $diffDespesas = $balanceCurrent['despesas']['total'] - $balanceLast['despesas']['total'];
+            $diffSaldo = $balanceCurrent['saldo'] - $balanceLast['saldo'];
+            
+            $msg = "📊 *COMPARAÇÃO DE MESES*\n\n";
+            $msg .= "📅 " . strtoupper($monthNames[$currentMonth]) . "/$currentYear vs " . strtoupper($monthNames[$lastMonth]) . "/$lastYear\n\n";
+            
+            $msg .= "💰 *Receitas*\n";
+            $msg .= "Este mês: " . formatMoney($balanceCurrent['receitas']['total']) . "\n";
+            $msg .= "Mês anterior: " . formatMoney($balanceLast['receitas']['total']) . "\n";
+            $emoji = $diffReceitas >= 0 ? '📈' : '📉';
+            $msg .= "$emoji Diferença: " . formatMoney(abs($diffReceitas)) . "\n\n";
+            
+            $msg .= "💸 *Despesas*\n";
+            $msg .= "Este mês: " . formatMoney($balanceCurrent['despesas']['total']) . "\n";
+            $msg .= "Mês anterior: " . formatMoney($balanceLast['despesas']['total']) . "\n";
+            $emoji = $diffDespesas <= 0 ? '📉' : '📈';
+            $msg .= "$emoji Diferença: " . formatMoney(abs($diffDespesas)) . "\n\n";
+            
+            $msg .= "💵 *Saldo*\n";
+            $msg .= "Este mês: " . formatMoney($balanceCurrent['saldo']) . "\n";
+            $msg .= "Mês anterior: " . formatMoney($balanceLast['saldo']) . "\n";
+            $emoji = $diffSaldo >= 0 ? '📈' : '📉';
+            $msg .= "$emoji Diferença: " . formatMoney(abs($diffSaldo));
+            
+            $response = ['success' => true, 'message' => $msg];
+            break;
+
         default:
-            $response = ['success' => false, 'message' => '❌ Comando não reconhecido. Digite !menu para ver os comandos disponíveis.'];
+            // Tentar sugerir comando similar
+            $availableCommands = [
+                '!receita' => ['receita', 'recebi', 'ganhei'],
+                '!despesa' => ['despesa', 'gastei', 'paguei'],
+                '!saldo' => ['saldo', 'quanto tenho'],
+                '!tarefas' => ['tarefas', 'tarefa'],
+                '!menu' => ['menu', 'ajuda', 'help']
+            ];
+            
+            $suggestion = suggestCommand($command, $availableCommands);
+            $suggestionMsg = '';
+            if ($suggestion) {
+                $suggestionMsg = "\n\n💡 Você quis dizer: $suggestion?";
+            }
+            
+            $response = [
+                'success' => false, 
+                'message' => "❌ Comando não reconhecido: $command\n\n" .
+                           "Digite !menu para ver todos os comandos." .
+                           $suggestionMsg .
+                           "\n\n💡 Dica: Você pode usar comandos naturais como:\n" .
+                           "• recebi 1000 Salário\n" .
+                           "• gastei 50 Almoço\n" .
+                           "• saldo\n" .
+                           "• tarefas"
+            ];
     }
 } catch (Exception $e) {
     $response = ['success' => false, 'message' => '❌ Erro: ' . $e->getMessage()];
