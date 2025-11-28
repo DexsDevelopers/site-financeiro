@@ -165,26 +165,14 @@ async function start() {
       }
     }
     
-    // Processar comandos que começam com ! ou comandos naturais
+    // Processar apenas comandos que começam com !
     const text = msg.message.conversation || msg.message.extendedTextMessage?.text || '';
-    const textLower = text.trim().toLowerCase();
     
-    // Verificar se é um comando (começa com !) ou comando natural
-    const isCommand = text.startsWith('!') || 
-                     textLower.match(/^(recebi|ganhei|gastei|paguei|saldo|tarefas|tarefa|menu|ajuda|help|quanto tenho|quanto falta|dinheiro|o que fazer|o que tenho|pendentes)/i);
-    
-    if (isCommand) {
+    if (text.startsWith('!')) {
       try {
-        let parts = text.trim().split(/\s+/);
-        let command = parts[0].toLowerCase();
-        let args = parts.slice(1);
-        
-        // Se não começar com !, enviar mensagem completa para processamento natural
-        if (!command.startsWith('!')) {
-          // Para comandos naturais, enviar a mensagem completa como comando
-          command = text.trim();
-          args = [];
-        }
+        const parts = text.trim().split(/\s+/);
+        const command = parts[0].toLowerCase();
+        const args = parts.slice(1);
         
         console.log(`[COMMAND] ${phoneNumber}: ${command} ${args.join(' ')}`);
         

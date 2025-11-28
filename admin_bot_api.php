@@ -54,26 +54,6 @@ $command = $input['command'] ?? '';
 $args = $input['args'] ?? [];
 $message = $input['message'] ?? '';
 
-// Processar comando natural se não começar com !
-if (!empty($message) && (!str_starts_with($command, '!') || empty($command))) {
-    // Se o comando não começa com !, tentar processar como comando natural
-    if (!str_starts_with($message, '!')) {
-        $naturalCommand = parseNaturalCommand($message);
-        if ($naturalCommand) {
-            $command = $naturalCommand['command'];
-            if (isset($naturalCommand['value'])) {
-                array_unshift($args, $naturalCommand['value']);
-            }
-            if (isset($naturalCommand['description'])) {
-                $args[] = $naturalCommand['description'];
-            }
-        } else {
-            // Se não conseguir processar, usar a mensagem como comando
-            $command = $message;
-        }
-    }
-}
-
 // Normalizar número de telefone
 function normalizePhone(string $phone): string {
     $phone = preg_replace('/\D+/', '', $phone);
@@ -312,10 +292,9 @@ try {
 
         case '!menu':
         case '!help':
+        case '!ajuda':
         case '/menu':
         case '/help':
-        case 'menu':
-        case 'help':
             // Recalcular usuário logado para garantir que está atualizado
             $loggedUser = getWhatsAppUser($pdo, $phoneNormalized);
             $userId = $loggedUser ? (int)$loggedUser['id'] : null;
@@ -324,11 +303,6 @@ try {
                 'success' => true,
                 'message' => "📋 *MENU DE COMANDOS*\n\n" .
                            ($loggedUser ? "✅ Logado como: " . $loggedUser['nome'] . "\n\n" : "⚠️ *Você não está logado!*\nUse: !login EMAIL SENHA\n\n") .
-                           "💡 *COMANDOS RÁPIDOS*\n" .
-                           "💰 recebi 1000 Salário\n" .
-                           "💸 gastei 50 Almoço\n" .
-                           "💵 saldo\n" .
-                           "📋 tarefas\n\n" .
                            "*AUTENTICAÇÃO*\n" .
                            "🔐 !login EMAIL SENHA\n" .
                            "🚪 !logout\n" .
@@ -383,9 +357,6 @@ try {
 
         case '!receita':
         case '/receita':
-        case 'recebi':
-        case 'ganhei':
-        case 'entrou':
             if (!$userId) {
                 $response = ['success' => false, 'message' => '⚠️ Você precisa estar logado! Use: !login EMAIL SENHA'];
                 break;
@@ -449,10 +420,6 @@ try {
 
         case '!despesa':
         case '/despesa':
-        case 'gastei':
-        case 'paguei':
-        case 'saida':
-        case 'saída':
             if (!$userId) {
                 $response = ['success' => false, 'message' => '⚠️ Você precisa estar logado! Use: !login EMAIL SENHA'];
                 break;
@@ -533,10 +500,6 @@ try {
 
         case '!saldo':
         case '/saldo':
-        case 'saldo':
-        case 'quanto tenho':
-        case 'quanto falta':
-        case 'dinheiro':
             if (!$userId) {
                 $response = ['success' => false, 'message' => '⚠️ Você precisa estar logado! Use: !login EMAIL SENHA'];
                 break;
@@ -767,11 +730,6 @@ try {
         case '!tarefa':
         case '/tarefas':
         case '/tarefa':
-        case 'tarefas':
-        case 'tarefa':
-        case 'o que fazer':
-        case 'o que tenho':
-        case 'pendentes':
             if (!$userId) {
                 $response = ['success' => false, 'message' => '⚠️ Você precisa estar logado! Use: !login EMAIL SENHA'];
                 break;
@@ -1036,7 +994,6 @@ try {
 
         case '!semana':
         case '!resumosemanal':
-        case 'resumo semanal':
             if (!$userId) {
                 $response = ['success' => false, 'message' => '⚠️ Você precisa estar logado! Use: !login EMAIL SENHA'];
                 break;
@@ -1178,11 +1135,6 @@ try {
                 'message' => "❌ Comando não reconhecido: $command\n\n" .
                            "Digite !menu para ver todos os comandos." .
                            $suggestionMsg .
-                           "\n\n💡 Dica: Você pode usar comandos naturais como:\n" .
-                           "• recebi 1000 Salário\n" .
-                           "• gastei 50 Almoço\n" .
-                           "• saldo\n" .
-                           "• tarefas"
             ];
     }
 } catch (Exception $e) {
