@@ -55,15 +55,21 @@ $args = $input['args'] ?? [];
 $message = $input['message'] ?? '';
 
 // Processar comando natural se não começar com !
-if (!empty($message) && !$command && !str_starts_with($message, '!')) {
-    $naturalCommand = parseNaturalCommand($message);
-    if ($naturalCommand) {
-        $command = $naturalCommand['command'];
-        if (isset($naturalCommand['value'])) {
-            array_unshift($args, $naturalCommand['value']);
-        }
-        if (isset($naturalCommand['description'])) {
-            $args[] = $naturalCommand['description'];
+if (!empty($message) && (!str_starts_with($command, '!') || empty($command))) {
+    // Se o comando não começa com !, tentar processar como comando natural
+    if (!str_starts_with($message, '!')) {
+        $naturalCommand = parseNaturalCommand($message);
+        if ($naturalCommand) {
+            $command = $naturalCommand['command'];
+            if (isset($naturalCommand['value'])) {
+                array_unshift($args, $naturalCommand['value']);
+            }
+            if (isset($naturalCommand['description'])) {
+                $args[] = $naturalCommand['description'];
+            }
+        } else {
+            // Se não conseguir processar, usar a mensagem como comando
+            $command = $message;
         }
     }
 }
