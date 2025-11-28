@@ -306,11 +306,9 @@ try {
 
         case '!menu':
         case '!help':
-        case '!ajuda':
         case '/menu':
         case '/help':
         case 'menu':
-        case 'ajuda':
         case 'help':
             // Recalcular usuário logado para garantir que está atualizado
             $loggedUser = getWhatsAppUser($pdo, $phoneNormalized);
