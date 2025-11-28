@@ -306,8 +306,12 @@ try {
 
         case '!menu':
         case '!help':
+        case '!ajuda':
         case '/menu':
         case '/help':
+        case 'menu':
+        case 'ajuda':
+        case 'help':
             // Recalcular usuário logado para garantir que está atualizado
             $loggedUser = getWhatsAppUser($pdo, $phoneNormalized);
             $userId = $loggedUser ? (int)$loggedUser['id'] : null;
@@ -316,59 +320,84 @@ try {
                 'success' => true,
                 'message' => "📋 *MENU DE COMANDOS*\n\n" .
                            ($loggedUser ? "✅ Logado como: " . $loggedUser['nome'] . "\n\n" : "⚠️ *Você não está logado!*\nUse: !login EMAIL SENHA\n\n") .
+                           "💡 *COMANDOS RÁPIDOS*\n" .
+                           "💰 recebi 1000 Salário\n" .
+                           "💸 gastei 50 Almoço\n" .
+                           "💵 saldo\n" .
+                           "📋 tarefas\n\n" .
                            "*AUTENTICAÇÃO*\n" .
                            "🔐 !login EMAIL SENHA\n" .
                            "🚪 !logout\n" .
                            "ℹ️ !status\n\n" .
                            "*FINANCEIRO*\n" .
-                           "💰 !receita VALOR DESCRIÇÃO [CLIENTE]\n" .
-                           "💸 !despesa VALOR DESCRIÇÃO [CATEGORIA]\n" .
-                           "💵 !saldo [MÊS]\n" .
-                           "📊 !extrato [INÍCIO] [FIM]\n" .
-                           "🗑️ !deletar ID\n\n" .
-                           "*CLIENTES*\n" .
-                           "👤 !cliente NOME TELEFONE [EMAIL]\n" .
-                           "📋 !clientes\n" .
-                           "ℹ️ !clienteinfo ID\n" .
-                           "⚠️ !pendencias [ID]\n\n" .
-                           "*COMPROVANTES*\n" .
-                           "📸 !comprovante ID\n" .
-                           "👁️ !vercomprovante ID\n\n" .
-                           "*RELATÓRIOS*\n" .
-                           "📈 !relatorio [MÊS]\n" .
+                           "💰 !receita VALOR DESCRIÇÃO\n" .
+                           "💸 !despesa VALOR DESCRIÇÃO\n" .
+                           "💵 !saldo\n" .
+                           "📊 !extrato\n" .
+                           "📈 !relatorio\n" .
                            "📊 !dashboard\n" .
-                           "🏆 !topo [LIMITE]\n\n" .
-                           "*COBRANÇAS*\n" .
-                           "💳 !cobrar CLIENTE_ID VALOR VENCIMENTO DESCRIÇÃO\n" .
-                           "🔔 !lembrar COBRANCA_ID\n" .
-                           "📨 !notificar CLIENTE_ID MENSAGEM\n" .
-                           "✅ !pagar COBRANCA_ID\n\n" .
+                           "📊 !semana (resumo semanal)\n" .
+                           "📊 !comparar (comparar meses)\n" .
+                           "🗑️ !deletar ID\n\n" .
                            "*TAREFAS*\n" .
                            "📋 !tarefas\n" .
-                           "➕ !addtarefa DESCRIÇÃO [PRIORIDADE] [DATA]\n" .
+                           "➕ !addtarefa DESCRIÇÃO\n" .
                            "✅ !concluir ID\n" .
                            "🚨 !urgentes\n" .
                            "📅 !tarefahoje\n" .
-                           "🗑️ !deletartarefa ID\n" .
                            "📊 !estatisticas\n\n" .
-                           "💡 Digite !ajuda COMANDO para detalhes"
+                           "*CLIENTES*\n" .
+                           "👤 !clientes\n" .
+                           "⚠️ !pendencias\n\n" .
+                           "💡 Digite !ajuda COMANDO para mais detalhes\n" .
+                           "💡 Exemplo: !ajuda receita"
             ];
+            break;
+        
+        case '!ajuda':
+            // Ajuda contextual para comandos específicos
+            if (count($args) > 0) {
+                $helpCommand = '!' . strtolower($args[0]);
+                $helpMsg = formatHelpMessage($helpCommand, $loggedUser);
+                $response = ['success' => true, 'message' => $helpMsg];
+            } else {
+                $response = ['success' => false, 'message' => '❌ Uso: !ajuda COMANDO\n\nExemplo: !ajuda receita'];
+            }
             break;
 
         case '!receita':
         case '/receita':
+        case 'recebi':
+        case 'ganhei':
+        case 'entrou':
             if (!$userId) {
                 $response = ['success' => false, 'message' => '⚠️ Você precisa estar logado! Use: !login EMAIL SENHA'];
                 break;
             }
             
             if (count($args) < 2) {
-                $response = ['success' => false, 'message' => '❌ Uso: !receita VALOR DESCRIÇÃO [CLIENTE]'];
+                $response = [
+                    'success' => false, 
+                    'message' => '❌ *Formato incorreto!*\n\n' .
+                               'Uso: !receita VALOR DESCRIÇÃO\n' .
+                               'Exemplo: !receita 1500 Salário\n\n' .
+                               '💡 Ou use: recebi 1500 Salário'
+                ];
                 break;
             }
             
-            $value = (float)str_replace(',', '.', $args[0]);
+            // Parse do valor com validação melhor
+            $value = parseMoney($args[0]);
+            if (!$value || $value <= 0) {
+                $response = ['success' => false, 'message' => '❌ Valor inválido! Use um número maior que zero.\n\nExemplo: !receita 1500 Salário'];
+                break;
+            }
+            
             $description = implode(' ', array_slice($args, 1));
+            if (empty(trim($description))) {
+                $response = ['success' => false, 'message' => '❌ Descrição não pode estar vazia!\n\nExemplo: !receita 1500 Salário'];
+                break;
+            }
             $clientName = null;
             
             // Tentar encontrar cliente pelo nome
