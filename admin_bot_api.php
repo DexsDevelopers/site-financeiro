@@ -13,6 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 require_once 'includes/db_connect.php';
 require_once 'includes/finance_helper.php';
 require_once 'includes/tasks_helper.php';
+require_once 'includes/command_helper.php';
 
 // Carregar configuração
 $config = json_decode(file_get_contents(__DIR__ . '/config.json'), true);
@@ -52,6 +53,20 @@ $phoneNumber = $input['phone'] ?? '';
 $command = $input['command'] ?? '';
 $args = $input['args'] ?? [];
 $message = $input['message'] ?? '';
+
+// Processar comando natural se não começar com !
+if (!empty($message) && !$command && !str_starts_with($message, '!')) {
+    $naturalCommand = parseNaturalCommand($message);
+    if ($naturalCommand) {
+        $command = $naturalCommand['command'];
+        if (isset($naturalCommand['value'])) {
+            array_unshift($args, $naturalCommand['value']);
+        }
+        if (isset($naturalCommand['description'])) {
+            $args[] = $naturalCommand['description'];
+        }
+    }
+}
 
 // Normalizar número de telefone
 function normalizePhone(string $phone): string {
@@ -389,18 +404,37 @@ try {
 
         case '!despesa':
         case '/despesa':
+        case 'gastei':
+        case 'paguei':
+        case 'saida':
+        case 'saída':
             if (!$userId) {
                 $response = ['success' => false, 'message' => '⚠️ Você precisa estar logado! Use: !login EMAIL SENHA'];
                 break;
             }
             
             if (count($args) < 2) {
-                $response = ['success' => false, 'message' => '❌ Uso: !despesa VALOR DESCRIÇÃO [CATEGORIA]'];
+                $response = [
+                    'success' => false, 
+                    'message' => '❌ *Formato incorreto!*\n\n' .
+                               'Uso: !despesa VALOR DESCRIÇÃO\n' .
+                               'Exemplo: !despesa 50 Almoço\n\n' .
+                               '💡 Ou use: gastei 50 Almoço'
+                ];
                 break;
             }
             
-            $value = (float)str_replace(',', '.', $args[0]);
+            // Parse do valor com validação melhor
+            $value = parseMoney($args[0]);
+            if (!$value || $value <= 0) {
+                $response = ['success' => false, 'message' => '❌ Valor inválido! Use um número maior que zero.\n\nExemplo: !despesa 50 Almoço'];
+                break;
+            }
+            
             $description = implode(' ', array_slice($args, 1, -1));
+            if (empty(trim($description))) {
+                $description = $args[1] ?? 'Despesa';
+            }
             $category = count($args) > 2 ? $args[count($args) - 1] : null;
             
             $result = registerTransaction($pdo, 'despesa', $value, $description, $category, null, $userId, $phoneNormalized);
@@ -454,6 +488,10 @@ try {
 
         case '!saldo':
         case '/saldo':
+        case 'saldo':
+        case 'quanto tenho':
+        case 'quanto falta':
+        case 'dinheiro':
             if (!$userId) {
                 $response = ['success' => false, 'message' => '⚠️ Você precisa estar logado! Use: !login EMAIL SENHA'];
                 break;
@@ -684,6 +722,11 @@ try {
         case '!tarefa':
         case '/tarefas':
         case '/tarefa':
+        case 'tarefas':
+        case 'tarefa':
+        case 'o que fazer':
+        case 'o que tenho':
+        case 'pendentes':
             if (!$userId) {
                 $response = ['success' => false, 'message' => '⚠️ Você precisa estar logado! Use: !login EMAIL SENHA'];
                 break;

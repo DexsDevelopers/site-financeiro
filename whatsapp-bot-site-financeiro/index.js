@@ -165,13 +165,22 @@ async function start() {
       }
     }
     
-    // Processar comandos que começam com !
+    // Processar comandos que começam com ! ou comandos naturais
     const text = msg.message.conversation || msg.message.extendedTextMessage?.text || '';
     
-    if (text.startsWith('!')) {
+    // Processar comandos que começam com ! ou comandos naturais
+    if (text.startsWith('!') || text.match(/^(recebi|ganhei|gastei|paguei|saldo|tarefas|tarefa|menu|ajuda)/i)) {
       try {
-        const parts = text.trim().split(/\s+/);
-        const command = parts[0].toLowerCase();
+        let parts = text.trim().split(/\s+/);
+        let command = parts[0].toLowerCase();
+        
+        // Se não começar com !, manter o comando natural
+        if (!command.startsWith('!')) {
+          // Comandos naturais serão processados pelo PHP
+          command = text.trim();
+          parts = [];
+        }
+        
         const args = parts.slice(1);
         
         console.log(`[COMMAND] ${phoneNumber}: ${command} ${args.join(' ')}`);
