@@ -355,13 +355,25 @@ try {
             break;
         
         case '!ajuda':
-            // Ajuda contextual para comandos específicos
+            // Ajuda contextual para comandos específicos (só se não for menu/help)
             if (count($args) > 0) {
                 $helpCommand = '!' . strtolower($args[0]);
                 $helpMsg = formatHelpMessage($helpCommand, $loggedUser);
                 $response = ['success' => true, 'message' => $helpMsg];
             } else {
-                $response = ['success' => false, 'message' => '❌ Uso: !ajuda COMANDO\n\nExemplo: !ajuda receita'];
+                // Se não tiver argumento, mostrar menu
+                $loggedUser = getWhatsAppUser($pdo, $phoneNormalized);
+                $userId = $loggedUser ? (int)$loggedUser['id'] : null;
+                $response = [
+                    'success' => true,
+                    'message' => "💡 *AJUDA*\n\n" .
+                               "Digite !ajuda COMANDO para ver detalhes de um comando específico.\n\n" .
+                               "Exemplos:\n" .
+                               "• !ajuda receita\n" .
+                               "• !ajuda despesa\n" .
+                               "• !ajuda saldo\n\n" .
+                               "Ou digite !menu para ver todos os comandos."
+                ];
             }
             break;
 
