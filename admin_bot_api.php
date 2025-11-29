@@ -87,10 +87,12 @@ error_log("admin_bot_api: Número normalizado: " . $phoneNormalized);
 
 // Verificar se é admin
 $isAdmin = false;
-foreach ($config['ADMIN_WHATSAPP_NUMBERS'] as $adminNum) {
-    if (normalizePhone($adminNum) === $phoneNormalized) {
-        $isAdmin = true;
-        break;
+if (isset($config['ADMIN_WHATSAPP_NUMBERS']) && is_array($config['ADMIN_WHATSAPP_NUMBERS'])) {
+    foreach ($config['ADMIN_WHATSAPP_NUMBERS'] as $adminNum) {
+        if (normalizePhone($adminNum) === $phoneNormalized) {
+            $isAdmin = true;
+            break;
+        }
     }
 }
 
