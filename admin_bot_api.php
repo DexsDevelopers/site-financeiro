@@ -32,10 +32,30 @@ try {
 }
 
 // Carregar configuração
-$config = json_decode(file_get_contents(__DIR__ . '/config.json'), true);
-if (!$config) {
+$config = [];
+try {
+    $configFile = __DIR__ . '/config.json';
+    if (!file_exists($configFile)) {
+        throw new Exception("Arquivo config.json não encontrado em: " . $configFile);
+    }
+    $configContent = file_get_contents($configFile);
+    if ($configContent === false) {
+        throw new Exception("Erro ao ler config.json");
+    }
+    $config = json_decode($configContent, true);
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        throw new Exception("Erro ao decodificar config.json: " . json_last_error_msg());
+    }
+    if (!$config || !is_array($config)) {
+        throw new Exception("config.json está vazio ou inválido");
+    }
+} catch (Exception $e) {
+    error_log("Erro ao carregar configuração: " . $e->getMessage());
     http_response_code(500);
-    echo json_encode(['success' => false, 'error' => 'Erro ao carregar configuração']);
+    echo json_encode([
+        'success' => false, 
+        'error' => 'Erro ao carregar configuração: ' . $e->getMessage()
+    ], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
