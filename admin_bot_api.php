@@ -1,5 +1,11 @@
 <?php
 // admin_bot_api.php - API para processar comandos do bot WhatsApp
+
+// Habilitar exibição de erros para debug (remover em produção)
+error_reporting(E_ALL);
+ini_set('display_errors', 0); // Não exibir no output, mas logar
+ini_set('log_errors', 1);
+
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST, OPTIONS');
@@ -10,10 +16,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-require_once 'includes/db_connect.php';
-require_once 'includes/finance_helper.php';
-require_once 'includes/tasks_helper.php';
-require_once 'includes/command_helper.php';
+try {
+    require_once 'includes/db_connect.php';
+    require_once 'includes/finance_helper.php';
+    require_once 'includes/tasks_helper.php';
+    require_once 'includes/command_helper.php';
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'error' => 'Erro ao carregar arquivos: ' . $e->getMessage()
+    ], JSON_UNESCAPED_UNICODE);
+    error_log("Erro ao carregar arquivos em admin_bot_api.php: " . $e->getMessage());
+    exit;
+}
 
 // Carregar configuração
 $config = json_decode(file_get_contents(__DIR__ . '/config.json'), true);
@@ -1138,11 +1154,29 @@ try {
             ];
     }
 } catch (Exception $e) {
-    $response = ['success' => false, 'message' => '❌ Erro: ' . $e->getMessage()];
+    error_log("Erro em admin_bot_api.php: " . $e->getMessage());
+    error_log("Stack trace: " . $e->getTraceAsString());
+    $response = [
+        'success' => false, 
+        'message' => '❌ Erro ao processar comando: ' . $e->getMessage(),
+        'error_details' => $e->getFile() . ':' . $e->getLine()
+    ];
+} catch (Error $e) {
+    error_log("Erro fatal em admin_bot_api.php: " . $e->getMessage());
+    error_log("Stack trace: " . $e->getTraceAsString());
+    $response = [
+        'success' => false, 
+        'message' => '❌ Erro fatal: ' . $e->getMessage(),
+        'error_details' => $e->getFile() . ':' . $e->getLine()
+    ];
 }
 
 // Salvar log
-writeLog($pdo, $phoneNormalized, $command, $message, $response['message'], $response['success']);
+try {
+    writeLog($pdo, $phoneNormalized, $command, $message, $response['message'] ?? 'Erro desconhecido', $response['success'] ?? false);
+} catch (Exception $e) {
+    error_log("Erro ao salvar log: " . $e->getMessage());
+}
 
 echo json_encode($response, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
 
