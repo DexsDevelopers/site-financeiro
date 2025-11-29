@@ -236,8 +236,15 @@ function logoutWhatsApp(PDO $pdo, string $phone): array {
 }
 
 // Obter usuário logado
-$loggedUser = getWhatsAppUser($pdo, $phoneNormalized);
-$userId = $loggedUser ? (int)$loggedUser['id'] : null;
+$loggedUser = null;
+$userId = null;
+try {
+    $loggedUser = getWhatsAppUser($pdo, $phoneNormalized);
+    $userId = $loggedUser ? (int)$loggedUser['id'] : null;
+} catch (Exception $e) {
+    error_log("Erro ao obter usuário logado: " . $e->getMessage());
+    // Continuar sem usuário logado
+}
 
 // Função de log
 function writeLog(PDO $pdo, string $phone, string $command, string $message, string $response, bool $success): void {
@@ -311,14 +318,25 @@ try {
         case '!ajuda':
         case '/menu':
         case '/help':
-            // Recalcular usuário logado para garantir que está atualizado
-            $loggedUser = getWhatsAppUser($pdo, $phoneNormalized);
-            $userId = $loggedUser ? (int)$loggedUser['id'] : null;
+            try {
+                // Recalcular usuário logado para garantir que está atualizado
+                $loggedUser = getWhatsAppUser($pdo, $phoneNormalized);
+                $userId = $loggedUser ? (int)$loggedUser['id'] : null;
+            } catch (Exception $e) {
+                error_log("Erro ao obter usuário no menu: " . $e->getMessage());
+                $loggedUser = null;
+                $userId = null;
+            }
+            
+            $nomeUsuario = '';
+            if ($loggedUser && isset($loggedUser['nome'])) {
+                $nomeUsuario = $loggedUser['nome'];
+            }
             
             $response = [
                 'success' => true,
                 'message' => "📋 *MENU DE COMANDOS*\n\n" .
-                           ($loggedUser ? "✅ Logado como: " . $loggedUser['nome'] . "\n\n" : "⚠️ *Você não está logado!*\nUse: !login EMAIL SENHA\n\n") .
+                           ($loggedUser && $nomeUsuario ? "✅ Logado como: " . $nomeUsuario . "\n\n" : "⚠️ *Você não está logado!*\nUse: !login EMAIL SENHA\n\n") .
                            "*AUTENTICAÇÃO*\n" .
                            "🔐 !login EMAIL SENHA\n" .
                            "🚪 !logout\n" .
