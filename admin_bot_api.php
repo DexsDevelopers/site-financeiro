@@ -453,7 +453,11 @@ try {
             }
             
             // Parse do valor com validação melhor
-            $value = parseMoney($args[0]);
+            if (function_exists('parseMoney')) {
+                $value = parseMoney($args[0]);
+            } else {
+                $value = (float)str_replace(',', '.', $args[0]);
+            }
             if (!$value || $value <= 0) {
                 $response = ['success' => false, 'message' => '❌ Valor inválido! Use um número maior que zero.\n\nExemplo: !despesa 50 Almoço'];
                 break;
@@ -1132,25 +1136,31 @@ try {
 
         default:
             // Tentar sugerir comando similar
-            $availableCommands = [
-                '!receita' => ['receita', 'recebi', 'ganhei'],
-                '!despesa' => ['despesa', 'gastei', 'paguei'],
-                '!saldo' => ['saldo', 'quanto tenho'],
-                '!tarefas' => ['tarefas', 'tarefa'],
-                '!menu' => ['menu', 'ajuda', 'help']
-            ];
-            
-            $suggestion = suggestCommand($command, $availableCommands);
             $suggestionMsg = '';
-            if ($suggestion) {
-                $suggestionMsg = "\n\n💡 Você quis dizer: $suggestion?";
+            if (function_exists('suggestCommand')) {
+                try {
+                    $availableCommands = [
+                        '!receita' => ['receita', 'recebi', 'ganhei'],
+                        '!despesa' => ['despesa', 'gastei', 'paguei'],
+                        '!saldo' => ['saldo', 'quanto tenho'],
+                        '!tarefas' => ['tarefas', 'tarefa'],
+                        '!menu' => ['menu', 'ajuda', 'help']
+                    ];
+                    
+                    $suggestion = suggestCommand($command, $availableCommands);
+                    if ($suggestion) {
+                        $suggestionMsg = "\n\n💡 Você quis dizer: $suggestion?";
+                    }
+                } catch (Exception $e) {
+                    error_log("Erro ao sugerir comando: " . $e->getMessage());
+                }
             }
             
             $response = [
                 'success' => false, 
                 'message' => "❌ Comando não reconhecido: $command\n\n" .
                            "Digite !menu para ver todos os comandos." .
-                           $suggestionMsg .
+                           $suggestionMsg
             ];
     }
 } catch (Exception $e) {
