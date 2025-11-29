@@ -352,8 +352,25 @@ try {
             // Ajuda contextual para comandos específicos (só se não for menu/help)
             if (count($args) > 0) {
                 $helpCommand = '!' . strtolower($args[0]);
-                $helpMsg = formatHelpMessage($helpCommand, $loggedUser);
-                $response = ['success' => true, 'message' => $helpMsg];
+                if (function_exists('formatHelpMessage')) {
+                    try {
+                        $helpMsg = formatHelpMessage($helpCommand, $loggedUser);
+                        $response = ['success' => true, 'message' => $helpMsg];
+                    } catch (Exception $e) {
+                        error_log("Erro ao formatar ajuda: " . $e->getMessage());
+                        $response = [
+                            'success' => true,
+                            'message' => "💡 *AJUDA: " . strtoupper($args[0]) . "*\n\n" .
+                                       "Digite !menu para ver todos os comandos disponíveis."
+                        ];
+                    }
+                } else {
+                    $response = [
+                        'success' => true,
+                        'message' => "💡 *AJUDA: " . strtoupper($args[0]) . "*\n\n" .
+                                   "Digite !menu para ver todos os comandos disponíveis."
+                    ];
+                }
             } else {
                 // Se não tiver argumento, mostrar menu
                 $loggedUser = getWhatsAppUser($pdo, $phoneNormalized);
