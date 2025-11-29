@@ -97,6 +97,18 @@ foreach ($config['ADMIN_WHATSAPP_NUMBERS'] as $adminNum) {
 // Função para obter usuário logado via WhatsApp
 function getWhatsAppUser(PDO $pdo, string $phone): ?array {
     try {
+        // Verificar se tabela existe
+        try {
+            $checkTable = $pdo->query("SHOW TABLES LIKE 'whatsapp_sessions'");
+            if ($checkTable->rowCount() === 0) {
+                error_log("getWhatsAppUser: Tabela whatsapp_sessions não existe");
+                return null;
+            }
+        } catch (PDOException $e) {
+            error_log("getWhatsAppUser: Erro ao verificar tabela: " . $e->getMessage());
+            return null;
+        }
+        
         // Debug: log do número sendo buscado
         error_log("getWhatsAppUser: Buscando sessão para telefone: " . $phone);
         
@@ -114,24 +126,23 @@ function getWhatsAppUser(PDO $pdo, string $phone): ?array {
         if ($user) {
             error_log("getWhatsAppUser: Sessão encontrada para usuário ID: " . $user['id']);
             // Atualizar última atividade
-            $updateStmt = $pdo->prepare("UPDATE whatsapp_sessions SET last_activity = NOW() WHERE phone_number = ? AND is_active = 1");
-            $updateStmt->execute([$phone]);
+            try {
+                $updateStmt = $pdo->prepare("UPDATE whatsapp_sessions SET last_activity = NOW() WHERE phone_number = ? AND is_active = 1");
+                $updateStmt->execute([$phone]);
+            } catch (PDOException $e) {
+                error_log("Erro ao atualizar última atividade: " . $e->getMessage());
+                // Continuar mesmo se falhar a atualização
+            }
         } else {
             error_log("getWhatsAppUser: Nenhuma sessão ativa encontrada para telefone: " . $phone);
-            // Debug: verificar se existe sessão inativa
-            $checkStmt = $pdo->prepare("SELECT phone_number, is_active, user_id FROM whatsapp_sessions WHERE phone_number = ?");
-            $checkStmt->execute([$phone]);
-            $checkResult = $checkStmt->fetch(PDO::FETCH_ASSOC);
-            if ($checkResult) {
-                error_log("getWhatsAppUser: Sessão encontrada mas inativa. is_active: " . $checkResult['is_active']);
-            } else {
-                error_log("getWhatsAppUser: Nenhuma sessão encontrada (nem ativa nem inativa) para telefone: " . $phone);
-            }
         }
         
         return $user ?: null;
     } catch (PDOException $e) {
         error_log("Erro ao buscar usuário WhatsApp: " . $e->getMessage());
+        return null;
+    } catch (Exception $e) {
+        error_log("Erro geral em getWhatsAppUser: " . $e->getMessage());
         return null;
     }
 }
