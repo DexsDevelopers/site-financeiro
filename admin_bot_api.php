@@ -390,7 +390,11 @@ try {
             }
             
             // Parse do valor com validação melhor
-            $value = parseMoney($args[0]);
+            if (function_exists('parseMoney')) {
+                $value = parseMoney($args[0]);
+            } else {
+                $value = (float)str_replace(',', '.', $args[0]);
+            }
             if (!$value || $value <= 0) {
                 $response = ['success' => false, 'message' => '❌ Valor inválido! Use um número maior que zero.\n\nExemplo: !receita 1500 Salário'];
                 break;
