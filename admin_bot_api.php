@@ -96,6 +96,13 @@ try {
     exit;
 }
 
+// Função para formatar valores monetários
+if (!function_exists('formatMoney')) {
+    function formatMoney(float $value): string {
+        return 'R$ ' . number_format($value, 2, ',', '.');
+    }
+}
+
 // Validar token
 $headers = getallheaders();
 $token = $headers['Authorization'] ?? $headers['authorization'] ?? '';
@@ -537,7 +544,10 @@ try {
             $result = registerTransaction($pdo, 'receita', $value, $description, null, $clientId, $userId, $phoneNormalized);
             
             if ($result['success']) {
-                $balance = getBalance($pdo);
+                // Obter saldo do usuário específico
+                $balance = getBalance($pdo, null, null, $userId);
+                $saldoAtual = $balance['success'] ? formatMoney($balance['saldo']) : 'N/A';
+                
                 $response = [
                     'success' => true,
                     'message' => "💰 *Receita Registrada*\n\n" .
@@ -546,7 +556,8 @@ try {
                                ($clientName ? "Cliente: $clientName\n" : "") .
                                "ID: #" . $result['transaction_id'] . "\n" .
                                "Data: " . date('d/m/Y H:i') . "\n\n" .
-                               "✅ Saldo atualizado!"
+                               "💵 Saldo atual: $saldoAtual\n" .
+                               "✅ Registrado no painel!"
                 ];
             } else {
                 $response = ['success' => false, 'message' => '❌ ' . $result['error']];
@@ -605,6 +616,10 @@ try {
                     }
                 }
                 
+                // Obter saldo atualizado após despesa
+                $balance = getBalance($pdo, null, null, $userId);
+                $saldoAtual = $balance['success'] ? formatMoney($balance['saldo']) : 'N/A';
+                
                 $response = [
                     'success' => true,
                     'message' => "💸 *Despesa Registrada*\n\n" .
@@ -614,7 +629,8 @@ try {
                                "ID: #" . $result['transaction_id'] . "\n" .
                                "Data: " . date('d/m/Y H:i') . "\n" .
                                $mensagemAlerta .
-                               "\n✅ Registrado com sucesso!"
+                               "\n💵 Saldo atual: $saldoAtual\n" .
+                               "✅ Registrado no painel!"
                 ];
                 
                 // Enviar alerta assíncrono se for gasto alto
