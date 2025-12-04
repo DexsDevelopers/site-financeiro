@@ -118,7 +118,7 @@ foreach ($requiredFunctions as $func) {
 // 7. Testar conexão com Gemini API
 if (defined('GEMINI_API_KEY') && !empty(GEMINI_API_KEY)) {
     try {
-        $testUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-002:generateContent?key=' . GEMINI_API_KEY;
+        $testUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' . GEMINI_API_KEY;
         $testData = [
             'contents' => [
                 ['parts' => [['text' => 'Responda apenas: OK']]]
