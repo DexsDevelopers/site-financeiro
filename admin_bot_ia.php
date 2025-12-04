@@ -288,95 +288,158 @@ $tools = [
     ]
 ];
 
-// Chamar Gemini API
-$gemini_api_url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=' . GEMINI_API_KEY;
-$conversationHistory = [
-    ['role' => 'user', 'parts' => [['text' => $prompt_inicial]]],
-    ['role' => 'model', 'parts' => [['text' => 'Entendido! Estou pronto para ajudar.']]],
-    ['role' => 'user', 'parts' => [['text' => $pergunta]]]
-];
-$data = [
-    'contents' => $conversationHistory,
-    'tools' => $tools,
-    'tool_config' => [
-        'function_calling_config' => [
-            'mode' => 'ANY'
-        ]
-    ]
-];
-
-$ch = curl_init($gemini_api_url);
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch, CURLOPT_POST, true);
-curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-$response_string = curl_exec($ch);
-$http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-curl_close($ch);
-
-if ($http_code === 429) {
-    http_response_code(429);
+// Verificar se GEMINI_API_KEY está definido
+if (!defined('GEMINI_API_KEY') || empty(GEMINI_API_KEY)) {
+    error_log("[BOT_IA] ERRO: GEMINI_API_KEY não está definido");
+    http_response_code(500);
     echo json_encode([
         'success' => false,
-        'message' => 'Limite de requisições excedido. Aguarde alguns minutos.'
+        'resposta' => 'Erro de configuração: API Key do Gemini não encontrada.'
     ]);
     exit;
 }
 
-$api_response = json_decode($response_string, true);
-$resposta_final = '';
-
-if (isset($api_response['error'])) {
-    $resposta_final = 'Desculpe, ocorreu um erro ao processar sua pergunta. Tente novamente.';
-} else {
-    $functionCall = $api_response['candidates'][0]['content']['parts'][0]['functionCall'] ?? null;
+try {
+    // Chamar Gemini API
+    $gemini_api_url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=' . GEMINI_API_KEY;
+    $conversationHistory = [
+        ['role' => 'user', 'parts' => [['text' => $prompt_inicial]]],
+        ['role' => 'model', 'parts' => [['text' => 'Entendido! Estou pronto para ajudar.']]],
+        ['role' => 'user', 'parts' => [['text' => $pergunta]]]
+    ];
+    $data = [
+        'contents' => $conversationHistory,
+        'tools' => $tools,
+        'tool_config' => [
+            'function_calling_config' => [
+                'mode' => 'ANY'
+            ]
+        ]
+    ];
     
-    if ($functionCall) {
-        $functionName = $functionCall['name'];
-        $functionArgs = $functionCall['args'] ?? [];
+    $ch = curl_init($gemini_api_url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+    $response_string = curl_exec($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curl_error = curl_error($ch);
+    curl_close($ch);
+    
+    if ($curl_error) {
+        throw new Exception("Erro cURL: $curl_error");
+    }
+    
+    if ($http_code === 429) {
+        http_response_code(429);
+        echo json_encode([
+            'success' => false,
+            'resposta' => 'Limite de requisições excedido. Aguarde alguns minutos.'
+        ]);
+        exit;
+    }
+    
+    if ($http_code !== 200) {
+        error_log("[BOT_IA] HTTP Error $http_code: " . substr($response_string, 0, 500));
+        throw new Exception("Erro HTTP $http_code da API Gemini");
+    }
+    
+    $api_response = json_decode($response_string, true);
+    
+    if (!$api_response) {
+        error_log("[BOT_IA] Resposta inválida do Gemini: " . substr($response_string, 0, 500));
+        throw new Exception("Resposta inválida da API Gemini");
+    }
+    
+    $resposta_final = '';
+    
+    if (isset($api_response['error'])) {
+        $error_msg = $api_response['error']['message'] ?? 'Erro desconhecido';
+        error_log("[BOT_IA] Erro da API: $error_msg");
+        $resposta_final = 'Desculpe, ocorreu um erro ao processar sua pergunta: ' . $error_msg;
+    } else {
+        // Verificar se há candidates
+        if (!isset($api_response['candidates']) || empty($api_response['candidates'])) {
+            error_log("[BOT_IA] Nenhum candidate na resposta");
+            throw new Exception("Resposta da API sem candidates");
+        }
         
-        try {
-            switch ($functionName) {
-                case 'getResumoFinanceiro':
-                    $result = getResumoFinanceiro($pdo, $userId);
-                    break;
-                case 'getPrincipaisCategoriasGasto':
-                    $result = getPrincipaisCategoriasGasto($pdo, $userId);
-                    break;
-                case 'getTarefasDoUsuario':
-                    $result = getTarefasDoUsuario($pdo, $userId);
-                    break;
-                case 'getTarefasUrgentes':
-                    $result = getTarefasUrgentes($pdo, $userId);
-                    break;
-                case 'adicionarTarefa':
-                    $descricao = $functionArgs['descricao'] ?? '';
-                    if ($descricao) {
-                        $result = adicionarTarefa($pdo, $userId, $descricao);
-                        // Converter formato de resposta
-                        if (isset($result['message'])) {
-                            $result = ['resultado' => $result['message']];
-                        } elseif (isset($result['success']) && !$result['success']) {
-                            $result = ['resultado' => $result['message'] ?? 'Erro ao adicionar tarefa.'];
-                        }
-                    } else {
-                        $result = ['resultado' => 'Descrição da tarefa é obrigatória.'];
-                    }
-                    break;
-                default:
-                    $result = ['resultado' => 'Função não reconhecida.'];
+        $candidate = $api_response['candidates'][0];
+        if (!isset($candidate['content']['parts']) || empty($candidate['content']['parts'])) {
+            error_log("[BOT_IA] Candidate sem parts");
+            throw new Exception("Candidate sem parts");
+        }
+        
+        $functionCall = $candidate['content']['parts'][0]['functionCall'] ?? null;
+        
+        if ($functionCall) {
+            $functionName = $functionCall['name'] ?? '';
+            $functionArgs = $functionCall['args'] ?? [];
+            
+            if (empty($functionName)) {
+                throw new Exception("FunctionCall sem nome");
             }
             
-            $resposta_final = $result['resultado'] ?? 'Resposta não disponível.';
-        } catch (Exception $e) {
-            error_log("Erro ao executar função: " . $e->getMessage());
-            $resposta_final = 'Erro ao processar sua solicitação. Tente novamente.';
+            try {
+                switch ($functionName) {
+                    case 'getResumoFinanceiro':
+                        $result = getResumoFinanceiro($pdo, $userId);
+                        break;
+                    case 'getPrincipaisCategoriasGasto':
+                        $result = getPrincipaisCategoriasGasto($pdo, $userId);
+                        break;
+                    case 'getTarefasDoUsuario':
+                        $result = getTarefasDoUsuario($pdo, $userId);
+                        break;
+                    case 'getTarefasUrgentes':
+                        $result = getTarefasUrgentes($pdo, $userId);
+                        break;
+                    case 'adicionarTarefa':
+                        $descricao = $functionArgs['descricao'] ?? '';
+                        if ($descricao) {
+                            $result = adicionarTarefa($pdo, $userId, $descricao);
+                            // Converter formato de resposta
+                            if (isset($result['message'])) {
+                                $result = ['resultado' => $result['message']];
+                            } elseif (isset($result['success']) && !$result['success']) {
+                                $result = ['resultado' => $result['message'] ?? 'Erro ao adicionar tarefa.'];
+                            }
+                        } else {
+                            $result = ['resultado' => 'Descrição da tarefa é obrigatória.'];
+                        }
+                        break;
+                    default:
+                        $result = ['resultado' => 'Função não reconhecida: ' . $functionName];
+                }
+                
+                $resposta_final = $result['resultado'] ?? 'Resposta não disponível.';
+            } catch (Exception $e) {
+                error_log("[BOT_IA] Erro ao executar função $functionName: " . $e->getMessage());
+                error_log("[BOT_IA] Stack: " . $e->getTraceAsString());
+                $resposta_final = 'Erro ao processar sua solicitação: ' . $e->getMessage();
+            }
+        } else {
+            // Resposta direta da IA
+            $text = $candidate['content']['parts'][0]['text'] ?? null;
+            if ($text) {
+                $resposta_final = $text;
+            } else {
+                error_log("[BOT_IA] Nenhum texto ou functionCall na resposta");
+                $resposta_final = 'Não foi possível gerar uma resposta. Tente reformular sua pergunta.';
+            }
         }
-    } else {
-        // Resposta direta da IA
-        $resposta_final = $api_response['candidates'][0]['content']['parts'][0]['text'] ?? 'Não foi possível gerar uma resposta.';
     }
+} catch (Exception $e) {
+    error_log("[BOT_IA] Exception: " . $e->getMessage());
+    error_log("[BOT_IA] Stack: " . $e->getTraceAsString());
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'resposta' => 'Erro ao processar: ' . $e->getMessage()
+    ]);
+    exit;
 }
 
 // Registrar uso no rate limiter
