@@ -55,8 +55,25 @@ async function start() {
   // Usa pasta de auth específica para este projeto
   const { state, saveCreds } = await useMultiFileAuthState('./auth-site-financeiro');
   // Logger customizado para reduzir verbosidade
+  // Filtrar erros de descriptografia que são normais
   const logger = pino({ 
-    level: 'error' // Apenas erros críticos, ignora logs de debug do Baileys
+    level: 'error',
+    serializers: {
+      err: (err) => {
+        // Ignorar erros de descriptografia comuns que não são problemas reais
+        if (err && (
+          err.message?.includes('MessageCounterError') ||
+          err.message?.includes('Key used already') ||
+          err.message?.includes('No session found to decrypt') ||
+          err.message?.includes('Invalid PreKey ID') ||
+          err.name === 'MessageCounterError' ||
+          err.name === 'PreKeyError'
+        )) {
+          return null; // Não logar esses erros
+        }
+        return pino.stdSerializers.err(err);
+      }
+    }
   });
   
   sock = makeWASocket({
@@ -110,191 +127,194 @@ async function start() {
 
   // Tratamento de erros de descriptografia
   sock.ev.on('messages.upsert', async (m) => {
-    console.log('[MESSAGE] Evento messages.upsert recebido, isReady:', isReady);
+    // Ignorar eventos vazios
+    if (!m || !m.messages || m.messages.length === 0) {
+      return;
+    }
     
     if (!isReady) {
-      console.log('[MESSAGE] Bot não está pronto, ignorando mensagem');
       return;
     }
     
     try {
-      console.log('[MESSAGE] Processando mensagem, total de mensagens:', m.messages?.length || 0);
-      const msg = m.messages[0];
-      
-      if (!msg) {
-        console.log('[MESSAGE] Nenhuma mensagem no array');
-        return;
-      }
-      
-      console.log('[MESSAGE] Mensagem encontrada, fromMe:', msg.key?.fromMe, 'hasMessage:', !!msg.message);
-      
-      if (msg.key.fromMe || !msg.message) {
-        console.log('[MESSAGE] Mensagem ignorada (fromMe ou sem message)');
-        return;
-      }
-      
-      // Ignorar mensagens com erro de descriptografia
-      if (msg.messageStubType === 1 || msg.messageStubType === 2) {
-        console.log('[MESSAGE] Mensagem com stub type, ignorando');
-        return; // Mensagem deletada ou erro
-      }
-      
-      console.log('[MESSAGE] Nova mensagem recebida');
+      // Processar todas as mensagens do evento
+      for (const msg of m.messages) {
+        // Ignorar mensagens próprias
+        if (msg.key?.fromMe) {
+          continue;
+        }
+        
+        // Ignorar grupos (por enquanto)
+        const jid = msg.key.remoteJid;
+        if (!jid || jid.includes('@g.us') || jid.includes('@broadcast') || jid.includes('status@')) {
+          continue;
+        }
+        
+        // Ignorar mensagens sem conteúdo
+        if (!msg.message) {
+          continue;
+        }
+        
+        // Ignorar mensagens com erro de descriptografia
+        if (msg.messageStubType === 1 || msg.messageStubType === 2) {
+          continue;
+        }
+        
+        console.log('[MESSAGE] Nova mensagem recebida de:', jid);
 
-    const jid = msg.key.remoteJid;
-    if (!jid || jid.includes('@g.us')) return; // Ignora grupos
-
-    // Extrair número do JID
-    const phoneNumber = jid.split('@')[0];
-    
-    // Verificar se está aguardando foto
-    const waiting = waitingForPhoto.get(jid);
-    if (waiting && (Date.now() - waiting.timestamp) < 300000) { // 5 minutos
-      if (msg.message.imageMessage || msg.message.documentMessage) {
-        try {
-          // Processar upload de foto
-          const media = msg.message.imageMessage || msg.message.documentMessage;
-          const stream = await downloadMediaMessage(msg, 'buffer', {}, { logger: pino({ level: 'silent' }) });
-          const chunks = [];
-          for await (const chunk of stream) {
-            chunks.push(chunk);
-          }
-          const buffer = Buffer.concat(chunks);
-          
-          // Enviar para API de upload
-          const formData = new FormData();
-          formData.append('photo', buffer, {
-            filename: `comprovante_${waiting.transactionId}_${Date.now()}.jpg`,
-            contentType: 'image/jpeg'
-          });
-          formData.append('transaction_id', waiting.transactionId);
-          formData.append('phone', phoneNumber);
-          
-          const uploadResponse = await axios.post(`${ADMIN_API_URL}/admin_bot_photo.php`, formData, {
-            headers: {
-              ...formData.getHeaders(),
-              'Authorization': `Bearer ${API_TOKEN}`
+        // Extrair número do JID
+        const phoneNumber = jid.split('@')[0];
+        
+        // Verificar se está aguardando foto
+        const waiting = waitingForPhoto.get(jid);
+        if (waiting && (Date.now() - waiting.timestamp) < 300000) { // 5 minutos
+          if (msg.message.imageMessage || msg.message.documentMessage) {
+            try {
+              // Processar upload de foto
+              const media = msg.message.imageMessage || msg.message.documentMessage;
+              const stream = await downloadMediaMessage(msg, 'buffer', {}, { logger: pino({ level: 'silent' }) });
+              const chunks = [];
+              for await (const chunk of stream) {
+                chunks.push(chunk);
+              }
+              const buffer = Buffer.concat(chunks);
+              
+              // Enviar para API de upload
+              const formData = new FormData();
+              formData.append('photo', buffer, {
+                filename: `comprovante_${waiting.transactionId}_${Date.now()}.jpg`,
+                contentType: 'image/jpeg'
+              });
+              formData.append('transaction_id', waiting.transactionId);
+              formData.append('phone', phoneNumber);
+              
+              const uploadResponse = await axios.post(`${ADMIN_API_URL}/admin_bot_photo.php`, formData, {
+                headers: {
+                  ...formData.getHeaders(),
+                  'Authorization': `Bearer ${API_TOKEN}`
+                }
+              });
+              
+              if (uploadResponse.data.success) {
+                await sock.sendMessage(jid, { text: `✅ Comprovante anexado ao ID #${waiting.transactionId}` });
+              } else {
+                await sock.sendMessage(jid, { text: `❌ Erro ao anexar comprovante: ${uploadResponse.data.error || 'Erro desconhecido'}` });
+              }
+              
+              waitingForPhoto.delete(jid);
+            } catch (e) {
+              console.error('[PHOTO-UPLOAD] Erro:', e);
+              await sock.sendMessage(jid, { text: '❌ Erro ao processar foto. Tente novamente.' });
+              waitingForPhoto.delete(jid);
             }
-          });
-          
-          if (uploadResponse.data.success) {
-            await sock.sendMessage(jid, { text: `✅ Comprovante anexado ao ID #${waiting.transactionId}` });
-          } else {
-            await sock.sendMessage(jid, { text: `❌ Erro ao anexar comprovante: ${uploadResponse.data.error || 'Erro desconhecido'}` });
+            continue; // Próxima mensagem
           }
-          
-          waitingForPhoto.delete(jid);
-        } catch (e) {
-          console.error('[PHOTO-UPLOAD] Erro:', e);
-          await sock.sendMessage(jid, { text: '❌ Erro ao processar foto. Tente novamente.' });
-          waitingForPhoto.delete(jid);
-        }
-        return;
-      }
-    }
-    
-    // Processar apenas comandos que começam com !
-    const text = msg.message.conversation || msg.message.extendedTextMessage?.text || '';
-    
-    if (!text) {
-      console.log('[MESSAGE] Mensagem sem texto, ignorando');
-      return;
-    }
-    
-    console.log(`[MESSAGE] Texto recebido: "${text}" de ${phoneNumber}`);
-    
-    if (text.startsWith('!')) {
-      try {
-        const parts = text.trim().split(/\s+/);
-        const command = parts[0].toLowerCase();
-        const args = parts.slice(1);
-        
-        console.log(`[COMMAND] ${phoneNumber}: ${command} ${args.join(' ')}`);
-        
-        // Se for comando !comprovante, aguardar foto
-        if (command === '!comprovante' && args.length > 0) {
-          const transactionId = args[0];
-          waitingForPhoto.set(jid, {
-            transactionId,
-            timestamp: Date.now()
-          });
-          await sock.sendMessage(jid, { text: '📸 Envie o comprovante agora (foto ou documento)' });
-          return;
         }
         
-        // Enviar comando para API PHP
-        const apiUrl = `${ADMIN_API_URL}/admin_bot_api.php`;
-        console.log(`[COMMAND] Enviando para: ${apiUrl}`);
+        // Processar apenas comandos que começam com !
+        const text = msg.message.conversation || msg.message.extendedTextMessage?.text || '';
         
-        const apiResponse = await axios.post(apiUrl, {
-          phone: phoneNumber,
-          command: command,
-          args: args,
-          message: text
-        }, {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${API_TOKEN}`
-          },
-          timeout: 30000
-        });
+        if (!text) {
+          console.log('[MESSAGE] Mensagem sem texto, ignorando');
+          continue; // Próxima mensagem
+        }
         
-        console.log(`[COMMAND] Resposta da API:`, apiResponse.status, JSON.stringify(apiResponse.data));
+        console.log(`[MESSAGE] Texto recebido: "${text}" de ${phoneNumber}`);
         
-        if (apiResponse.data && apiResponse.data.message) {
-          console.log(`[COMMAND] Enviando resposta para ${jid}:`, apiResponse.data.message.substring(0, 50) + '...');
-          await sock.sendMessage(jid, { text: apiResponse.data.message });
-          console.log(`[COMMAND] Resposta enviada com sucesso`);
+        if (text.startsWith('!')) {
+          try {
+            const parts = text.trim().split(/\s+/);
+            const command = parts[0].toLowerCase();
+            const args = parts.slice(1);
+            
+            console.log(`[COMMAND] ${phoneNumber}: ${command} ${args.join(' ')}`);
+            
+            // Se for comando !comprovante, aguardar foto
+            if (command === '!comprovante' && args.length > 0) {
+              const transactionId = args[0];
+              waitingForPhoto.set(jid, {
+                transactionId,
+                timestamp: Date.now()
+              });
+              await sock.sendMessage(jid, { text: '📸 Envie o comprovante agora (foto ou documento)' });
+              continue; // Próxima mensagem
+            }
+            
+            // Enviar comando para API PHP
+            const apiUrl = `${ADMIN_API_URL}/admin_bot_api.php`;
+            console.log(`[COMMAND] Enviando para: ${apiUrl}`);
+            
+            const apiResponse = await axios.post(apiUrl, {
+              phone: phoneNumber,
+              command: command,
+              args: args,
+              message: text
+            }, {
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${API_TOKEN}`
+              },
+              timeout: 30000
+            });
+            
+            console.log(`[COMMAND] Resposta da API:`, apiResponse.status, JSON.stringify(apiResponse.data));
+            
+            if (apiResponse.data && apiResponse.data.message) {
+              console.log(`[COMMAND] Enviando resposta para ${jid}:`, apiResponse.data.message.substring(0, 50) + '...');
+              await sock.sendMessage(jid, { text: apiResponse.data.message });
+              console.log(`[COMMAND] Resposta enviada com sucesso`);
+            } else {
+              console.error(`[COMMAND] Resposta inválida da API:`, apiResponse.data);
+              await sock.sendMessage(jid, { text: '❌ Erro ao processar comando. Resposta inválida da API.' });
+            }
+          } catch (e) {
+            console.error('[COMMAND] Erro completo:', e);
+            console.error('[COMMAND] Erro message:', e.message);
+            console.error('[COMMAND] Erro code:', e.code);
+            console.error('[COMMAND] Erro response:', e.response?.data);
+            console.error('[COMMAND] Erro status:', e.response?.status);
+            console.error('[COMMAND] Stack:', e.stack);
+            
+            let errorMsg = '❌ Erro ao processar comando.';
+            if (e.code === 'ECONNREFUSED') {
+              errorMsg = '❌ Não foi possível conectar à API. Verifique se o servidor está rodando.';
+            } else if (e.response?.status === 401) {
+              errorMsg = '❌ Token de autenticação inválido.';
+            } else if (e.response?.status === 500) {
+              errorMsg = '❌ Erro no servidor (500). Verifique os logs do servidor PHP.';
+            } else if (e.response?.data?.error) {
+              errorMsg = `❌ ${e.response.data.error}`;
+            } else if (e.message) {
+              errorMsg = `❌ Erro: ${e.message}`;
+            }
+            
+            try {
+              await sock.sendMessage(jid, { text: errorMsg });
+              console.log(`[COMMAND] Mensagem de erro enviada para ${jid}`);
+            } catch (sendError) {
+              console.error('[COMMAND] Erro ao enviar mensagem de erro:', sendError);
+            }
+          }
         } else {
-          console.error(`[COMMAND] Resposta inválida da API:`, apiResponse.data);
-          await sock.sendMessage(jid, { text: '❌ Erro ao processar comando. Resposta inválida da API.' });
-        }
-      } catch (e) {
-        console.error('[COMMAND] Erro completo:', e);
-        console.error('[COMMAND] Erro message:', e.message);
-        console.error('[COMMAND] Erro code:', e.code);
-        console.error('[COMMAND] Erro response:', e.response?.data);
-        console.error('[COMMAND] Erro status:', e.response?.status);
-        console.error('[COMMAND] Stack:', e.stack);
-        
-        let errorMsg = '❌ Erro ao processar comando.';
-        if (e.code === 'ECONNREFUSED') {
-          errorMsg = '❌ Não foi possível conectar à API. Verifique se o servidor está rodando.';
-        } else if (e.response?.status === 401) {
-          errorMsg = '❌ Token de autenticação inválido.';
-        } else if (e.response?.status === 500) {
-          errorMsg = '❌ Erro no servidor (500). Verifique os logs do servidor PHP.';
-        } else if (e.response?.data?.error) {
-          errorMsg = `❌ ${e.response.data.error}`;
-        } else if (e.message) {
-          errorMsg = `❌ Erro: ${e.message}`;
-        }
-        
-        try {
-          await sock.sendMessage(jid, { text: errorMsg });
-          console.log(`[COMMAND] Mensagem de erro enviada para ${jid}`);
-        } catch (sendError) {
-          console.error('[COMMAND] Erro ao enviar mensagem de erro:', sendError);
-        }
-      }
-      return;
-    }
-    
-    // Auto-reply padrão (se habilitado)
-    if (AUTO_REPLY) {
-      const now = Date.now();
-      const lastReply = lastReplyAt.get(jid) || 0;
-      if (now - lastReply < AUTO_REPLY_WINDOW_MS) return;
+          // Auto-reply padrão (se habilitado) - apenas para mensagens que não são comandos
+          if (AUTO_REPLY) {
+            const now = Date.now();
+            const lastReply = lastReplyAt.get(jid) || 0;
+            if (now - lastReply < AUTO_REPLY_WINDOW_MS) {
+              continue; // Próxima mensagem
+            }
 
-      lastReplyAt.set(jid, now);
+            lastReplyAt.set(jid, now);
 
-      try {
-        await sock.sendMessage(jid, { text: 'Olá! Sou o assistente financeiro. Digite !menu para ver os comandos disponíveis.' });
-        console.log(`[AUTO-REPLY] Enviado para ${jid}`);
-      } catch (e) {
-        console.error('[AUTO-REPLY] Erro:', e);
-      }
-    }
+            try {
+              await sock.sendMessage(jid, { text: 'Olá! Sou o assistente financeiro. Digite !menu para ver os comandos disponíveis.' });
+              console.log(`[AUTO-REPLY] Enviado para ${jid}`);
+            } catch (e) {
+              console.error('[AUTO-REPLY] Erro:', e);
+            }
+          }
+        }
+      } // Fim do loop for
     } catch (err) {
       // Ignorar erros de descriptografia silenciosamente
       if (err.message && (
