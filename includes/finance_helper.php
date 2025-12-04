@@ -252,8 +252,8 @@ function generateMonthReport(PDO $pdo, ?int $month = null, ?int $year = null, ?i
             return $balance;
         }
         
-        // Top clientes
-        $where = "YEAR(t.created_at) = ? AND MONTH(t.created_at) = ? AND t.type = 'receita' AND t.client_id IS NOT NULL";
+        // Top categorias de receita
+        $where = "YEAR(t.data_transacao) = ? AND MONTH(t.data_transacao) = ? AND t.tipo = 'receita'";
         $params = [$year, $month];
         
         if ($userId) {
@@ -261,11 +261,11 @@ function generateMonthReport(PDO $pdo, ?int $month = null, ?int $year = null, ?i
             $params[] = $userId;
         }
         
-        $sqlTop = "SELECT c.name, SUM(t.value) as total 
-                   FROM transactions t 
-                   JOIN clients c ON t.client_id = c.id 
+        $sqlTop = "SELECT cat.nome as name, SUM(t.valor) as total 
+                   FROM transacoes t 
+                   JOIN categorias cat ON t.id_categoria = cat.id 
                    WHERE $where 
-                   GROUP BY t.client_id, c.name 
+                   GROUP BY t.id_categoria, cat.nome 
                    ORDER BY total DESC 
                    LIMIT 5";
         $stmt = $pdo->prepare($sqlTop);
@@ -273,15 +273,16 @@ function generateMonthReport(PDO $pdo, ?int $month = null, ?int $year = null, ?i
         $topClients = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         // Top categorias de despesa
-        $sqlTopCat = "SELECT category, SUM(value) as total 
-                      FROM transactions 
-                      WHERE type = 'despesa' AND YEAR(transactions.created_at) = ? AND MONTH(transactions.created_at) = ? AND category IS NOT NULL";
+        $sqlTopCat = "SELECT cat.nome as category, SUM(t.valor) as total 
+                      FROM transacoes t
+                      JOIN categorias cat ON t.id_categoria = cat.id
+                      WHERE t.tipo = 'despesa' AND YEAR(t.data_transacao) = ? AND MONTH(t.data_transacao) = ?";
         $paramsCat = [$year, $month];
         if ($userId) {
-            $sqlTopCat .= " AND id_usuario = ?";
+            $sqlTopCat .= " AND t.id_usuario = ?";
             $paramsCat[] = $userId;
         }
-        $sqlTopCat .= " GROUP BY category ORDER BY total DESC LIMIT 5";
+        $sqlTopCat .= " GROUP BY cat.nome ORDER BY total DESC LIMIT 5";
         
         $stmt = $pdo->prepare($sqlTopCat);
         $stmt->execute($paramsCat);
