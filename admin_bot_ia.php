@@ -143,9 +143,12 @@ $input = json_decode(file_get_contents('php://input'), true);
 $pergunta = $input['pergunta'] ?? '';
 $userId = isset($input['user_id']) ? (int)$input['user_id'] : null;
 
+error_log("[BOT_IA] Recebido - Pergunta: $pergunta, UserID: $userId");
+
 if (empty($pergunta) || !$userId) {
+    error_log("[BOT_IA] Erro: Pergunta ou user_id vazios");
     http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'Pergunta e user_id são obrigatórios']);
+    echo json_encode(['success' => false, 'error' => 'Pergunta e user_id são obrigatórios', 'debug' => ['pergunta' => $pergunta, 'user_id' => $userId]]);
     exit;
 }
 
