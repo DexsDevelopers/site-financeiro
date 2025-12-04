@@ -479,8 +479,51 @@ try {
                     default:
                         $result = ['resultado' => 'Função não reconhecida: ' . $functionName];
                 }
+                // Enviar resultado de volta para a IA
+                // Adicionar a chamada da função e a resposta ao histórico
+                $conversationHistory[] = [
+                    'role' => 'model',
+                    'parts' => [['functionCall' => $functionCall]]
+                ];
                 
-                $resposta_final = $result['resultado'] ?? 'Resposta não disponível.';
+                $conversationHistory[] = [
+                    'role' => 'function', 
+                    'parts' => [['functionResponse' => [
+                        'name' => $functionName,
+                        'response' => ['content' => $result]
+                    ]]]
+                ];
+                
+                // Fazer segunda chamada para a IA processar o resultado
+                $data2 = [
+                    'contents' => $conversationHistory,
+                    'tools' => $tools // Manter ferramentas disponíveis caso queira chamar outra
+                ];
+                
+                $ch2 = curl_init($gemini_api_url);
+                curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch2, CURLOPT_POST, true);
+                curl_setopt($ch2, CURLOPT_POSTFIELDS, json_encode($data2));
+                curl_setopt($ch2, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+                curl_setopt($ch2, CURLOPT_TIMEOUT, 30);
+                $response_string2 = curl_exec($ch2);
+                $http_code2 = curl_getinfo($ch2, CURLINFO_HTTP_CODE);
+                curl_close($ch2);
+                
+                if ($http_code2 === 200) {
+                    $api_response2 = json_decode($response_string2, true);
+                    if (isset($api_response2['candidates'][0]['content']['parts'][0]['text'])) {
+                        $resposta_final = $api_response2['candidates'][0]['content']['parts'][0]['text'];
+                    } else {
+                        // Fallback se a IA não gerar texto após a função
+                        $resposta_final = $result['resultado'] ?? json_encode($result);
+                    }
+                } else {
+                     error_log("[BOT_IA] Erro na segunda chamada: HTTP $http_code2");
+                     // Fallback para o resultado cru
+                     $resposta_final = $result['resultado'] ?? json_encode($result);
+                }
+
             } catch (Exception $e) {
                 error_log("[BOT_IA] Erro ao executar função $functionName: " . $e->getMessage());
                 error_log("[BOT_IA] Stack: " . $e->getTraceAsString());
