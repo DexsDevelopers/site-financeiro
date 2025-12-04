@@ -351,6 +351,12 @@ if (isset($api_response['error'])) {
                     $descricao = $functionArgs['descricao'] ?? '';
                     if ($descricao) {
                         $result = adicionarTarefa($pdo, $userId, $descricao);
+                        // Converter formato de resposta
+                        if (isset($result['message'])) {
+                            $result = ['resultado' => $result['message']];
+                        } elseif (isset($result['success']) && !$result['success']) {
+                            $result = ['resultado' => $result['message'] ?? 'Erro ao adicionar tarefa.'];
+                        }
                     } else {
                         $result = ['resultado' => 'Descrição da tarefa é obrigatória.'];
                     }
