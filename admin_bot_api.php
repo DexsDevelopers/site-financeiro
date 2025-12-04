@@ -6,6 +6,22 @@ error_reporting(E_ALL);
 ini_set('display_errors', 0); // Não exibir no output, mas logar
 ini_set('log_errors', 1);
 
+// Handler de erros fatal para capturar erros antes do try-catch
+register_shutdown_function(function() {
+    $error = error_get_last();
+    if ($error !== NULL && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'error' => 'Erro fatal PHP: ' . $error['message'],
+            'file' => $error['file'],
+            'line' => $error['line']
+        ], JSON_UNESCAPED_UNICODE);
+        error_log("Fatal error em admin_bot_api.php: " . $error['message'] . " em " . $error['file'] . ":" . $error['line']);
+        exit;
+    }
+});
+
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST, OPTIONS');
@@ -16,11 +32,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
+// Habilitar exibição de erros apenas para debug (remover em produção)
+error_reporting(E_ALL);
+ini_set('display_errors', 0); // Não exibir na tela, apenas logar
+ini_set('log_errors', 1);
+
 try {
     require_once 'includes/db_connect.php';
     require_once 'includes/finance_helper.php';
     require_once 'includes/tasks_helper.php';
     require_once 'includes/command_helper.php';
+    
+    // Verificar se $pdo foi definido e está conectado
+    if (!isset($pdo) || $pdo === null) {
+        if (isset($db_connect_error)) {
+            throw new Exception("Erro de conexão com banco de dados: " . $db_connect_error);
+        } else {
+            throw new Exception("Conexão com banco de dados não foi estabelecida");
+        }
+    }
+    
+    // Testar conexão
+    try {
+        $pdo->query("SELECT 1");
+    } catch (PDOException $e) {
+        throw new Exception("Erro ao testar conexão com banco: " . $e->getMessage());
+    }
 } catch (Exception $e) {
     http_response_code(500);
     echo json_encode([
@@ -352,18 +389,28 @@ try {
         case '/menu':
         case '/help':
             try {
+                error_log("[MENU] Iniciando processamento do menu para: " . $phoneNormalized);
+                
                 // Recalcular usuário logado para garantir que está atualizado
                 $loggedUser = getWhatsAppUser($pdo, $phoneNormalized);
+                error_log("[MENU] Usuário obtido: " . ($loggedUser ? "SIM (ID: " . $loggedUser['id'] . ")" : "NÃO"));
+                
                 $userId = $loggedUser ? (int)$loggedUser['id'] : null;
             } catch (Exception $e) {
                 error_log("Erro ao obter usuário no menu: " . $e->getMessage());
+                error_log("Stack trace: " . $e->getTraceAsString());
                 $loggedUser = null;
                 $userId = null;
             }
             
             $nomeUsuario = '';
-            if ($loggedUser && isset($loggedUser['nome'])) {
-                $nomeUsuario = $loggedUser['nome'];
+            try {
+                if ($loggedUser && isset($loggedUser['nome'])) {
+                    $nomeUsuario = $loggedUser['nome'];
+                }
+                error_log("[MENU] Nome do usuário: " . ($nomeUsuario ?: "Não definido"));
+            } catch (Exception $e) {
+                error_log("[MENU] Erro ao obter nome do usuário: " . $e->getMessage());
             }
             
             $response = [

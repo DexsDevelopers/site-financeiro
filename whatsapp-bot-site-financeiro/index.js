@@ -54,11 +54,18 @@ async function start() {
 
   // Usa pasta de auth específica para este projeto
   const { state, saveCreds } = await useMultiFileAuthState('./auth-site-financeiro');
+  // Logger customizado para reduzir verbosidade
+  const logger = pino({ 
+    level: 'error' // Apenas erros críticos, ignora logs de debug do Baileys
+  });
+  
   sock = makeWASocket({
     auth: state,
-    logger: pino({ level: 'silent' }),
+    logger: logger,
     version,
-    browser: Browsers.appropriate('Desktop')
+    browser: Browsers.appropriate('Desktop'),
+    printQRInTerminal: false, // QR será exibido via /qr endpoint
+    markOnlineOnConnect: true
   });
 
   sock.ev.on('creds.update', saveCreds);
@@ -75,6 +82,7 @@ async function start() {
     if (connection === 'open') {
       isReady = true;
       console.log('✅ Conectado ao WhatsApp (Site Financeiro)');
+      console.log(`📱 Bot pronto para receber comandos. API: ${ADMIN_API_URL}`);
     }
 
     if (connection === 'close') {
@@ -102,16 +110,23 @@ async function start() {
 
   // Tratamento de erros de descriptografia
   sock.ev.on('messages.upsert', async (m) => {
-    if (!isReady) return;
+    if (!isReady) {
+      console.log('[MESSAGE] Bot não está pronto, ignorando mensagem');
+      return;
+    }
     
     try {
       const msg = m.messages[0];
-      if (!msg || msg.key.fromMe || !msg.message) return;
+      if (!msg || msg.key.fromMe || !msg.message) {
+        return;
+      }
       
       // Ignorar mensagens com erro de descriptografia
       if (msg.messageStubType === 1 || msg.messageStubType === 2) {
         return; // Mensagem deletada ou erro
       }
+      
+      console.log('[MESSAGE] Nova mensagem recebida');
 
     const jid = msg.key.remoteJid;
     if (!jid || jid.includes('@g.us')) return; // Ignora grupos
@@ -167,6 +182,13 @@ async function start() {
     
     // Processar apenas comandos que começam com !
     const text = msg.message.conversation || msg.message.extendedTextMessage?.text || '';
+    
+    if (!text) {
+      console.log('[MESSAGE] Mensagem sem texto, ignorando');
+      return;
+    }
+    
+    console.log(`[MESSAGE] Texto recebido: "${text}" de ${phoneNumber}`);
     
     if (text.startsWith('!')) {
       try {
@@ -250,11 +272,24 @@ async function start() {
     }
     } catch (err) {
       // Ignorar erros de descriptografia silenciosamente
-      if (err.message && err.message.includes('MessageCounterError')) {
+      if (err.message && (
+        err.message.includes('MessageCounterError') ||
+        err.message.includes('Failed to decrypt') ||
+        err.message.includes('Session error')
+      )) {
         // Sessão corrompida - será tratada no próximo restart
+        // Não logar esses erros para evitar spam
         return;
       }
       console.error('[MESSAGE] Erro ao processar mensagem:', err.message);
+      console.error('[MESSAGE] Stack:', err.stack);
+    }
+  });
+  
+  // Tratamento de erros de conexão
+  sock.ev.on('connection.update', (update) => {
+    if (update.error) {
+      console.error('[CONNECTION] Erro de conexão:', update.error);
     }
   });
 }
