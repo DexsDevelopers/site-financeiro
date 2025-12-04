@@ -300,8 +300,11 @@ if (!defined('GEMINI_API_KEY') || empty(GEMINI_API_KEY)) {
 }
 
 try {
-    // Chamar Gemini API
-    $gemini_api_url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=' . GEMINI_API_KEY;
+    // Chamar Gemini API - usar modelo válido
+    // Tentar primeiro gemini-1.5-flash, depois gemini-1.5-pro se necessário
+    $models = ['gemini-1.5-flash', 'gemini-1.5-pro'];
+    $currentModel = $models[0];
+    $gemini_api_url = 'https://generativelanguage.googleapis.com/v1beta/models/' . $currentModel . ':generateContent?key=' . GEMINI_API_KEY;
     $conversationHistory = [
         ['role' => 'user', 'parts' => [['text' => $prompt_inicial]]],
         ['role' => 'model', 'parts' => [['text' => 'Entendido! Estou pronto para ajudar.']]],
@@ -339,6 +342,24 @@ try {
             'resposta' => 'Limite de requisições excedido. Aguarde alguns minutos.'
         ]);
         exit;
+    }
+    
+    // Se erro 404, tentar modelo alternativo
+    if ($http_code === 404 && $currentModel === $models[0]) {
+        error_log("[BOT_IA] Modelo $currentModel não disponível, tentando " . $models[1]);
+        $currentModel = $models[1];
+        $gemini_api_url = 'https://generativelanguage.googleapis.com/v1beta/models/' . $currentModel . ':generateContent?key=' . GEMINI_API_KEY;
+        
+        $ch = curl_init($gemini_api_url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        $response_string = curl_exec($ch);
+        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curl_error = curl_error($ch);
+        curl_close($ch);
     }
     
     if ($http_code !== 200) {
