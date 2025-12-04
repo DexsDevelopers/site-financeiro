@@ -202,7 +202,17 @@ EXEMPLOS:
 
 Lembre-se: SEMPRE use uma ferramenta primeiro, depois formule a resposta baseada no resultado.";
 
-$gemini_api_url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-002:generateContent?key=' . GEMINI_API_KEY;
+// Validar API Key antes de fazer a chamada
+if (!defined('GEMINI_API_KEY') || empty(GEMINI_API_KEY)) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'message' => 'Chave da API não configurada.']);
+    exit();
+}
+
+// Usar modelo estável e validado
+$gemini_model = 'gemini-1.5-flash-002';
+$gemini_api_url = 'https://generativelanguage.googleapis.com/v1beta/models/' . $gemini_model . ':generateContent?key=' . GEMINI_API_KEY;
+
 $conversationHistory = [['role' => 'user', 'parts' => [['text' => $prompt_inicial]]], ['role' => 'model', 'parts' => [['text' => 'Entendido! Estou pronto para ajudar.']]], ['role' => 'user', 'parts' => [['text' => $pergunta_usuario]]]];
 $data_primeira_chamada = ['contents' => $conversationHistory, 'tools' => $tools, 'tool_config' => ['function_calling_config' => ['mode' => 'ANY']]];
 
@@ -212,9 +222,39 @@ curl_setopt($ch, CURLOPT_POST, true);
 curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data_primeira_chamada));
 curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
 curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
 $response_string = curl_exec($ch);
+$curl_error = curl_error($ch);
 $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
+
+// Tratamento robusto de erros de conexão
+if ($response_string === false || !empty($curl_error)) {
+    error_log("Erro cURL ao chamar Gemini API: " . $curl_error);
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Erro ao conectar com a API do Gemini. Verifique sua conexão e tente novamente.',
+        'error' => $curl_error
+    ]);
+    exit();
+}
+
+// Tratamento específico para erro 404 (modelo não encontrado)
+if ($http_code === 404) {
+    error_log("Erro 404: Modelo Gemini não encontrado. URL: " . $gemini_api_url);
+    http_response_code(404);
+    $response_data = json_decode($response_string, true);
+    $error_message = $response_data['error']['message'] ?? 'Modelo não encontrado na API.';
+    
+    echo json_encode([
+        'success' => false,
+        'message' => 'Erro: Modelo da IA não encontrado. Entre em contato com o suporte.',
+        'error' => $error_message,
+        'model_used' => $gemini_model
+    ]);
+    exit();
+}
 
 // Verificar erro 429
 if ($http_code === 429) {
@@ -315,9 +355,93 @@ if (isset($api_response['error'])) {
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data_segunda_chamada));
         curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
         curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
         $response_string_2 = curl_exec($ch);
+        $curl_error_2 = curl_error($ch);
         $http_code_2 = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
+        
+        // Tratamento robusto de erros de conexão na segunda chamada
+        if ($response_string_2 === false || !empty($curl_error_2)) {
+            error_log("Erro cURL na segunda chamada Gemini API: " . $curl_error_2);
+            // Se temos resultado da função, formatar manualmente
+            if ($functionResult !== null) {
+                if (isset($functionResult['tarefas_urgentes']) && !empty($functionResult['tarefas_urgentes'])) {
+                    $resposta_final_ia = "Aqui estão suas tarefas mais urgentes:\n\n";
+                    foreach ($functionResult['tarefas_urgentes'] as $tarefa) {
+                        $data_info = '';
+                        if (!empty($tarefa['data_limite'])) {
+                            $data_formatada = date('d/m/Y', strtotime($tarefa['data_limite']));
+                            $data_info = " (Prazo: {$data_formatada})";
+                        }
+                        $resposta_final_ia .= "- **{$tarefa['descricao']}** - Prioridade: {$tarefa['prioridade']}{$data_info}\n";
+                    }
+                } elseif (isset($functionResult['tarefas_pendentes']) && !empty($functionResult['tarefas_pendentes'])) {
+                    $resposta_final_ia = "Aqui estão suas tarefas pendentes:\n\n";
+                    foreach ($functionResult['tarefas_pendentes'] as $tarefa) {
+                        $data_info = '';
+                        if (!empty($tarefa['data_limite'])) {
+                            $data_formatada = date('d/m/Y', strtotime($tarefa['data_limite']));
+                            $data_info = " (Prazo: {$data_formatada})";
+                        }
+                        $resposta_final_ia .= "- **{$tarefa['descricao']}** - Prioridade: {$tarefa['prioridade']}{$data_info}\n";
+                    }
+                } elseif (isset($functionResult['message'])) {
+                    $resposta_final_ia = $functionResult['message'];
+                } else {
+                    $resposta_final_ia = 'Ação concluída com sucesso.';
+                }
+            } else {
+                http_response_code(500);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Erro ao conectar com a API do Gemini. Tente novamente.',
+                    'error' => $curl_error_2
+                ]);
+                exit();
+            }
+        }
+        
+        // Tratamento específico para erro 404 na segunda chamada
+        if ($http_code_2 === 404) {
+            error_log("Erro 404 na segunda chamada: Modelo Gemini não encontrado.");
+            // Se temos resultado da função, formatar manualmente
+            if ($functionResult !== null) {
+                if (isset($functionResult['tarefas_urgentes']) && !empty($functionResult['tarefas_urgentes'])) {
+                    $resposta_final_ia = "Aqui estão suas tarefas mais urgentes:\n\n";
+                    foreach ($functionResult['tarefas_urgentes'] as $tarefa) {
+                        $data_info = '';
+                        if (!empty($tarefa['data_limite'])) {
+                            $data_formatada = date('d/m/Y', strtotime($tarefa['data_limite']));
+                            $data_info = " (Prazo: {$data_formatada})";
+                        }
+                        $resposta_final_ia .= "- **{$tarefa['descricao']}** - Prioridade: {$tarefa['prioridade']}{$data_info}\n";
+                    }
+                } elseif (isset($functionResult['tarefas_pendentes']) && !empty($functionResult['tarefas_pendentes'])) {
+                    $resposta_final_ia = "Aqui estão suas tarefas pendentes:\n\n";
+                    foreach ($functionResult['tarefas_pendentes'] as $tarefa) {
+                        $data_info = '';
+                        if (!empty($tarefa['data_limite'])) {
+                            $data_formatada = date('d/m/Y', strtotime($tarefa['data_limite']));
+                            $data_info = " (Prazo: {$data_formatada})";
+                        }
+                        $resposta_final_ia .= "- **{$tarefa['descricao']}** - Prioridade: {$tarefa['prioridade']}{$data_info}\n";
+                    }
+                } elseif (isset($functionResult['message'])) {
+                    $resposta_final_ia = $functionResult['message'];
+                } else {
+                    $resposta_final_ia = 'Ação concluída com sucesso.';
+                }
+            } else {
+                http_response_code(404);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Erro: Modelo da IA não encontrado. Entre em contato com o suporte.',
+                    'model_used' => $gemini_model
+                ]);
+                exit();
+            }
+        }
         
         // Verificar erro 429 na segunda chamada
         if ($http_code_2 === 429) {

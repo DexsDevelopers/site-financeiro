@@ -142,7 +142,7 @@ try {
 if (defined('GEMINI_API_KEY') && !empty(GEMINI_API_KEY)) {
     addDebug('API', 'Testando conexão com API do Gemini...', 'info');
     
-    $testUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' . GEMINI_API_KEY;
+    $testUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-002:generateContent?key=' . GEMINI_API_KEY;
     $testData = [
         'contents' => [
             [

@@ -128,10 +128,10 @@ $prompt = "
 
 // --- FUNÇÃO PARA CHAMAR API GEMINI COM RETRY E FALLBACK ---
 function callGeminiAPI(string $prompt, int $maxRetries = 2): array {
-    // Tentar primeiro com gemini-1.5-flash, se falhar tentar gemini-1.5-pro
+    // Tentar primeiro com gemini-1.5-flash-002, se falhar tentar gemini-1.5-pro-002
     $models = [
-        'gemini-1.5-flash',
-        'gemini-1.5-pro' // Fallback para modelo mais estável
+        'gemini-1.5-flash-002',
+        'gemini-1.5-pro-002' // Fallback para modelo mais estável
     ];
     
     $currentModelIndex = 0;
