@@ -1,6 +1,17 @@
 <?php
 // /processar_analise_ia.php (Versão Final e Robusta para Tarefas)
 
+error_reporting(E_ALL);
+ini_set('display_errors', 0);
+
+// =================================================================================
+// DEPENDENCIES (Must be at the very top)
+// =================================================================================
+require_once __DIR__ . '/includes/db_connect.php';
+require_once __DIR__ . '/includes/finance_helper.php';
+require_once __DIR__ . '/includes/tasks_helper.php';
+require_once __DIR__ . '/includes/rate_limiter.php';
+
 session_start();
 header('Content-Type: application/json');
 
@@ -10,17 +21,9 @@ if (!isset($_SESSION['user_id'])) {
     echo json_encode(['success' => false, 'message' => 'Acesso negado.']);
     exit();
 }
-require_once 'includes/db_connect.php';
-require_once 'includes/rate_limiter.php';
-require_once 'includes/finance_helper.php';
-require_once 'includes/tasks_helper.php';
 
-// Verificar se o arquivo de config existe (pode não existir em desenvolvimento)
-if (file_exists('/home/u853242961/config/config.php')) {
-    require_once '/home/u853242961/config/config.php';
-} elseif (defined('GEMINI_API_KEY')) {
-    // Já definido no db_connect.php
-} else {
+// Verificar se a API key está configurada
+if (!defined('GEMINI_API_KEY') || empty(GEMINI_API_KEY)) {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Configuração da API não encontrada.']);
     exit();
@@ -202,21 +205,16 @@ EXEMPLOS:
 
 Lembre-se: SEMPRE use uma ferramenta primeiro, depois formule a resposta baseada no resultado.";
 
-// Validar API Key antes de fazer a chamada
-if (!defined('GEMINI_API_KEY') || empty(GEMINI_API_KEY)) {
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Chave da API não configurada.']);
-    exit();
-}
-
-// Usar modelo estável e validado
-$gemini_model = 'gemini-1.5-flash-002';
-$gemini_api_url = 'https://generativelanguage.googleapis.com/v1beta/models/' . $gemini_model . ':generateContent?key=' . GEMINI_API_KEY;
+// =================================================================================
+// API CONFIGURATION (Use Stable Version 001)
+// =================================================================================
+// Fix the API URL to use the '001' stable version which is guaranteed to exist
+$apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-001:generateContent?key=' . GEMINI_API_KEY;
 
 $conversationHistory = [['role' => 'user', 'parts' => [['text' => $prompt_inicial]]], ['role' => 'model', 'parts' => [['text' => 'Entendido! Estou pronto para ajudar.']]], ['role' => 'user', 'parts' => [['text' => $pergunta_usuario]]]];
 $data_primeira_chamada = ['contents' => $conversationHistory, 'tools' => $tools, 'tool_config' => ['function_calling_config' => ['mode' => 'ANY']]];
 
-$ch = curl_init($gemini_api_url);
+$ch = curl_init($apiUrl);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_POST, true);
 curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data_primeira_chamada));
@@ -242,7 +240,7 @@ if ($response_string === false || !empty($curl_error)) {
 
 // Tratamento específico para erro 404 (modelo não encontrado)
 if ($http_code === 404) {
-    error_log("Erro 404: Modelo Gemini não encontrado. URL: " . $gemini_api_url);
+    error_log("Erro 404: Modelo Gemini não encontrado. URL: " . $apiUrl);
     http_response_code(404);
     $response_data = json_decode($response_string, true);
     $error_message = $response_data['error']['message'] ?? 'Modelo não encontrado na API.';
@@ -251,7 +249,7 @@ if ($http_code === 404) {
         'success' => false,
         'message' => 'Erro: Modelo da IA não encontrado. Entre em contato com o suporte.',
         'error' => $error_message,
-        'model_used' => $gemini_model
+        'model_used' => 'gemini-1.5-flash-001'
     ]);
     exit();
 }
@@ -349,7 +347,7 @@ if (isset($api_response['error'])) {
         $conversationHistory[] = ['role' => 'model', 'parts' => [['functionCall' => ['name' => $functionName]]]];
         $conversationHistory[] = ['role' => 'tool', 'parts' => [['functionResponse' => ['name' => $functionName, 'response' => $functionResult]]]];
         $data_segunda_chamada = [ 'contents' => $conversationHistory ];
-        $ch = curl_init($gemini_api_url);
+        $ch = curl_init($apiUrl);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data_segunda_chamada));
@@ -437,7 +435,7 @@ if (isset($api_response['error'])) {
                 echo json_encode([
                     'success' => false,
                     'message' => 'Erro: Modelo da IA não encontrado. Entre em contato com o suporte.',
-                    'model_used' => $gemini_model
+                    'model_used' => 'gemini-1.5-flash-001'
                 ]);
                 exit();
             }
