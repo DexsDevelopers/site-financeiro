@@ -363,8 +363,53 @@ try {
     }
     
     if ($http_code !== 200) {
-        error_log("[BOT_IA] HTTP Error $http_code: " . substr($response_string, 0, 500));
-        throw new Exception("Erro HTTP $http_code da API Gemini");
+        $error_details = '';
+        $error_message_full = '';
+        if ($response_string) {
+            $error_data = json_decode($response_string, true);
+            if (isset($error_data['error']['message'])) {
+                $error_details = ': ' . $error_data['error']['message'];
+                $error_message_full = $error_data['error']['message'];
+            } else {
+                $error_details = ': ' . substr($response_string, 0, 200);
+                $error_message_full = substr($response_string, 0, 200);
+            }
+        }
+        error_log("[BOT_IA] HTTP Error $http_code$error_details");
+        
+        // Se for erro 400, tentar sem tools (pode ser que o modelo não suporte)
+        if ($http_code === 400 && $currentModel === $models[0]) {
+            error_log("[BOT_IA] Tentando sem tools devido ao erro 400");
+            $data_simple = [
+                'contents' => $conversationHistory
+            ];
+            
+            $ch = curl_init($gemini_api_url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data_simple));
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+            $response_string = curl_exec($ch);
+            $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            
+            if ($http_code === 200) {
+                // Sucesso sem tools, continuar processamento
+                $api_response = json_decode($response_string, true);
+                if ($api_response && isset($api_response['candidates'][0]['content']['parts'][0]['text'])) {
+                    $resposta_final = $api_response['candidates'][0]['content']['parts'][0]['text'];
+                    echo json_encode(['success' => true, 'resposta' => $resposta_final]);
+                    exit;
+                }
+            } else {
+                // Ainda deu erro, retornar mensagem completa
+                throw new Exception("Erro HTTP $http_code da API Gemini$error_details");
+            }
+        } else {
+            // Para outros erros ou se já tentou sem tools, retornar erro completo
+            throw new Exception("Erro HTTP $http_code da API Gemini$error_details");
+        }
     }
     
     $api_response = json_decode($response_string, true);

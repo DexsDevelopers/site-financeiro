@@ -71,7 +71,7 @@ try {
 }
 
 // 4. Verificar tabelas necessárias
-$requiredTables = ['transacoes', 'categorias', 'contas', 'tarefas', 'rate_limits'];
+$requiredTables = ['transacoes', 'categorias', 'contas', 'tarefas', 'rate_limit_ia'];
 foreach ($requiredTables as $table) {
     try {
         if (isset($pdo) && $pdo !== null) {

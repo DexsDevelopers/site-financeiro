@@ -6,9 +6,9 @@
 
 class RateLimiter {
     private $pdo;
-    private $maxRequestsPerMinute = 10;  // Máximo de 10 requisições por minuto (aumentado)
-    private $maxRequestsPerHour = 60;    // Máximo de 60 requisições por hora (aumentado)
-    private $retryAfterSeconds = 10;     // Tempo mínimo entre requisições (reduzido para 10 segundos)
+    private $maxRequestsPerMinute = 30;  // Aumentado para 30
+    private $maxRequestsPerHour = 120;    // Aumentado para 120
+    private $retryAfterSeconds = 2;     // Reduzido para 2 segundos
 
     private $tableExists = false;
 

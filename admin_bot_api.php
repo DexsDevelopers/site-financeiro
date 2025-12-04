@@ -497,7 +497,18 @@ try {
                         'message' => '⏳ ' . ($iaData['message'] ?? 'Limite de requisições excedido. Aguarde alguns minutos.')
                     ];
                 } else {
-                    throw new Exception("HTTP $httpCode: " . substr($iaResponse, 0, 200));
+                    $errorDetails = '';
+                    if ($iaResponse) {
+                        $errorData = json_decode($iaResponse, true);
+                        if (isset($errorData['resposta'])) {
+                            $errorDetails = $errorData['resposta'];
+                        } elseif (isset($errorData['error'])) {
+                            $errorDetails = is_string($errorData['error']) ? $errorData['error'] : ($errorData['error']['message'] ?? 'Erro desconhecido');
+                        } else {
+                            $errorDetails = substr($iaResponse, 0, 300);
+                        }
+                    }
+                    throw new Exception("HTTP $httpCode" . ($errorDetails ? ": $errorDetails" : ""));
                 }
             } catch (Exception $e) {
                 error_log("[IA] Exception: " . $e->getMessage());
