@@ -104,19 +104,39 @@ function registerTransaction(PDO $pdo, string $type, float $value, string $descr
             $idCategoria = $pdo->lastInsertId();
         }
         
-        // 3. Inserir transação na tabela transacoes
+        // 3. Validação final antes de inserir
+        // Verificar novamente o tipo da categoria
+        $stmt = $pdo->prepare("SELECT tipo, nome FROM categorias WHERE id = ? AND id_usuario = ?");
+        $stmt->execute([$idCategoria, $userId]);
+        $catCheck = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$catCheck || $catCheck['tipo'] !== $type) {
+            error_log("ERRO CRÍTICO: Tentativa de inserir transação tipo '$type' com categoria '{$catCheck['nome']}' tipo '{$catCheck['tipo']}'");
+            return [
+                'success' => false,
+                'error' => "Erro: categoria '{$catCheck['nome']}' é do tipo '{$catCheck['tipo']}' mas a transação é '$type'"
+            ];
+        }
+        
+        // 4. Inserir transação na tabela transacoes
         $dataTransacao = date('Y-m-d H:i:s');
         $sql = "INSERT INTO transacoes (id_usuario, id_categoria, id_conta, descricao, valor, tipo, data_transacao) 
                 VALUES (?, ?, ?, ?, ?, ?, ?)";
         $stmt = $pdo->prepare($sql);
         $stmt->execute([$userId, $idCategoria, $idConta, $description, $value, $type, $dataTransacao]);
         
+        $transactionId = $pdo->lastInsertId();
+        
+        // Log para debug
+        error_log("Transação inserida: ID=$transactionId, Tipo=$type, Categoria={$catCheck['nome']}, Valor=$value, Descrição=$description");
+        
         return [
             'success' => true,
-            'transaction_id' => $pdo->lastInsertId(),
+            'transaction_id' => $transactionId,
             'message' => ucfirst($type) . ' registrada com sucesso',
             'id_conta' => $idConta,
-            'id_categoria' => $idCategoria
+            'id_categoria' => $idCategoria,
+            'categoria_nome' => $catCheck['nome']
         ];
     } catch (PDOException $e) {
         return [
