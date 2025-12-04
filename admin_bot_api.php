@@ -464,7 +464,7 @@ try {
                     'Content-Type: application/json',
                     'Authorization: Bearer ' . $config['WHATSAPP_API_TOKEN']
                 ]);
-                curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 60); // Aumentado para 60s para permitir ciclo completo da IA
                 curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
                 curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
                 
