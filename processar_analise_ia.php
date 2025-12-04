@@ -12,6 +12,8 @@ if (!isset($_SESSION['user_id'])) {
 }
 require_once 'includes/db_connect.php';
 require_once 'includes/rate_limiter.php';
+require_once 'includes/finance_helper.php';
+require_once 'includes/tasks_helper.php';
 
 // Verificar se o arquivo de config existe (pode não existir em desenvolvimento)
 if (file_exists('/home/u853242961/config/config.php')) {
@@ -200,7 +202,7 @@ EXEMPLOS:
 
 Lembre-se: SEMPRE use uma ferramenta primeiro, depois formule a resposta baseada no resultado.";
 
-$gemini_api_url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' . GEMINI_API_KEY;
+$gemini_api_url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-002:generateContent?key=' . GEMINI_API_KEY;
 $conversationHistory = [['role' => 'user', 'parts' => [['text' => $prompt_inicial]]], ['role' => 'model', 'parts' => [['text' => 'Entendido! Estou pronto para ajudar.']]], ['role' => 'user', 'parts' => [['text' => $pergunta_usuario]]]];
 $data_primeira_chamada = ['contents' => $conversationHistory, 'tools' => $tools, 'tool_config' => ['function_calling_config' => ['mode' => 'ANY']]];
 

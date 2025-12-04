@@ -300,9 +300,9 @@ if (!defined('GEMINI_API_KEY') || empty(GEMINI_API_KEY)) {
 }
 
 try {
-    // Chamar Gemini API - usar modelo válido
-    // Tentar primeiro gemini-1.5-flash, depois gemini-1.5-pro se necessário
-    $models = ['gemini-1.5-flash', 'gemini-1.5-pro'];
+    // Chamar Gemini API - usar modelo válido e estável
+    // Tentar primeiro gemini-1.5-flash-002, depois gemini-1.5-pro se necessário
+    $models = ['gemini-1.5-flash-002', 'gemini-1.5-pro'];
     $currentModel = $models[0];
     $gemini_api_url = 'https://generativelanguage.googleapis.com/v1beta/models/' . $currentModel . ':generateContent?key=' . GEMINI_API_KEY;
     $conversationHistory = [
@@ -348,7 +348,7 @@ try {
     if ($http_code === 404 && $currentModel === $models[0]) {
         error_log("[BOT_IA] Modelo $currentModel não disponível, tentando " . $models[1]);
         $currentModel = $models[1];
-        $gemini_api_url = 'https://generativelanguage.googleapis.com/v1beta/models/' . $currentModel . ':generateContent?key=' . GEMINI_API_KEY;
+        $gemini_api_url = 'https://generativelanguage.googleapis.com/v1beta/models/' . $currentModel . '-002:generateContent?key=' . GEMINI_API_KEY;
         
         $ch = curl_init($gemini_api_url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
