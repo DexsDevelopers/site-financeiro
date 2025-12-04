@@ -51,23 +51,57 @@ function registerTransaction(PDO $pdo, string $type, float $value, string $descr
         if (!$idCategoria) {
             // Buscar categoria padrão do tipo (receita ou despesa)
             $nomeCategoriaPadrao = $type === 'receita' ? 'Outras Receitas' : 'Outras Despesas';
-            $stmt = $pdo->prepare("SELECT id FROM categorias WHERE id_usuario = ? AND tipo = ? AND nome LIKE ? LIMIT 1");
-            $stmt->execute([$userId, $type, "%$nomeCategoriaPadrao%"]);
-            $idCategoria = $stmt->fetchColumn();
             
-            // Se não encontrar, buscar qualquer categoria do tipo
-            if (!$idCategoria) {
-                $stmt = $pdo->prepare("SELECT id FROM categorias WHERE id_usuario = ? AND tipo = ? ORDER BY id ASC LIMIT 1");
-                $stmt->execute([$userId, $type]);
-                $idCategoria = $stmt->fetchColumn();
+            // Primeiro: buscar categoria padrão com nome específico e tipo correto
+            $stmt = $pdo->prepare("SELECT id, tipo FROM categorias WHERE id_usuario = ? AND tipo = ? AND nome LIKE ? LIMIT 1");
+            $stmt->execute([$userId, $type, "%$nomeCategoriaPadrao%"]);
+            $catResult = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($catResult && $catResult['tipo'] === $type) {
+                $idCategoria = $catResult['id'];
             }
             
-            // Se ainda não tiver, criar categoria padrão
+            // Se não encontrar, buscar qualquer categoria do tipo correto
+            if (!$idCategoria) {
+                $stmt = $pdo->prepare("SELECT id, tipo FROM categorias WHERE id_usuario = ? AND tipo = ? ORDER BY id ASC LIMIT 1");
+                $stmt->execute([$userId, $type]);
+                $catResult = $stmt->fetch(PDO::FETCH_ASSOC);
+                if ($catResult && $catResult['tipo'] === $type) {
+                    $idCategoria = $catResult['id'];
+                }
+            }
+            
+            // Se ainda não tiver, criar categoria padrão com o tipo correto
             if (!$idCategoria) {
                 $stmt = $pdo->prepare("INSERT INTO categorias (id_usuario, nome, tipo) VALUES (?, ?, ?)");
                 $stmt->execute([$userId, $nomeCategoriaPadrao, $type]);
                 $idCategoria = $pdo->lastInsertId();
+                error_log("Categoria criada: ID=$idCategoria, Nome=$nomeCategoriaPadrao, Tipo=$type");
+            } else {
+                // Verificar novamente antes de usar
+                $stmt = $pdo->prepare("SELECT id, tipo FROM categorias WHERE id = ? AND id_usuario = ?");
+                $stmt->execute([$idCategoria, $userId]);
+                $catVerify = $stmt->fetch(PDO::FETCH_ASSOC);
+                if (!$catVerify || $catVerify['tipo'] !== $type) {
+                    // Categoria inválida, criar nova
+                    $stmt = $pdo->prepare("INSERT INTO categorias (id_usuario, nome, tipo) VALUES (?, ?, ?)");
+                    $stmt->execute([$userId, $nomeCategoriaPadrao, $type]);
+                    $idCategoria = $pdo->lastInsertId();
+                    error_log("Categoria inválida detectada, criada nova: ID=$idCategoria, Tipo=$type");
+                }
             }
+        }
+        
+        // Validação final: garantir que a categoria tem o tipo correto
+        $stmt = $pdo->prepare("SELECT id, tipo, nome FROM categorias WHERE id = ? AND id_usuario = ?");
+        $stmt->execute([$idCategoria, $userId]);
+        $catFinal = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$catFinal || $catFinal['tipo'] !== $type) {
+            error_log("ERRO: Categoria ID=$idCategoria tem tipo '{$catFinal['tipo']}' mas precisa ser '$type'. Nome: {$catFinal['nome']}");
+            // Forçar criação de categoria correta
+            $nomeCategoriaPadrao = $type === 'receita' ? 'Outras Receitas' : 'Outras Despesas';
+            $stmt = $pdo->prepare("INSERT INTO categorias (id_usuario, nome, tipo) VALUES (?, ?, ?)");
+            $stmt->execute([$userId, $nomeCategoriaPadrao, $type]);
+            $idCategoria = $pdo->lastInsertId();
         }
         
         // 3. Inserir transação na tabela transacoes
