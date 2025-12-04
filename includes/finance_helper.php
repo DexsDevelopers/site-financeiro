@@ -2,19 +2,87 @@
 // includes/finance_helper.php - Funções helper para sistema financeiro
 
 /**
- * Registra uma transação financeira
+ * Registra uma transação financeira na tabela transacoes (compatível com o painel)
  */
-function registerTransaction(PDO $pdo, string $type, float $value, string $description, ?string $category = null, ?int $clientId = null, ?int $userId = null, ?string $createdBy = null): array {
+function registerTransaction(PDO $pdo, string $type, float $value, string $description, ?string $category = null, ?int $clientId = null, ?int $userId = null, ?string $createdBy = null, ?int $idConta = null, ?int $idCategoria = null): array {
     try {
-        $sql = "INSERT INTO transactions (type, value, description, category, client_id, id_usuario, created_by, created_at) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, NOW())";
+        if (!$userId) {
+            return [
+                'success' => false,
+                'error' => 'ID do usuário é obrigatório'
+            ];
+        }
+        
+        // 1. Obter ou criar conta
+        if ($idConta) {
+            // Verificar se a conta pertence ao usuário
+            $stmt = $pdo->prepare("SELECT id FROM contas WHERE id = ? AND id_usuario = ?");
+            $stmt->execute([$idConta, $userId]);
+            if (!$stmt->fetchColumn()) {
+                $idConta = null; // Conta inválida, buscar padrão
+            }
+        }
+        
+        if (!$idConta) {
+            // Buscar primeira conta do usuário
+            $stmt = $pdo->prepare("SELECT id FROM contas WHERE id_usuario = ? ORDER BY id ASC LIMIT 1");
+            $stmt->execute([$userId]);
+            $idConta = $stmt->fetchColumn();
+            
+            // Se não tiver conta, criar uma "Geral"
+            if (!$idConta) {
+                $stmt = $pdo->prepare("INSERT INTO contas (id_usuario, nome, tipo, saldo_inicial) VALUES (?, 'Geral', 'dinheiro', 0)");
+                $stmt->execute([$userId]);
+                $idConta = $pdo->lastInsertId();
+            }
+        }
+        
+        // 2. Obter ou criar categoria
+        if ($idCategoria) {
+            // Verificar se a categoria pertence ao usuário e tem o tipo correto
+            $stmt = $pdo->prepare("SELECT id, tipo FROM categorias WHERE id = ? AND id_usuario = ?");
+            $stmt->execute([$idCategoria, $userId]);
+            $catInfo = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$catInfo || $catInfo['tipo'] !== $type) {
+                $idCategoria = null; // Categoria inválida ou tipo incorreto
+            }
+        }
+        
+        if (!$idCategoria) {
+            // Buscar categoria padrão do tipo (receita ou despesa)
+            $nomeCategoriaPadrao = $type === 'receita' ? 'Outras Receitas' : 'Outras Despesas';
+            $stmt = $pdo->prepare("SELECT id FROM categorias WHERE id_usuario = ? AND tipo = ? AND nome LIKE ? LIMIT 1");
+            $stmt->execute([$userId, $type, "%$nomeCategoriaPadrao%"]);
+            $idCategoria = $stmt->fetchColumn();
+            
+            // Se não encontrar, buscar qualquer categoria do tipo
+            if (!$idCategoria) {
+                $stmt = $pdo->prepare("SELECT id FROM categorias WHERE id_usuario = ? AND tipo = ? ORDER BY id ASC LIMIT 1");
+                $stmt->execute([$userId, $type]);
+                $idCategoria = $stmt->fetchColumn();
+            }
+            
+            // Se ainda não tiver, criar categoria padrão
+            if (!$idCategoria) {
+                $stmt = $pdo->prepare("INSERT INTO categorias (id_usuario, nome, tipo) VALUES (?, ?, ?)");
+                $stmt->execute([$userId, $nomeCategoriaPadrao, $type]);
+                $idCategoria = $pdo->lastInsertId();
+            }
+        }
+        
+        // 3. Inserir transação na tabela transacoes
+        $dataTransacao = date('Y-m-d H:i:s');
+        $sql = "INSERT INTO transacoes (id_usuario, id_categoria, id_conta, descricao, valor, tipo, data_transacao) 
+                VALUES (?, ?, ?, ?, ?, ?, ?)";
         $stmt = $pdo->prepare($sql);
-        $stmt->execute([$type, $value, $description, $category, $clientId, $userId, $createdBy]);
+        $stmt->execute([$userId, $idCategoria, $idConta, $description, $value, $type, $dataTransacao]);
         
         return [
             'success' => true,
             'transaction_id' => $pdo->lastInsertId(),
-            'message' => ucfirst($type) . ' registrada com sucesso'
+            'message' => ucfirst($type) . ' registrada com sucesso',
+            'id_conta' => $idConta,
+            'id_categoria' => $idCategoria
         ];
     } catch (PDOException $e) {
         return [
@@ -25,14 +93,14 @@ function registerTransaction(PDO $pdo, string $type, float $value, string $descr
 }
 
 /**
- * Obtém saldo do mês/ano
+ * Obtém saldo do mês/ano (usando tabela transacoes)
  */
 function getBalance(PDO $pdo, ?int $month = null, ?int $year = null, ?int $userId = null): array {
     try {
         if (!$month) $month = (int)date('m');
         if (!$year) $year = (int)date('Y');
         
-        $where = "YEAR(created_at) = ? AND MONTH(created_at) = ?";
+        $where = "YEAR(data_transacao) = ? AND MONTH(data_transacao) = ?";
         $params = [$year, $month];
         
         if ($userId) {
@@ -41,17 +109,17 @@ function getBalance(PDO $pdo, ?int $month = null, ?int $year = null, ?int $userI
         }
         
         // Receitas
-        $sqlReceitas = "SELECT COALESCE(SUM(value), 0) as total, COUNT(*) as count 
-                        FROM transactions 
-                        WHERE type = 'receita' AND $where";
+        $sqlReceitas = "SELECT COALESCE(SUM(valor), 0) as total, COUNT(*) as count 
+                        FROM transacoes 
+                        WHERE tipo = 'receita' AND $where";
         $stmt = $pdo->prepare($sqlReceitas);
         $stmt->execute($params);
         $receitas = $stmt->fetch(PDO::FETCH_ASSOC);
         
         // Despesas
-        $sqlDespesas = "SELECT COALESCE(SUM(value), 0) as total, COUNT(*) as count 
-                        FROM transactions 
-                        WHERE type = 'despesa' AND $where";
+        $sqlDespesas = "SELECT COALESCE(SUM(valor), 0) as total, COUNT(*) as count 
+                        FROM transacoes 
+                        WHERE tipo = 'despesa' AND $where";
         $stmt = $pdo->prepare($sqlDespesas);
         $stmt->execute($params);
         $despesas = $stmt->fetch(PDO::FETCH_ASSOC);
