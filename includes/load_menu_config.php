@@ -101,6 +101,14 @@ if (!in_array('debug_ia.php', $menu_config['ordem_paginas']['sistema'], true)) {
     $menu_config['ordem_paginas']['sistema'][] = 'debug_ia.php';
 }
 
+// Garante que 'debug_ia_whatsapp.php' apareça em Sistema
+if (!in_array('debug_ia_whatsapp.php', $menu_config['paginas_visiveis']['sistema'], true)) {
+    $menu_config['paginas_visiveis']['sistema'][] = 'debug_ia_whatsapp.php';
+}
+if (!in_array('debug_ia_whatsapp.php', $menu_config['ordem_paginas']['sistema'], true)) {
+    $menu_config['ordem_paginas']['sistema'][] = 'debug_ia_whatsapp.php';
+}
+
 // Exibir 'whatsapp_admin.php' e 'whatsapp_qr.php' apenas para administradores
 try {
     $stmtTipo = $pdo->prepare("SELECT tipo FROM usuarios WHERE id = ? LIMIT 1");
@@ -209,5 +217,6 @@ $paginasInfo = [
     'debug_google_integration.php' => ['nome' => 'Debug Integração Google', 'icone' => 'bi-bug'],
     'verificar_apis_google.php' => ['nome' => 'Verificar APIs Google', 'icone' => 'bi-shield-check'],
     'debug_ia.php' => ['nome' => 'Debug Assistente Orion', 'icone' => 'bi-robot'],
+    'debug_ia_whatsapp.php' => ['nome' => 'Diagnóstico IA WhatsApp', 'icone' => 'bi-whatsapp'],
 ];
 ?>
