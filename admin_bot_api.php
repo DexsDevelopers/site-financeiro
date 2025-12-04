@@ -390,6 +390,94 @@ try {
             }
             break;
 
+        case '!ia':
+        case '!assistente':
+        case '!ai':
+            if (!$userId) {
+                $response = ['success' => false, 'message' => '⚠️ Você precisa estar logado! Use: !login EMAIL SENHA'];
+                break;
+            }
+            
+            if (count($args) === 0) {
+                $response = [
+                    'success' => false,
+                    'message' => '🤖 *ASSISTENTE DE IA*\n\n' .
+                               'Faça perguntas sobre seu painel financeiro!\n\n' .
+                               'Exemplos:\n' .
+                               '• !ia quais são minhas tarefas urgentes?\n' .
+                               '• !ia qual meu saldo atual?\n' .
+                               '• !ia em que estou gastando mais?\n' .
+                               '• !ia adicione uma tarefa: revisar relatório\n' .
+                               '• !ia me dê um resumo financeiro\n\n' .
+                               '💡 A IA entende linguagem natural e pode ajudar com:\n' .
+                               '• Finanças (saldo, gastos, receitas)\n' .
+                               '• Tarefas (listar, adicionar, prioridades)\n' .
+                               '• Análises e relatórios'
+                ];
+                break;
+            }
+            
+            // Juntar todos os argumentos como pergunta
+            $pergunta = implode(' ', $args);
+            
+            try {
+                // Chamar o endpoint de IA específico para WhatsApp
+                $iaUrl = $config['ADMIN_API_URL'] ?? 'https://gold-quail-250128.hostingersite.com/seu_projeto';
+                $iaUrl = rtrim($iaUrl, '/') . '/admin_bot_ia.php';
+                
+                $postData = [
+                    'pergunta' => $pergunta,
+                    'user_id' => $userId
+                ];
+                
+                $ch = curl_init($iaUrl);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_POST, true);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($postData));
+                curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                    'Content-Type: application/json',
+                    'Authorization: Bearer ' . $config['WHATSAPP_API_TOKEN']
+                ]);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+                
+                $iaResponse = curl_exec($ch);
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_close($ch);
+                
+                if ($httpCode === 200) {
+                    $iaData = json_decode($iaResponse, true);
+                    if ($iaData && isset($iaData['resposta'])) {
+                        $response = [
+                            'success' => true,
+                            'message' => '🤖 *Assistente IA*\n\n' . $iaData['resposta']
+                        ];
+                    } else {
+                        $response = [
+                            'success' => false,
+                            'message' => '❌ Erro ao processar resposta da IA. Tente novamente.'
+                        ];
+                    }
+                } else if ($httpCode === 429) {
+                    $iaData = json_decode($iaResponse, true);
+                    $response = [
+                        'success' => false,
+                        'message' => '⏳ ' . ($iaData['message'] ?? 'Limite de requisições excedido. Aguarde alguns minutos.')
+                    ];
+                } else {
+                    $response = [
+                        'success' => false,
+                        'message' => '❌ Erro ao conectar com a IA. Tente novamente em alguns instantes.'
+                    ];
+                }
+            } catch (Exception $e) {
+                error_log("Erro ao chamar IA: " . $e->getMessage());
+                $response = [
+                    'success' => false,
+                    'message' => '❌ Erro ao conectar com a IA. Tente novamente em alguns instantes.'
+                ];
+            }
+            break;
+
         case '!menu':
         case '!help':
         case '!ajuda':
@@ -448,6 +536,9 @@ try {
                            "*CLIENTES*\n" .
                            "👤 !clientes\n" .
                            "⚠️ !pendencias\n\n" .
+                           "*IA ASSISTENTE*\n" .
+                           "🤖 !ia PERGUNTA\n" .
+                           "💡 Exemplo: !ia qual meu saldo?\n\n" .
                            "💡 Digite !ajuda COMANDO para mais detalhes\n" .
                            "💡 Exemplo: !ajuda receita"
             ];
