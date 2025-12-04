@@ -149,14 +149,14 @@ function getBalance(PDO $pdo, ?int $month = null, ?int $year = null, ?int $userI
 }
 
 /**
- * Obtém extrato de período
+ * Obtém extrato de período (usando tabela transacoes)
  */
 function getExtract(PDO $pdo, ?string $startDate = null, ?string $endDate = null, ?int $userId = null, int $limit = 50): array {
     try {
         if (!$startDate) $startDate = date('Y-m-01');
         if (!$endDate) $endDate = date('Y-m-t');
         
-        $where = "DATE(t.created_at) BETWEEN ? AND ?";
+        $where = "DATE(t.data_transacao) BETWEEN ? AND ?";
         $params = [$startDate, $endDate];
         
         if ($userId) {
@@ -164,11 +164,12 @@ function getExtract(PDO $pdo, ?string $startDate = null, ?string $endDate = null
             $params[] = $userId;
         }
         
-        $sql = "SELECT t.*, c.name as client_name 
-                FROM transactions t 
-                LEFT JOIN clients c ON t.client_id = c.id 
+        $sql = "SELECT t.*, cat.nome as categoria_nome, conta.nome as conta_nome
+                FROM transacoes t 
+                LEFT JOIN categorias cat ON t.id_categoria = cat.id
+                LEFT JOIN contas conta ON t.id_conta = conta.id
                 WHERE $where 
-                ORDER BY t.created_at DESC 
+                ORDER BY t.data_transacao DESC 
                 LIMIT ?";
         $params[] = $limit;
         
