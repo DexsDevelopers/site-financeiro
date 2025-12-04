@@ -110,19 +110,32 @@ async function start() {
 
   // Tratamento de erros de descriptografia
   sock.ev.on('messages.upsert', async (m) => {
+    console.log('[MESSAGE] Evento messages.upsert recebido, isReady:', isReady);
+    
     if (!isReady) {
       console.log('[MESSAGE] Bot não está pronto, ignorando mensagem');
       return;
     }
     
     try {
+      console.log('[MESSAGE] Processando mensagem, total de mensagens:', m.messages?.length || 0);
       const msg = m.messages[0];
-      if (!msg || msg.key.fromMe || !msg.message) {
+      
+      if (!msg) {
+        console.log('[MESSAGE] Nenhuma mensagem no array');
+        return;
+      }
+      
+      console.log('[MESSAGE] Mensagem encontrada, fromMe:', msg.key?.fromMe, 'hasMessage:', !!msg.message);
+      
+      if (msg.key.fromMe || !msg.message) {
+        console.log('[MESSAGE] Mensagem ignorada (fromMe ou sem message)');
         return;
       }
       
       // Ignorar mensagens com erro de descriptografia
       if (msg.messageStubType === 1 || msg.messageStubType === 2) {
+        console.log('[MESSAGE] Mensagem com stub type, ignorando');
         return; // Mensagem deletada ou erro
       }
       
@@ -226,18 +239,23 @@ async function start() {
           timeout: 30000
         });
         
-        console.log(`[COMMAND] Resposta da API:`, apiResponse.status, apiResponse.data);
+        console.log(`[COMMAND] Resposta da API:`, apiResponse.status, JSON.stringify(apiResponse.data));
         
         if (apiResponse.data && apiResponse.data.message) {
+          console.log(`[COMMAND] Enviando resposta para ${jid}:`, apiResponse.data.message.substring(0, 50) + '...');
           await sock.sendMessage(jid, { text: apiResponse.data.message });
+          console.log(`[COMMAND] Resposta enviada com sucesso`);
         } else {
+          console.error(`[COMMAND] Resposta inválida da API:`, apiResponse.data);
           await sock.sendMessage(jid, { text: '❌ Erro ao processar comando. Resposta inválida da API.' });
         }
       } catch (e) {
         console.error('[COMMAND] Erro completo:', e);
         console.error('[COMMAND] Erro message:', e.message);
+        console.error('[COMMAND] Erro code:', e.code);
         console.error('[COMMAND] Erro response:', e.response?.data);
         console.error('[COMMAND] Erro status:', e.response?.status);
+        console.error('[COMMAND] Stack:', e.stack);
         
         let errorMsg = '❌ Erro ao processar comando.';
         if (e.code === 'ECONNREFUSED') {
@@ -245,12 +263,19 @@ async function start() {
         } else if (e.response?.status === 401) {
           errorMsg = '❌ Token de autenticação inválido.';
         } else if (e.response?.status === 500) {
-          errorMsg = '❌ Erro no servidor. Verifique os logs.';
+          errorMsg = '❌ Erro no servidor (500). Verifique os logs do servidor PHP.';
         } else if (e.response?.data?.error) {
           errorMsg = `❌ ${e.response.data.error}`;
+        } else if (e.message) {
+          errorMsg = `❌ Erro: ${e.message}`;
         }
         
-        await sock.sendMessage(jid, { text: errorMsg });
+        try {
+          await sock.sendMessage(jid, { text: errorMsg });
+          console.log(`[COMMAND] Mensagem de erro enviada para ${jid}`);
+        } catch (sendError) {
+          console.error('[COMMAND] Erro ao enviar mensagem de erro:', sendError);
+        }
       }
       return;
     }
