@@ -421,15 +421,35 @@ try {
             $pergunta = implode(' ', $args);
             
             try {
-                // Chamar o endpoint de IA específico para WhatsApp
-                // Usar URL base do servidor atual
-                $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-                $host = $_SERVER['HTTP_HOST'] ?? 'gold-quail-250128.hostingersite.com';
-                $basePath = dirname($_SERVER['SCRIPT_NAME'] ?? '/seu_projeto');
-                $iaUrl = $protocol . '://' . $host . $basePath . '/admin_bot_ia.php';
+                // Chamar diretamente o arquivo de IA (sem HTTP request)
+                $iaFile = __DIR__ . '/admin_bot_ia.php';
+                if (!file_exists($iaFile)) {
+                    throw new Exception("Arquivo admin_bot_ia.php não encontrado");
+                }
                 
-                error_log("[IA] URL: $iaUrl");
-                error_log("[IA] Pergunta: $pergunta, UserID: $userId");
+                // Simular requisição para o arquivo
+                $_POST = []; // Limpar POST
+                $_SERVER['REQUEST_METHOD'] = 'POST';
+                
+                // Capturar output
+                ob_start();
+                
+                // Incluir o arquivo de IA (ele vai processar e fazer echo do JSON)
+                $oldInput = file_get_contents('php://input');
+                // Não podemos modificar php://input, então vamos usar uma abordagem diferente
+                
+                // Melhor: fazer requisição HTTP local
+                $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+                $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+                $scriptPath = dirname($_SERVER['SCRIPT_NAME'] ?? '');
+                $iaUrl = $protocol . '://' . $host . $scriptPath . '/admin_bot_ia.php';
+                
+                // Se estiver em localhost, usar 127.0.0.1
+                if ($host === 'localhost' || $host === '127.0.0.1') {
+                    $iaUrl = 'http://127.0.0.1' . $scriptPath . '/admin_bot_ia.php';
+                }
+                
+                error_log("[IA] Chamando: $iaUrl");
                 
                 $postData = [
                     'pergunta' => $pergunta,
@@ -445,23 +465,22 @@ try {
                     'Authorization: Bearer ' . $config['WHATSAPP_API_TOKEN']
                 ]);
                 curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // Para desenvolvimento
+                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
                 
                 $iaResponse = curl_exec($ch);
                 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
                 $curlError = curl_error($ch);
                 curl_close($ch);
                 
-                error_log("[IA] HTTP Code: $httpCode");
-                error_log("[IA] Response: " . substr($iaResponse, 0, 200));
+                error_log("[IA] HTTP Code: $httpCode, Error: " . ($curlError ?: 'none'));
+                error_log("[IA] Response: " . substr($iaResponse, 0, 300));
                 
                 if ($curlError) {
-                    error_log("[IA] cURL Error: $curlError");
-                    $response = [
-                        'success' => false,
-                        'message' => '❌ Erro de conexão: ' . $curlError
-                    ];
-                } else if ($httpCode === 200) {
+                    throw new Exception("Erro cURL: $curlError");
+                }
+                
+                if ($httpCode === 200) {
                     $iaData = json_decode($iaResponse, true);
                     if ($iaData && isset($iaData['resposta'])) {
                         $response = [
@@ -469,11 +488,7 @@ try {
                             'message' => '🤖 *Assistente IA*\n\n' . $iaData['resposta']
                         ];
                     } else {
-                        error_log("[IA] Resposta inválida: " . $iaResponse);
-                        $response = [
-                            'success' => false,
-                            'message' => '❌ Erro ao processar resposta da IA. Resposta: ' . substr($iaResponse, 0, 100)
-                        ];
+                        throw new Exception("Resposta inválida da IA: " . substr($iaResponse, 0, 200));
                     }
                 } else if ($httpCode === 429) {
                     $iaData = json_decode($iaResponse, true);
@@ -482,18 +497,13 @@ try {
                         'message' => '⏳ ' . ($iaData['message'] ?? 'Limite de requisições excedido. Aguarde alguns minutos.')
                     ];
                 } else {
-                    error_log("[IA] HTTP Error $httpCode: " . substr($iaResponse, 0, 200));
-                    $response = [
-                        'success' => false,
-                        'message' => "❌ Erro HTTP $httpCode ao conectar com a IA. Verifique os logs."
-                    ];
+                    throw new Exception("HTTP $httpCode: " . substr($iaResponse, 0, 200));
                 }
             } catch (Exception $e) {
                 error_log("[IA] Exception: " . $e->getMessage());
-                error_log("[IA] Stack: " . $e->getTraceAsString());
                 $response = [
                     'success' => false,
-                    'message' => '❌ Erro ao conectar com a IA: ' . $e->getMessage()
+                    'message' => '❌ Erro ao conectar com a IA: ' . $e->getMessage() . "\n\nTente usar comandos específicos como !saldo, !tarefas, etc."
                 ];
             }
             break;
