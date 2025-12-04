@@ -450,6 +450,13 @@ try {
                 }
                 
                 error_log("[IA] Chamando: $iaUrl");
+                error_log("[IA] UserID sendo enviado: $userId");
+                error_log("[IA] Telefone: $phoneNormalized");
+                if ($loggedUser) {
+                    error_log("[IA] Usuário logado - ID: {$loggedUser['id']}, Nome: {$loggedUser['nome']}, Email: {$loggedUser['email']}");
+                } else {
+                    error_log("[IA] AVISO: Nenhum usuário logado encontrado!");
+                }
                 
                 $postData = [
                     'pergunta' => $pergunta,

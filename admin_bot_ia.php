@@ -5,6 +5,7 @@ header('Content-Type: application/json; charset=utf-8');
 error_reporting(E_ALL);
 ini_set('display_errors', 0);
 ini_set('log_errors', 1);
+set_time_limit(120); // Aumentar tempo limite de execução para 120 segundos
 
 require_once 'includes/db_connect.php';
 require_once 'includes/rate_limiter.php';
@@ -13,7 +14,8 @@ require_once 'includes/tasks_helper.php';
 
 // Funções de tarefas (compatíveis com processar_analise_ia.php)
 function getTarefasDoUsuario(PDO $pdo, int $userId): array {
-    $sql = "SELECT id, descricao, prioridade, data_limite, 
+    error_log("[BOT_IA] getTarefasDoUsuario chamado com userId: $userId");
+    $sql = "SELECT id, descricao, prioridade, data_limite, id_usuario,
             CASE 
                 WHEN data_limite IS NOT NULL AND data_limite <= CURDATE() THEN 'Vencida'
                 WHEN data_limite IS NOT NULL AND data_limite <= DATE_ADD(CURDATE(), INTERVAL 3 DAY) THEN 'Urgente'
@@ -30,6 +32,7 @@ function getTarefasDoUsuario(PDO $pdo, int $userId): array {
     $stmt = $pdo->prepare($sql);
     $stmt->execute([$userId]);
     $tarefas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    error_log("[BOT_IA] getTarefasDoUsuario encontrou " . count($tarefas) . " tarefas para userId: $userId");
     
     if (empty($tarefas)) {
         return ['resultado' => 'Você não possui tarefas pendentes.'];
@@ -49,7 +52,8 @@ function getTarefasDoUsuario(PDO $pdo, int $userId): array {
 }
 
 function getTarefasUrgentes(PDO $pdo, int $userId): array {
-    $sql = "SELECT id, descricao, prioridade, data_limite,
+    error_log("[BOT_IA] getTarefasUrgentes chamado com userId: $userId");
+    $sql = "SELECT id, descricao, prioridade, data_limite, id_usuario,
             CASE 
                 WHEN data_limite IS NOT NULL AND data_limite <= CURDATE() THEN 'Vencida'
                 WHEN data_limite IS NOT NULL AND data_limite <= DATE_ADD(CURDATE(), INTERVAL 3 DAY) THEN 'Urgente'
@@ -70,6 +74,7 @@ function getTarefasUrgentes(PDO $pdo, int $userId): array {
     $stmt = $pdo->prepare($sql);
     $stmt->execute([$userId]);
     $tarefas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    error_log("[BOT_IA] getTarefasUrgentes encontrou " . count($tarefas) . " tarefas urgentes para userId: $userId");
     
     if (empty($tarefas)) {
         return ['resultado' => 'Você não possui tarefas urgentes no momento.'];
@@ -144,6 +149,26 @@ $pergunta = $input['pergunta'] ?? '';
 $userId = isset($input['user_id']) ? (int)$input['user_id'] : null;
 
 error_log("[BOT_IA] Recebido - Pergunta: $pergunta, UserID: $userId");
+error_log("[BOT_IA] Input completo: " . json_encode($input));
+
+// Validar que o user_id existe na tabela usuarios
+if ($userId) {
+    try {
+        $checkUser = $pdo->prepare("SELECT id, nome_completo, email FROM usuarios WHERE id = ?");
+        $checkUser->execute([$userId]);
+        $userInfo = $checkUser->fetch(PDO::FETCH_ASSOC);
+        if ($userInfo) {
+            error_log("[BOT_IA] Usuário validado - ID: {$userInfo['id']}, Nome: {$userInfo['nome_completo']}, Email: {$userInfo['email']}");
+        } else {
+            error_log("[BOT_IA] ERRO: UserID $userId não existe na tabela usuarios!");
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Usuário inválido. Faça login novamente com !login']);
+            exit;
+        }
+    } catch (PDOException $e) {
+        error_log("[BOT_IA] Erro ao validar usuário: " . $e->getMessage());
+    }
+}
 
 if (empty($pergunta) || !$userId) {
     error_log("[BOT_IA] Erro: Pergunta ou user_id vazios");
@@ -495,6 +520,7 @@ try {
                 ];
                 
                 // Fazer segunda chamada para a IA processar o resultado
+                error_log("[BOT_IA] Iniciando segunda chamada para a API (Function Response)...");
                 $data2 = [
                     'contents' => $conversationHistory,
                     'tools' => $tools // Manter ferramentas disponíveis caso queira chamar outra
@@ -505,11 +531,18 @@ try {
                 curl_setopt($ch2, CURLOPT_POST, true);
                 curl_setopt($ch2, CURLOPT_POSTFIELDS, json_encode($data2));
                 curl_setopt($ch2, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-                curl_setopt($ch2, CURLOPT_TIMEOUT, 30);
+                curl_setopt($ch2, CURLOPT_TIMEOUT, 60); // Timeout aumentado para segunda chamada
                 $response_string2 = curl_exec($ch2);
                 $http_code2 = curl_getinfo($ch2, CURLINFO_HTTP_CODE);
+                $curl_error2 = curl_error($ch2);
                 curl_close($ch2);
                 
+                if ($curl_error2) {
+                    error_log("[BOT_IA] Erro cURL na segunda chamada: $curl_error2");
+                }
+                
+                error_log("[BOT_IA] Resposta da segunda chamada: HTTP $http_code2");
+
                 if ($http_code2 === 200) {
                     $api_response2 = json_decode($response_string2, true);
                     if (isset($api_response2['candidates'][0]['content']['parts'][0]['text'])) {
