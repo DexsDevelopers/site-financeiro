@@ -4,7 +4,7 @@ date_default_timezone_set('America/Sao_Paulo');
 
 define('ONESIGNAL_APP_ID', '8b948d38-c99d-402b-a456-e99e66fcc60f');
 define('ONESIGNAL_REST_API_KEY', 'os_v2_app_roki2ogjtvacxjcw5gpgn7ggb6mdk2tfshne5g4h2i6iyji25kg3h7mljd6u7rl2kw23egygxcbkcxdvfjehi7u5x5df4e2z7zefrhi');
-define('GEMINI_API_KEY', 'AIzaSyD9E-pw2UkQHeoeNQqOiaOv1h5QbZyuN04');
+define('GEMINI_API_KEY', 'AIzaSyAjGLZmjQ4Qbp3_BpBBCqQgOW_RIyDzaOA');
 
 // Google OAuth (Integrações Google)
 // ⚠️ SEGURANÇA: As credenciais devem ser configuradas em um arquivo separado não versionado
