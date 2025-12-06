@@ -419,10 +419,12 @@ try {
                 'contents' => $conversationHistory
             ];
             
+            $jsonSimple = json_encode($data_simple, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            
             $ch = curl_init($gemini_api_url);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data_simple));
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonSimple);
             curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
             curl_setopt($ch, CURLOPT_TIMEOUT, 30);
             $response_string = curl_exec($ch);
