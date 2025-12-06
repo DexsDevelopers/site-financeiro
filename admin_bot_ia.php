@@ -197,7 +197,9 @@ try {
 
 // Funções disponíveis para a IA
 function getResumoFinanceiro(PDO $pdo, int $userId): array {
+    error_log("[BOT_IA] getResumoFinanceiro chamado com userId: $userId");
     $balance = getBalance($pdo, null, null, $userId);
+    error_log("[BOT_IA] getBalance retornou: " . json_encode($balance));
     if (!$balance['success']) {
         return ['resultado' => 'Erro ao obter resumo financeiro.'];
     }
@@ -268,7 +270,7 @@ $tools = [
                 'description' => 'Obtém resumo financeiro do mês atual (receitas, despesas, saldo)',
                 'parameters' => [
                     'type' => 'OBJECT',
-                    'properties' => []
+                    'properties' => (object)[]  // Objeto vazio, não array
                 ]
             ],
             [
@@ -276,7 +278,7 @@ $tools = [
                 'description' => 'Obtém as 5 principais categorias de gasto do mês atual',
                 'parameters' => [
                     'type' => 'OBJECT',
-                    'properties' => []
+                    'properties' => (object)[]  // Objeto vazio, não array
                 ]
             ],
             [
@@ -284,7 +286,7 @@ $tools = [
                 'description' => 'Obtém todas as tarefas pendentes do usuário',
                 'parameters' => [
                     'type' => 'OBJECT',
-                    'properties' => []
+                    'properties' => (object)[]  // Objeto vazio, não array
                 ]
             ],
             [
@@ -292,7 +294,7 @@ $tools = [
                 'description' => 'Obtém apenas tarefas urgentes (alta prioridade ou próximas do prazo)',
                 'parameters' => [
                     'type' => 'OBJECT',
-                    'properties' => []
+                    'properties' => (object)[]  // Objeto vazio, não array
                 ]
             ],
             [
@@ -345,10 +347,18 @@ try {
         ]
     ];
     
+    // Garantir que properties vazios sejam objetos, não arrays
+    $jsonData = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    // Substituir arrays vazios [] por objetos {} nas properties
+    $jsonData = preg_replace('/"properties":\s*\[\]/', '"properties":{}', $jsonData);
+    
+    error_log("[BOT_IA] Enviando para Gemini - UserID: $userId, Modelo: $currentModel");
+    error_log("[BOT_IA] JSON preview: " . substr($jsonData, 0, 500));
+    
     $ch = curl_init($gemini_api_url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonData);
     curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
     curl_setopt($ch, CURLOPT_TIMEOUT, 30);
     $response_string = curl_exec($ch);
@@ -526,10 +536,14 @@ try {
                     'tools' => $tools // Manter ferramentas disponíveis caso queira chamar outra
                 ];
                 
+                // Garantir que properties vazios sejam objetos, não arrays
+                $jsonData2 = json_encode($data2, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                $jsonData2 = preg_replace('/"properties":\s*\[\]/', '"properties":{}', $jsonData2);
+                
                 $ch2 = curl_init($gemini_api_url);
                 curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
                 curl_setopt($ch2, CURLOPT_POST, true);
-                curl_setopt($ch2, CURLOPT_POSTFIELDS, json_encode($data2));
+                curl_setopt($ch2, CURLOPT_POSTFIELDS, $jsonData2);
                 curl_setopt($ch2, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
                 curl_setopt($ch2, CURLOPT_TIMEOUT, 60); // Timeout aumentado para segunda chamada
                 $response_string2 = curl_exec($ch2);
