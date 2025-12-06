@@ -85,6 +85,29 @@ function getTarefasDoUsuario(PDO $pdo, int $userId): array {
         return ['resultado' => 'Você não possui tarefas pendentes.'];
     }
     
+    // Buscar subtarefas para todas as tarefas
+    $tarefaIds = array_column($tarefas, 'id');
+    $subtarefas = [];
+    if (!empty($tarefaIds)) {
+        $placeholders = implode(',', array_fill(0, count($tarefaIds), '?'));
+        $sqlSubtarefas = "SELECT id, id_tarefa_principal, descricao, status 
+                         FROM subtarefas 
+                         WHERE id_tarefa_principal IN ($placeholders)
+                         ORDER BY id_tarefa_principal, id ASC";
+        $stmtSubtarefas = $pdo->prepare($sqlSubtarefas);
+        $stmtSubtarefas->execute($tarefaIds);
+        $todasSubtarefas = $stmtSubtarefas->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Mapear subtarefas por tarefa principal
+        foreach ($todasSubtarefas as $sub) {
+            $tid = (int)$sub['id_tarefa_principal'];
+            if (!isset($subtarefas[$tid])) {
+                $subtarefas[$tid] = [];
+            }
+            $subtarefas[$tid][] = $sub;
+        }
+    }
+    
     $resultado = "Suas tarefas pendentes:\n\n";
     foreach ($tarefas as $tarefa) {
         $data_info = '';
@@ -93,6 +116,14 @@ function getTarefasDoUsuario(PDO $pdo, int $userId): array {
             $data_info = " (Prazo: {$data_formatada})";
         }
         $resultado .= sprintf("- %s - Prioridade: %s%s\n", $tarefa['descricao'], $tarefa['prioridade'], $data_info);
+        
+        // Adicionar subtarefas se existirem
+        if (isset($subtarefas[$tarefa['id']]) && !empty($subtarefas[$tarefa['id']])) {
+            foreach ($subtarefas[$tarefa['id']] as $subtarefa) {
+                $status_icon = $subtarefa['status'] === 'concluida' ? '✅' : '⏳';
+                $resultado .= sprintf("  %s %s\n", $status_icon, $subtarefa['descricao']);
+            }
+        }
     }
     
     return ['resultado' => $resultado];
@@ -334,9 +365,11 @@ $prompt_inicial = "Você é um assistente financeiro especializado em ajudar usu
 Você tem acesso às seguintes ferramentas:
 1. getResumoFinanceiro - Retorna receitas, despesas e saldo do mês atual
 2. getPrincipaisCategoriasGasto - Retorna as 5 categorias com mais gastos no mês
-3. getTarefasDoUsuario - Retorna todas as tarefas pendentes
-4. getTarefasUrgentes - Retorna apenas tarefas urgentes (alta prioridade ou próximas do prazo)
+3. getTarefasDoUsuario - Retorna todas as tarefas pendentes (incluindo subtarefas)
+4. getTarefasUrgentes - Retorna apenas tarefas urgentes (alta prioridade ou próximas do prazo, incluindo subtarefas)
 5. adicionarTarefa - Adiciona uma nova tarefa
+
+IMPORTANTE: As tarefas podem ter subtarefas associadas. Quando listar tarefas, sempre mostre as subtarefas de cada tarefa principal. Subtarefas concluídas aparecem com ✅ e pendentes com ⏳.
 
 SEMPRE use uma ferramenta primeiro quando o usuário perguntar sobre dados financeiros ou tarefas. Depois, formule uma resposta clara e objetiva baseada no resultado.
 
