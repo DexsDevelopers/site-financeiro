@@ -680,14 +680,8 @@ try {
     exit;
 }
 
-// Registrar uso no rate limiter
-try {
-    if (isset($rateLimiter)) {
-        $rateLimiter->recordUsage($userId, 'gemini');
-    }
-} catch (Exception $e) {
-    error_log("Erro ao registrar uso: " . $e->getMessage());
-}
+// O registro de uso já é feito automaticamente no checkRateLimit()
+// Não é necessário registrar novamente aqui
 
 echo json_encode([
     'success' => true,
