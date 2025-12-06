@@ -7,10 +7,57 @@ ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 set_time_limit(120); // Aumentar tempo limite de execução para 120 segundos
 
-require_once 'includes/db_connect.php';
-require_once 'includes/rate_limiter.php';
-require_once 'includes/finance_helper.php';
-require_once 'includes/tasks_helper.php';
+// Handler de erros fatal para capturar erros antes do try-catch
+register_shutdown_function(function() {
+    $error = error_get_last();
+    if ($error !== NULL && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'resposta' => 'Erro fatal: ' . $error['message'],
+            'file' => basename($error['file']),
+            'line' => $error['line']
+        ], JSON_UNESCAPED_UNICODE);
+        error_log("Fatal error em admin_bot_ia.php: " . $error['message'] . " em " . $error['file'] . ":" . $error['line']);
+        exit;
+    }
+});
+
+try {
+    require_once 'includes/db_connect.php';
+    require_once 'includes/rate_limiter.php';
+    require_once 'includes/finance_helper.php';
+    require_once 'includes/tasks_helper.php';
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'resposta' => 'Erro ao carregar dependências: ' . $e->getMessage()
+    ], JSON_UNESCAPED_UNICODE);
+    error_log("[BOT_IA] Erro ao carregar dependências: " . $e->getMessage());
+    exit;
+}
+
+// Verificar se $pdo foi definido e está conectado
+if (!isset($pdo) || $pdo === null) {
+    if (isset($db_connect_error)) {
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'resposta' => 'Erro de conexão com banco de dados: ' . $db_connect_error
+        ], JSON_UNESCAPED_UNICODE);
+        error_log("[BOT_IA] Erro de conexão com banco: " . $db_connect_error);
+        exit;
+    } else {
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'resposta' => 'Erro: Banco de dados não conectado'
+        ], JSON_UNESCAPED_UNICODE);
+        error_log("[BOT_IA] Erro: Banco de dados não conectado");
+        exit;
+    }
+}
 
 // Funções de tarefas (compatíveis com processar_analise_ia.php)
 function getTarefasDoUsuario(PDO $pdo, int $userId): array {
@@ -132,24 +179,44 @@ try {
 }
 
 // Validar token
-$headers = getallheaders();
-$token = $headers['Authorization'] ?? $headers['authorization'] ?? '';
-$token = str_replace('Bearer ', '', $token);
+try {
+    $headers = getallheaders();
+    if ($headers === false) {
+        $headers = [];
+    }
+    $token = $headers['Authorization'] ?? $headers['authorization'] ?? '';
+    $token = str_replace('Bearer ', '', $token);
 
-$expectedToken = $config['WHATSAPP_API_TOKEN'] ?? 'site-financeiro-token-2024';
-if ($token !== $expectedToken) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'error' => 'Token inválido']);
+    $expectedToken = $config['WHATSAPP_API_TOKEN'] ?? 'site-financeiro-token-2024';
+    if ($token !== $expectedToken) {
+        http_response_code(401);
+        echo json_encode(['success' => false, 'error' => 'Token inválido']);
+        exit;
+    }
+
+    // Obter dados da requisição
+    $inputRaw = file_get_contents('php://input');
+    if ($inputRaw === false) {
+        throw new Exception('Erro ao ler dados da requisição');
+    }
+    $input = json_decode($inputRaw, true);
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        throw new Exception('Erro ao decodificar JSON: ' . json_last_error_msg());
+    }
+    $pergunta = $input['pergunta'] ?? '';
+    $userId = isset($input['user_id']) ? (int)$input['user_id'] : null;
+
+    error_log("[BOT_IA] Recebido - Pergunta: $pergunta, UserID: $userId");
+    error_log("[BOT_IA] Input completo: " . json_encode($input));
+} catch (Exception $e) {
+    error_log("[BOT_IA] Erro ao processar requisição inicial: " . $e->getMessage());
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'resposta' => 'Erro ao processar requisição: ' . $e->getMessage()
+    ]);
     exit;
 }
-
-// Obter dados da requisição
-$input = json_decode(file_get_contents('php://input'), true);
-$pergunta = $input['pergunta'] ?? '';
-$userId = isset($input['user_id']) ? (int)$input['user_id'] : null;
-
-error_log("[BOT_IA] Recebido - Pergunta: $pergunta, UserID: $userId");
-error_log("[BOT_IA] Input completo: " . json_encode($input));
 
 // Validar que o user_id existe na tabela usuarios
 if ($userId) {
