@@ -228,6 +228,110 @@ function adicionarTarefa(PDO $pdo, int $userId, string $descricao): array {
     }
 }
 
+function removerTarefa(PDO $pdo, int $userId, string $descricaoOuId): array {
+    if (empty(trim($descricaoOuId))) {
+        return ['resultado' => 'É necessário informar o ID ou descrição da tarefa a ser removida.'];
+    }
+    
+    try {
+        // Tentar buscar por ID primeiro (se for numérico)
+        if (is_numeric($descricaoOuId)) {
+            $stmt = $pdo->prepare("SELECT id, descricao FROM tarefas WHERE id = ? AND id_usuario = ?");
+            $stmt->execute([(int)$descricaoOuId, $userId]);
+            $tarefa = $stmt->fetch(PDO::FETCH_ASSOC);
+        } else {
+            // Buscar por descrição (busca parcial, case-insensitive)
+            $stmt = $pdo->prepare("SELECT id, descricao FROM tarefas WHERE id_usuario = ? AND descricao LIKE ? AND status = 'pendente' LIMIT 1");
+            $stmt->execute([$userId, '%' . $descricaoOuId . '%']);
+            $tarefa = $stmt->fetch(PDO::FETCH_ASSOC);
+        }
+        
+        if (!$tarefa) {
+            return ['resultado' => "Tarefa não encontrada. Verifique o ID ou descrição informada."];
+        }
+        
+        // Deletar subtarefas primeiro (se houver)
+        $stmt_sub = $pdo->prepare("DELETE FROM subtarefas WHERE id_tarefa_principal = ?");
+        $stmt_sub->execute([$tarefa['id']]);
+        
+        // Deletar a tarefa
+        $stmt_del = $pdo->prepare("DELETE FROM tarefas WHERE id = ? AND id_usuario = ?");
+        $stmt_del->execute([$tarefa['id'], $userId]);
+        
+        if ($stmt_del->rowCount() > 0) {
+            return ['resultado' => "Tarefa '{$tarefa['descricao']}' removida com sucesso!"];
+        }
+        return ['resultado' => 'Não foi possível remover a tarefa.'];
+    } catch (PDOException $e) {
+        error_log("Erro ao remover tarefa: " . $e->getMessage());
+        return ['resultado' => 'Erro ao remover tarefa. Tente novamente.'];
+    }
+}
+
+function atualizarTarefa(PDO $pdo, int $userId, string $descricaoOuId, string $novaDescricao = null, string $novaPrioridade = null): array {
+    if (empty(trim($descricaoOuId))) {
+        return ['resultado' => 'É necessário informar o ID ou descrição da tarefa a ser atualizada.'];
+    }
+    
+    try {
+        // Tentar buscar por ID primeiro (se for numérico)
+        if (is_numeric($descricaoOuId)) {
+            $stmt = $pdo->prepare("SELECT id, descricao, prioridade FROM tarefas WHERE id = ? AND id_usuario = ?");
+            $stmt->execute([(int)$descricaoOuId, $userId]);
+            $tarefa = $stmt->fetch(PDO::FETCH_ASSOC);
+        } else {
+            // Buscar por descrição (busca parcial, case-insensitive)
+            $stmt = $pdo->prepare("SELECT id, descricao, prioridade FROM tarefas WHERE id_usuario = ? AND descricao LIKE ? AND status = 'pendente' LIMIT 1");
+            $stmt->execute([$userId, '%' . $descricaoOuId . '%']);
+            $tarefa = $stmt->fetch(PDO::FETCH_ASSOC);
+        }
+        
+        if (!$tarefa) {
+            return ['resultado' => "Tarefa não encontrada. Verifique o ID ou descrição informada."];
+        }
+        
+        // Montar query de atualização dinamicamente
+        $updates = [];
+        $params = [];
+        
+        if ($novaDescricao !== null && !empty(trim($novaDescricao))) {
+            $updates[] = "descricao = ?";
+            $params[] = trim($novaDescricao);
+        }
+        
+        if ($novaPrioridade !== null && in_array($novaPrioridade, ['Alta', 'Média', 'Baixa'])) {
+            $updates[] = "prioridade = ?";
+            $params[] = $novaPrioridade;
+        }
+        
+        if (empty($updates)) {
+            return ['resultado' => 'Nenhuma alteração foi informada. Informe nova descrição ou prioridade.'];
+        }
+        
+        $params[] = $tarefa['id'];
+        $params[] = $userId;
+        
+        $sql = "UPDATE tarefas SET " . implode(', ', $updates) . " WHERE id = ? AND id_usuario = ?";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        
+        if ($stmt->rowCount() > 0) {
+            $mensagem = "Tarefa atualizada com sucesso!";
+            if ($novaDescricao) {
+                $mensagem .= " Nova descrição: '{$novaDescricao}'";
+            }
+            if ($novaPrioridade) {
+                $mensagem .= " Nova prioridade: {$novaPrioridade}";
+            }
+            return ['resultado' => $mensagem];
+        }
+        return ['resultado' => 'Nenhuma alteração foi feita na tarefa.'];
+    } catch (PDOException $e) {
+        error_log("Erro ao atualizar tarefa: " . $e->getMessage());
+        return ['resultado' => 'Erro ao atualizar tarefa. Tente novamente.'];
+    }
+}
+
 // Carregar configuração
 $config = [];
 try {
@@ -398,9 +502,15 @@ Você tem acesso às seguintes ferramentas:
 2. getPrincipaisCategoriasGasto - Retorna as 5 categorias com mais gastos no mês
 3. getTarefasDoUsuario - Retorna todas as tarefas pendentes (incluindo subtarefas)
 4. getTarefasUrgentes - Retorna apenas tarefas urgentes (alta prioridade ou próximas do prazo, incluindo subtarefas)
-5. adicionarTarefa - Adiciona uma nova tarefa
+5. adicionarTarefa - Adiciona uma nova tarefa (parâmetro: descricao)
+6. removerTarefa - Remove uma tarefa existente (parâmetro: descricaoOuId - pode ser ID numérico ou parte da descrição)
+7. atualizarTarefa - Atualiza uma tarefa existente (parâmetros: descricaoOuId, novaDescricao opcional, novaPrioridade opcional - 'Alta', 'Média' ou 'Baixa')
 
-IMPORTANTE: As tarefas podem ter subtarefas associadas. Quando listar tarefas, sempre mostre as subtarefas de cada tarefa principal. Subtarefas concluídas aparecem com ✅ e pendentes com ⏳.
+IMPORTANTE SOBRE TAREFAS:
+- As tarefas podem ter subtarefas associadas. Quando listar tarefas, sempre mostre as subtarefas de cada tarefa principal. Subtarefas concluídas aparecem com ✅ e pendentes com ⏳.
+- Quando o usuário pedir para MODIFICAR, ATUALIZAR ou MUDAR uma tarefa, use atualizarTarefa. Exemplo: 'mude a tarefa X para Y' ou 'atualize a prioridade da tarefa Z para Alta'.
+- Quando o usuário pedir para REMOVER, DELETAR, EXCLUIR ou APAGAR uma tarefa, use removerTarefa. Você pode buscar por ID ou por parte da descrição.
+- Se o usuário mencionar 'prioridade máxima', interprete como prioridade 'Alta'.
 
 SEMPRE use uma ferramenta primeiro quando o usuário perguntar sobre dados financeiros ou tarefas. Depois, formule uma resposta clara e objetiva baseada no resultado.
 
@@ -453,6 +563,42 @@ $tools = [
                         ]
                     ],
                     'required' => ['descricao']
+                ]
+            ],
+            [
+                'name' => 'removerTarefa',
+                'description' => 'Remove uma tarefa existente. Pode buscar por ID numérico ou por parte da descrição',
+                'parameters' => [
+                    'type' => 'OBJECT',
+                    'properties' => [
+                        'descricaoOuId' => [
+                            'type' => 'STRING',
+                            'description' => 'ID numérico da tarefa ou parte da descrição da tarefa a ser removida'
+                        ]
+                    ],
+                    'required' => ['descricaoOuId']
+                ]
+            ],
+            [
+                'name' => 'atualizarTarefa',
+                'description' => 'Atualiza uma tarefa existente. Pode alterar descrição e/ou prioridade',
+                'parameters' => [
+                    'type' => 'OBJECT',
+                    'properties' => [
+                        'descricaoOuId' => [
+                            'type' => 'STRING',
+                            'description' => 'ID numérico da tarefa ou parte da descrição da tarefa a ser atualizada'
+                        ],
+                        'novaDescricao' => [
+                            'type' => 'STRING',
+                            'description' => 'Nova descrição para a tarefa (opcional)'
+                        ],
+                        'novaPrioridade' => [
+                            'type' => 'STRING',
+                            'description' => 'Nova prioridade: "Alta", "Média" ou "Baixa" (opcional)'
+                        ]
+                    ],
+                    'required' => ['descricaoOuId']
                 ]
             ]
         ]
@@ -655,6 +801,24 @@ try {
                             }
                         } else {
                             $result = ['resultado' => 'Descrição da tarefa é obrigatória.'];
+                        }
+                        break;
+                    case 'removerTarefa':
+                        $descricaoOuId = $functionArgs['descricaoOuId'] ?? '';
+                        if ($descricaoOuId) {
+                            $result = removerTarefa($pdo, $userId, $descricaoOuId);
+                        } else {
+                            $result = ['resultado' => 'É necessário informar o ID ou descrição da tarefa a ser removida.'];
+                        }
+                        break;
+                    case 'atualizarTarefa':
+                        $descricaoOuId = $functionArgs['descricaoOuId'] ?? '';
+                        $novaDescricao = $functionArgs['novaDescricao'] ?? null;
+                        $novaPrioridade = $functionArgs['novaPrioridade'] ?? null;
+                        if ($descricaoOuId) {
+                            $result = atualizarTarefa($pdo, $userId, $descricaoOuId, $novaDescricao, $novaPrioridade);
+                        } else {
+                            $result = ['resultado' => 'É necessário informar o ID ou descrição da tarefa a ser atualizada.'];
                         }
                         break;
                     default:
