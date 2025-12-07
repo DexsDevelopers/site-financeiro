@@ -1,7 +1,7 @@
 <?php
 /**
  * admin_bot_ia.php - Endpoint de IA para WhatsApp Bot
- * Versão auto-contida com queries SQL diretas (sem dependências externas)
+ * Usa helpers externos (finance_helper.php e tasks_helper.php) para operações no banco
  */
 
 header('Content-Type: application/json; charset=utf-8');
