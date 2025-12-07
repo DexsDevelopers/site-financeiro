@@ -308,7 +308,7 @@ function removerTarefa(PDO $pdo, int $userId, string $descricaoOuId): array {
     }
 }
 
-function atualizarTarefa(PDO $pdo, int $userId, string $descricaoOuId, string $novaDescricao = null, string $novaPrioridade = null): array {
+function atualizarTarefa(PDO $pdo, int $userId, string $descricaoOuId, ?string $novaDescricao = null, ?string $novaPrioridade = null): array {
     if (empty(trim($descricaoOuId))) {
         return ['resultado' => 'É necessário informar o ID ou descrição da tarefa a ser atualizada.'];
     }
@@ -497,9 +497,13 @@ if ($userId) {
 }
 
 if (empty($pergunta) || !$userId) {
-    error_log("[BOT_IA] Erro: Pergunta ou user_id vazios");
+    error_log("[BOT_IA] Erro: Pergunta ou user_id vazios - Pergunta: '$pergunta', UserID: " . ($userId ?? 'null'));
     http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'Pergunta e user_id são obrigatórios', 'debug' => ['pergunta' => $pergunta, 'user_id' => $userId]]);
+    echo json_encode([
+        'success' => false, 
+        'resposta' => 'Pergunta e user_id são obrigatórios',
+        'debug' => ['pergunta' => $pergunta, 'user_id' => $userId]
+    ], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
