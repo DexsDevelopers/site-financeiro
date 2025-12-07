@@ -101,23 +101,20 @@ try {
     // 5.1. Se o número de telefone foi fornecido, validar que corresponde ao user_id
     if ($phoneNumber) {
         // Usar a mesma função de normalização do admin_bot_api.php
-        // Função normalizePhone: remove não-dígitos, adiciona 55 se tiver 11 dígitos
+        // normalizePhone: remove não-dígitos, adiciona 55 se tiver 11 dígitos
+        // IMPORTANTE: admin_bot_api.php salva SEM o + no banco
         $phoneNormalized = preg_replace('/\D+/', '', $phoneNumber);
         if (strlen($phoneNormalized) === 11 && substr($phoneNormalized, 0, 2) !== '55') {
             $phoneNormalized = '55' . $phoneNormalized;
         }
-        // O admin_bot_api.php salva SEM o +, então não adicionar +
+        // NÃO adicionar + porque o banco salva sem +
         
         error_log("[BOT_IA] Número recebido: $phoneNumber, normalizado: $phoneNormalized");
         
         // Verificar se existe sessão ativa para este número e user_id
-        // Tentar com e sem o + para compatibilidade
-        $phoneVariations = [$phoneNormalized];
-        if (substr($phoneNormalized, 0, 1) !== '+') {
-            $phoneVariations[] = '+' . $phoneNormalized;
-        } else {
-            $phoneVariations[] = substr($phoneNormalized, 1);
-        }
+        // Tentar com e sem o + para compatibilidade (caso tenha sido salvo com +)
+        $phoneVariations = [$phoneNormalized]; // Sem + (formato padrão)
+        $phoneVariations[] = '+' . $phoneNormalized; // Com + (caso tenha sido salvo assim)
         
         $session = null;
         foreach ($phoneVariations as $phoneVar) {
@@ -139,18 +136,18 @@ try {
         }
         
         if (!$session) {
-            // Debug: buscar todas as sessões deste número
+            // Debug: buscar todas as sessões deste número para diagnóstico
             $stmt_debug = $pdo->prepare("
-                SELECT phone_number, user_id, is_active 
+                SELECT phone_number, user_id, is_active, last_activity
                 FROM whatsapp_sessions 
                 WHERE phone_number IN (?, ?) 
                 ORDER BY last_activity DESC
             ");
-            $stmt_debug->execute([$phoneVariations[0], $phoneVariations[1] ?? '']);
+            $stmt_debug->execute([$phoneVariations[0], $phoneVariations[1]]);
             $allSessions = $stmt_debug->fetchAll(PDO::FETCH_ASSOC);
             
             error_log("[BOT_IA] AVISO: user_id $userId não corresponde ao número $phoneNormalized ou sessão inativa");
-            error_log("[BOT_IA] DEBUG: Sessões encontradas: " . json_encode($allSessions));
+            error_log("[BOT_IA] DEBUG: Sessões encontradas no banco: " . json_encode($allSessions));
             error_log("[BOT_IA] DEBUG: Tentou variações: " . json_encode($phoneVariations));
             
             http_response_code(403);
