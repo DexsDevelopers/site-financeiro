@@ -501,8 +501,25 @@ try {
                 }
                 
                 // Enviar resultados das funções de volta para a IA gerar resposta final
+                // Adicionar a resposta da função ao histórico de conversa
                 $data['contents'][] = [
-                    'parts' => $functionResults
+                    'role' => 'model',
+                    'parts' => [
+                        [
+                            'functionResponse' => [
+                                'name' => $functionCalls[0]['name'],
+                                'response' => $functionResults[0]['functionResponse']['response']
+                            ]
+                        ]
+                    ]
+                ];
+                
+                // Adicionar nova mensagem do usuário pedindo resposta final
+                $data['contents'][] = [
+                    'role' => 'user',
+                    'parts' => [
+                        ['text' => 'Confirme a ação executada de forma clara e objetiva para o usuário.']
+                    ]
                 ];
                 
                 // Segunda chamada para obter resposta final da IA
