@@ -178,8 +178,8 @@ try {
     $systemContext .= "- Saldo: R$ " . number_format($saldo, 2, ',', '.') . "\n\n";
     $systemContext .= "TAREFAS URGENTES (Top 5):\n{$tarefasTexto}\n";
     
-    // 9. Chamar API Gemini (usando versão específica estável)
-    $apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-001:generateContent?key=' . GEMINI_API_KEY;
+    // 9. Chamar API Gemini (usando alias padrão)
+    $apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' . GEMINI_API_KEY;
     
     $prompt = "Você é um assistente financeiro especializado em ajudar usuários a gerenciar suas finanças e tarefas através do WhatsApp.\n\n";
     $prompt .= $systemContext . "\n";
