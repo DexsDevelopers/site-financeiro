@@ -221,39 +221,59 @@ try {
     }
     
     if ($httpCode !== 200) {
-        $errorDetails = 'Erro desconhecido';
-        $errorMessage = '';
+        // Tratamento específico para Rate Limit (429)
+        if ($httpCode === 429) {
+            error_log("[BOT_IA] Rate Limit excedido (HTTP 429)");
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'resposta' => '⏳ Limite de uso excedido. Aguarde alguns minutos.'
+            ], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        
+        // Para outros erros não-200: retornar mensagem RAW do Google
+        $errorMessage = 'Erro desconhecido';
+        $errorCode = '';
         
         if ($response) {
             $errorData = json_decode($response, true);
-            if (isset($errorData['error']['message'])) {
-                $errorMessage = $errorData['error']['message'];
-                $errorDetails = $errorMessage;
-            } elseif (isset($errorData['error'])) {
-                $errorDetails = json_encode($errorData['error'], JSON_UNESCAPED_UNICODE);
+            if (isset($errorData['error'])) {
+                // Extrair código e mensagem do erro do Google
+                if (isset($errorData['error']['code'])) {
+                    $errorCode = $errorData['error']['code'];
+                }
+                if (isset($errorData['error']['message'])) {
+                    $errorMessage = $errorData['error']['message'];
+                } elseif (isset($errorData['error']['status'])) {
+                    $errorMessage = $errorData['error']['status'];
+                }
             } else {
-                $errorDetails = substr($response, 0, 200);
+                // Se não conseguir decodificar JSON, usar resposta raw
+                $errorMessage = substr($response, 0, 500);
             }
         }
         
-        error_log("[BOT_IA] Erro HTTP $httpCode da API Gemini: $errorDetails");
+        // Log detalhado para debug
+        error_log("[BOT_IA] Erro HTTP $httpCode da API Gemini: " . json_encode([
+            'code' => $errorCode,
+            'message' => $errorMessage,
+            'raw_response' => substr($response, 0, 500)
+        ], JSON_UNESCAPED_UNICODE));
         
-        // Mensagem amigável para o usuário
-        $userMessage = "Erro ao processar sua solicitação";
-        if ($httpCode === 404) {
-            $userMessage = "Modelo de IA não encontrado. Entre em contato com o suporte.";
-        } elseif ($httpCode === 403) {
-            $userMessage = "Acesso negado à API. Verifique a configuração da chave de API.";
-        } elseif ($httpCode === 429) {
-            $userMessage = "Muitas requisições. Aguarde alguns instantes e tente novamente.";
-        } elseif ($httpCode >= 500) {
-            $userMessage = "Erro no servidor da API. Tente novamente em alguns instantes.";
+        // Retornar mensagem transparente com detalhes do erro do Google
+        $respostaErro = "Erro Google";
+        if ($errorCode) {
+            $respostaErro .= " [{$errorCode}]";
+        } else {
+            $respostaErro .= " [HTTP {$httpCode}]";
         }
+        $respostaErro .= ": {$errorMessage}";
         
         http_response_code(500);
         echo json_encode([
             'success' => false,
-            'resposta' => $userMessage
+            'resposta' => $respostaErro
         ], JSON_UNESCAPED_UNICODE);
         exit;
     }
