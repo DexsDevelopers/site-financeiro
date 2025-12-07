@@ -589,6 +589,7 @@ Você tem acesso às seguintes ferramentas:
 
 IMPORTANTE SOBRE TAREFAS:
 - As tarefas podem ter subtarefas associadas. Quando listar tarefas, sempre mostre as subtarefas de cada tarefa principal. Subtarefas concluídas aparecem com ✅ e pendentes com ⏳.
+- Ao ADICIONAR uma tarefa, SEMPRE extraia a prioridade e data limite se o usuário mencionar. Exemplo: se o usuário disser "prioridade alta, data 7/12/2025", use prioridade="Alta" e dataLimite="07/12/2025". Se o usuário disser "prioridade máxima", interprete como "Alta".
 - Quando o usuário pedir para MODIFICAR, ATUALIZAR ou MUDAR uma tarefa, use atualizarTarefa. Exemplo: 'mude a tarefa X para Y' ou 'atualize a prioridade da tarefa Z para Alta'.
 - Quando o usuário pedir para REMOVER, DELETAR, EXCLUIR ou APAGAR uma tarefa específica, use removerTarefa. Você pode buscar por ID ou por parte da descrição.
 - Quando o usuário pedir para REMOVER/DELETAR/EXCLUIR/APAGAR TODAS as tarefas (ex: 'apague todas', 'delete todas', 'remova todas'), use removerTodasTarefas.
