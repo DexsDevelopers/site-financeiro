@@ -2,9 +2,17 @@
 // /includes/db_connect.php
 date_default_timezone_set('America/Sao_Paulo');
 
-define('ONESIGNAL_APP_ID', '8b948d38-c99d-402b-a456-e99e66fcc60f');
-define('ONESIGNAL_REST_API_KEY', 'os_v2_app_roki2ogjtvacxjcw5gpgn7ggb6mdk2tfshne5g4h2i6iyji25kg3h7mljd6u7rl2kw23egygxcbkcxdvfjehi7u5x5df4e2z7zefrhi');
-define('GEMINI_API_KEY', 'AIzaSyAjGLZmjQ4Qbp3_BpBBCqQgOW_RIyDzaOA');
+// Carregar variáveis de ambiente do arquivo .env
+require_once __DIR__ . '/env_loader.php';
+
+// Valores padrão (apenas se não foram carregados do .env)
+if (!defined('ONESIGNAL_APP_ID')) {
+    define('ONESIGNAL_APP_ID', '8b948d38-c99d-402b-a456-e99e66fcc60f');
+}
+if (!defined('ONESIGNAL_REST_API_KEY')) {
+    define('ONESIGNAL_REST_API_KEY', 'os_v2_app_roki2ogjtvacxjcw5gpgn7ggb6mdk2tfshne5g4h2i6iyji25kg3h7mljd6u7rl2kw23egygxcbkcxdvfjehi7u5x5df4e2z7zefrhi');
+}
+// GEMINI_API_KEY deve ser definida no arquivo .env - não há valor padrão por segurança
 
 // Google OAuth (Integrações Google)
 // ⚠️ SEGURANÇA: As credenciais devem ser configuradas em um arquivo separado não versionado
