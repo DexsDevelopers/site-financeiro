@@ -178,8 +178,13 @@ try {
     $systemContext .= "- Saldo: R$ " . number_format($saldo, 2, ',', '.') . "\n\n";
     $systemContext .= "TAREFAS URGENTES (Top 5):\n{$tarefasTexto}\n";
     
-    // 9. Chamar API Gemini (usando alias padrão)
-    $apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' . GEMINI_API_KEY;
+    // 9. Sistema de Fallback em Cascata - Tentar múltiplos modelos sequencialmente
+    $models = [
+        'gemini-2.5-flash',      // Primary - modelo mais recente
+        'gemini-1.5-flash',      // Standard fallback
+        'gemini-1.5-flash-001',  // Legacy stable
+        'gemini-1.5-pro'         // High capacity fallback
+    ];
     
     $prompt = "Você é um assistente financeiro especializado em ajudar usuários a gerenciar suas finanças e tarefas através do WhatsApp.\n\n";
     $prompt .= $systemContext . "\n";
@@ -196,50 +201,71 @@ try {
         ]
     ];
     
-    $ch = curl_init($apiUrl);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
-    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    $lastError = null;
+    $lastErrorCode = null;
+    $lastErrorMessage = null;
+    $success = false;
+    $respostaFinal = null;
     
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $curlError = curl_error($ch);
-    curl_close($ch);
-    
-    // Tratamento robusto de erros da API
-    if ($curlError) {
-        error_log("[BOT_IA] Erro cURL: $curlError");
-        http_response_code(500);
-        echo json_encode([
-            'success' => false,
-            'resposta' => 'Erro de conexão com a API. Tente novamente em alguns instantes.'
-        ], JSON_UNESCAPED_UNICODE);
-        exit;
-    }
-    
-    if ($httpCode !== 200) {
-        // Tratamento específico para Rate Limit (429)
+    // Tentar cada modelo sequencialmente
+    foreach ($models as $model) {
+        $apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key=" . GEMINI_API_KEY;
+        
+        error_log("[BOT_IA] Tentando modelo: {$model}");
+        
+        $ch = curl_init($apiUrl);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+        
+        // Erro de conexão cURL - tentar próximo modelo
+        if ($curlError) {
+            error_log("[BOT_IA] Erro cURL com modelo {$model}: $curlError");
+            $lastError = "Erro de conexão: $curlError";
+            continue;
+        }
+        
+        // Sucesso (HTTP 200) - processar resposta e sair do loop
+        if ($httpCode === 200) {
+            $apiResponse = json_decode($response, true);
+            if ($apiResponse && isset($apiResponse['candidates'][0]['content']['parts'][0]['text'])) {
+                $respostaFinal = $apiResponse['candidates'][0]['content']['parts'][0]['text'];
+                $success = true;
+                error_log("[BOT_IA] Sucesso com modelo: {$model}");
+                break; // Sair do loop - sucesso!
+            } else {
+                error_log("[BOT_IA] Resposta inválida do modelo {$model}");
+                $lastError = "Resposta inválida da API";
+                continue; // Tentar próximo modelo
+            }
+        }
+        
+        // Rate Limit (429) - parar imediatamente (é account-wide)
         if ($httpCode === 429) {
-            error_log("[BOT_IA] Rate Limit excedido (HTTP 429)");
+            error_log("[BOT_IA] Rate Limit excedido (HTTP 429) - parando tentativas");
             http_response_code(500);
             echo json_encode([
                 'success' => false,
-                'resposta' => '⏳ Limite de uso excedido. Aguarde alguns minutos.'
+                'resposta' => '⏳ Limite de requisições (5 RPM) atingido. Aguarde alguns minutos antes de tentar novamente.'
             ], JSON_UNESCAPED_UNICODE);
             exit;
         }
         
-        // Para outros erros não-200: retornar mensagem RAW do Google
+        // Outros erros (404, 400, 500, etc.) - tentar próximo modelo
         $errorMessage = 'Erro desconhecido';
         $errorCode = '';
         
         if ($response) {
             $errorData = json_decode($response, true);
             if (isset($errorData['error'])) {
-                // Extrair código e mensagem do erro do Google
                 if (isset($errorData['error']['code'])) {
                     $errorCode = $errorData['error']['code'];
                 }
@@ -249,59 +275,37 @@ try {
                     $errorMessage = $errorData['error']['status'];
                 }
             } else {
-                // Se não conseguir decodificar JSON, usar resposta raw
                 $errorMessage = substr($response, 0, 500);
             }
         }
         
-        // Log detalhado para debug
-        error_log("[BOT_IA] Erro HTTP $httpCode da API Gemini: " . json_encode([
-            'code' => $errorCode,
-            'message' => $errorMessage,
-            'raw_response' => substr($response, 0, 500)
-        ], JSON_UNESCAPED_UNICODE));
+        error_log("[BOT_IA] Erro HTTP $httpCode com modelo {$model}: {$errorMessage}");
         
-        // Retornar mensagem transparente com detalhes do erro do Google
-        $respostaErro = "Erro Google";
+        // Armazenar último erro para retornar se todos falharem
+        $lastError = "Erro Google";
         if ($errorCode) {
-            $respostaErro .= " [{$errorCode}]";
+            $lastError .= " [{$errorCode}]";
         } else {
-            $respostaErro .= " [HTTP {$httpCode}]";
+            $lastError .= " [HTTP {$httpCode}]";
         }
-        $respostaErro .= ": {$errorMessage}";
+        $lastError .= ": {$errorMessage}";
+        $lastErrorCode = $httpCode;
+        $lastErrorMessage = $errorMessage;
         
+        // Continuar para próximo modelo
+        continue;
+    }
+    
+    // Se nenhum modelo funcionou, retornar erro
+    if (!$success) {
+        error_log("[BOT_IA] Todos os modelos falharam. Último erro: {$lastError}");
         http_response_code(500);
         echo json_encode([
             'success' => false,
-            'resposta' => $respostaErro
+            'resposta' => $lastError ?: 'Todos os modelos de IA falharam. Tente novamente mais tarde.'
         ], JSON_UNESCAPED_UNICODE);
         exit;
     }
-    
-    // Validar resposta da API
-    $apiResponse = json_decode($response, true);
-    if (!$apiResponse) {
-        error_log("[BOT_IA] Resposta JSON inválida da API: " . substr($response, 0, 200));
-        http_response_code(500);
-        echo json_encode([
-            'success' => false,
-            'resposta' => 'Resposta inválida da API. Tente novamente.'
-        ], JSON_UNESCAPED_UNICODE);
-        exit;
-    }
-    
-    // Extrair texto da resposta
-    if (!isset($apiResponse['candidates'][0]['content']['parts'][0]['text'])) {
-        error_log("[BOT_IA] Estrutura de resposta inesperada: " . json_encode($apiResponse, JSON_UNESCAPED_UNICODE));
-        http_response_code(500);
-        echo json_encode([
-            'success' => false,
-            'resposta' => 'Resposta da IA em formato inesperado. Tente novamente.'
-        ], JSON_UNESCAPED_UNICODE);
-        exit;
-    }
-    
-    $respostaFinal = $apiResponse['candidates'][0]['content']['parts'][0]['text'];
     
     // 10. Retornar resposta
     echo json_encode([
