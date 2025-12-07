@@ -635,13 +635,21 @@ $tools = [
             ],
             [
                 'name' => 'adicionarTarefa',
-                'description' => 'Adiciona uma nova tarefa. Parâmetro: descricao (string)',
+                'description' => 'Adiciona uma nova tarefa. Pode especificar prioridade e data limite',
                 'parameters' => [
                     'type' => 'OBJECT',
                     'properties' => [
                         'descricao' => [
                             'type' => 'STRING',
                             'description' => 'Descrição da tarefa a ser adicionada'
+                        ],
+                        'prioridade' => [
+                            'type' => 'STRING',
+                            'description' => 'Prioridade da tarefa: "Alta", "Média" ou "Baixa". Padrão: "Média"'
+                        ],
+                        'dataLimite' => [
+                            'type' => 'STRING',
+                            'description' => 'Data limite da tarefa no formato dd/mm/yyyy (ex: 07/12/2025). Opcional'
                         ]
                     ],
                     'required' => ['descricao']
@@ -881,8 +889,10 @@ try {
                         break;
                     case 'adicionarTarefa':
                         $descricao = $functionArgs['descricao'] ?? '';
+                        $prioridade = $functionArgs['prioridade'] ?? 'Média';
+                        $dataLimite = $functionArgs['dataLimite'] ?? null;
                         if ($descricao) {
-                            $result = adicionarTarefa($pdo, $userId, $descricao);
+                            $result = adicionarTarefa($pdo, $userId, $descricao, $prioridade, $dataLimite);
                             // Converter formato de resposta
                             if (isset($result['message'])) {
                                 $result = ['resultado' => $result['message']];
