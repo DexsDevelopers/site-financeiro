@@ -544,12 +544,14 @@ Você tem acesso às seguintes ferramentas:
 4. getTarefasUrgentes - Retorna apenas tarefas urgentes (alta prioridade ou próximas do prazo, incluindo subtarefas)
 5. adicionarTarefa - Adiciona uma nova tarefa (parâmetro: descricao)
 6. removerTarefa - Remove uma tarefa existente (parâmetro: descricaoOuId - pode ser ID numérico ou parte da descrição)
-7. atualizarTarefa - Atualiza uma tarefa existente (parâmetros: descricaoOuId, novaDescricao opcional, novaPrioridade opcional - 'Alta', 'Média' ou 'Baixa')
+7. removerTodasTarefas - Remove TODAS as tarefas pendentes do usuário (sem parâmetros)
+8. atualizarTarefa - Atualiza uma tarefa existente (parâmetros: descricaoOuId, novaDescricao opcional, novaPrioridade opcional - 'Alta', 'Média' ou 'Baixa')
 
 IMPORTANTE SOBRE TAREFAS:
 - As tarefas podem ter subtarefas associadas. Quando listar tarefas, sempre mostre as subtarefas de cada tarefa principal. Subtarefas concluídas aparecem com ✅ e pendentes com ⏳.
 - Quando o usuário pedir para MODIFICAR, ATUALIZAR ou MUDAR uma tarefa, use atualizarTarefa. Exemplo: 'mude a tarefa X para Y' ou 'atualize a prioridade da tarefa Z para Alta'.
-- Quando o usuário pedir para REMOVER, DELETAR, EXCLUIR ou APAGAR uma tarefa, use removerTarefa. Você pode buscar por ID ou por parte da descrição.
+- Quando o usuário pedir para REMOVER, DELETAR, EXCLUIR ou APAGAR uma tarefa específica, use removerTarefa. Você pode buscar por ID ou por parte da descrição.
+- Quando o usuário pedir para REMOVER/DELETAR/EXCLUIR/APAGAR TODAS as tarefas (ex: 'apague todas', 'delete todas', 'remova todas'), use removerTodasTarefas.
 - Se o usuário mencionar 'prioridade máxima', interprete como prioridade 'Alta'.
 
 SEMPRE use uma ferramenta primeiro quando o usuário perguntar sobre dados financeiros ou tarefas. Depois, formule uma resposta clara e objetiva baseada no resultado.
