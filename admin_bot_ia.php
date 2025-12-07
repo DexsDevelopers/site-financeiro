@@ -209,26 +209,76 @@ try {
     $curlError = curl_error($ch);
     curl_close($ch);
     
+    // Tratamento robusto de erros da API
     if ($curlError) {
-        throw new Exception("Erro cURL: $curlError");
+        error_log("[BOT_IA] Erro cURL: $curlError");
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'resposta' => 'Erro de conexão com a API. Tente novamente em alguns instantes.'
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
     }
     
     if ($httpCode !== 200) {
-        $errorDetails = '';
+        $errorDetails = 'Erro desconhecido';
+        $errorMessage = '';
+        
         if ($response) {
             $errorData = json_decode($response, true);
             if (isset($errorData['error']['message'])) {
-                $errorDetails = ': ' . $errorData['error']['message'];
+                $errorMessage = $errorData['error']['message'];
+                $errorDetails = $errorMessage;
+            } elseif (isset($errorData['error'])) {
+                $errorDetails = json_encode($errorData['error'], JSON_UNESCAPED_UNICODE);
             } else {
-                $errorDetails = ': ' . substr($response, 0, 200);
+                $errorDetails = substr($response, 0, 200);
             }
         }
-        throw new Exception("Erro HTTP $httpCode da API Gemini$errorDetails");
+        
+        error_log("[BOT_IA] Erro HTTP $httpCode da API Gemini: $errorDetails");
+        
+        // Mensagem amigável para o usuário
+        $userMessage = "Erro ao processar sua solicitação";
+        if ($httpCode === 404) {
+            $userMessage = "Modelo de IA não encontrado. Entre em contato com o suporte.";
+        } elseif ($httpCode === 403) {
+            $userMessage = "Acesso negado à API. Verifique a configuração da chave de API.";
+        } elseif ($httpCode === 429) {
+            $userMessage = "Muitas requisições. Aguarde alguns instantes e tente novamente.";
+        } elseif ($httpCode >= 500) {
+            $userMessage = "Erro no servidor da API. Tente novamente em alguns instantes.";
+        }
+        
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'resposta' => $userMessage
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
     }
     
+    // Validar resposta da API
     $apiResponse = json_decode($response, true);
-    if (!$apiResponse || !isset($apiResponse['candidates'][0]['content']['parts'][0]['text'])) {
-        throw new Exception("Resposta inválida da API Gemini");
+    if (!$apiResponse) {
+        error_log("[BOT_IA] Resposta JSON inválida da API: " . substr($response, 0, 200));
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'resposta' => 'Resposta inválida da API. Tente novamente.'
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+    
+    // Extrair texto da resposta
+    if (!isset($apiResponse['candidates'][0]['content']['parts'][0]['text'])) {
+        error_log("[BOT_IA] Estrutura de resposta inesperada: " . json_encode($apiResponse, JSON_UNESCAPED_UNICODE));
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'resposta' => 'Resposta da IA em formato inesperado. Tente novamente.'
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
     }
     
     $respostaFinal = $apiResponse['candidates'][0]['content']['parts'][0]['text'];
