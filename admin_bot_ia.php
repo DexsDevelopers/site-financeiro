@@ -166,39 +166,24 @@ try {
         error_log("[BOT_IA] AVISO: Número de telefone não fornecido na requisição - validação de sessão pulada");
     }
     
-    // 6. Buscar dados financeiros do usuário (queries SQL diretas)
+    // 6. Buscar dados financeiros do usuário usando helper
     $mesAtual = (int)date('m');
     $anoAtual = (int)date('Y');
     
-    // Receitas do mês
-    $stmt = $pdo->prepare("
-        SELECT COALESCE(SUM(valor), 0) as total, COUNT(*) as count 
-        FROM transacoes 
-        WHERE id_usuario = ? 
-        AND tipo = 'receita' 
-        AND YEAR(data_transacao) = ? 
-        AND MONTH(data_transacao) = ?
-    ");
-    $stmt->execute([$userId, $anoAtual, $mesAtual]);
-    $receitas = $stmt->fetch(PDO::FETCH_ASSOC);
-    $totalReceitas = (float)($receitas['total'] ?? 0);
-    $countReceitas = (int)($receitas['count'] ?? 0);
-    
-    // Despesas do mês
-    $stmt = $pdo->prepare("
-        SELECT COALESCE(SUM(valor), 0) as total, COUNT(*) as count 
-        FROM transacoes 
-        WHERE id_usuario = ? 
-        AND tipo = 'despesa' 
-        AND YEAR(data_transacao) = ? 
-        AND MONTH(data_transacao) = ?
-    ");
-    $stmt->execute([$userId, $anoAtual, $mesAtual]);
-    $despesas = $stmt->fetch(PDO::FETCH_ASSOC);
-    $totalDespesas = (float)($despesas['total'] ?? 0);
-    $countDespesas = (int)($despesas['count'] ?? 0);
-    
-    $saldo = $totalReceitas - $totalDespesas;
+    $balanceResult = getBalance($pdo, $mesAtual, $anoAtual, $userId);
+    if ($balanceResult['success']) {
+        $totalReceitas = (float)($balanceResult['receitas']['total'] ?? 0);
+        $totalDespesas = (float)($balanceResult['despesas']['total'] ?? 0);
+        $saldo = (float)($balanceResult['saldo'] ?? 0);
+        $countReceitas = (int)($balanceResult['receitas']['count'] ?? 0);
+        $countDespesas = (int)($balanceResult['despesas']['count'] ?? 0);
+    } else {
+        $totalReceitas = 0;
+        $totalDespesas = 0;
+        $saldo = 0;
+        $countReceitas = 0;
+        $countDespesas = 0;
+    }
     
     // 7. Buscar top 5 tarefas urgentes usando helper
     $tarefasResult = getUrgentTasks($pdo, $userId, 5);
