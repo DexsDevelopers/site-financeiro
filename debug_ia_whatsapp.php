@@ -182,19 +182,21 @@ try {
             } else {
                 addResult('Endpoint', 'admin_bot_ia.php', 'error', "❌ Nenhum usuário encontrado no banco para teste", '');
                 $hasErrors = true;
-                continue;
             }
         } catch (Exception $e) {
             addResult('Endpoint', 'admin_bot_ia.php', 'error', "❌ Erro ao buscar usuário: " . $e->getMessage(), '');
             $hasErrors = true;
-            continue;
         }
     }
     
-    $testData = [
-        'pergunta' => 'teste',
-        'user_id' => $testUserId
-    ];
+    if (!$testUserId) {
+        // Se não conseguiu obter um user_id válido, pular o teste
+        addResult('Endpoint', 'admin_bot_ia.php', 'warning', "⚠️ Não foi possível obter user_id válido para teste", '');
+    } else {
+        $testData = [
+            'pergunta' => 'teste',
+            'user_id' => $testUserId
+        ];
     
     $ch = curl_init($testUrl);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
