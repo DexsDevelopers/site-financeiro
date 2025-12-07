@@ -297,7 +297,85 @@ try {
     $prompt = "Você é um assistente financeiro especializado em ajudar usuários a gerenciar suas finanças e tarefas através do WhatsApp.\n\n";
     $prompt .= $systemContext . "\n";
     $prompt .= "PERGUNTA DO USUÁRIO: {$pergunta}\n\n";
-    $prompt .= "Responda de forma clara, concisa e objetiva. Use os dados do contexto acima para responder. Formate números monetários em R$ e datas em formato brasileiro (dd/mm/aaaa).";
+    $prompt .= "INSTRUÇÕES:\n";
+    $prompt .= "- Se o usuário pedir para ADICIONAR uma tarefa, use a função adicionarTarefa.\n";
+    $prompt .= "- Se o usuário pedir para REMOVER/APAGAR uma tarefa, use a função removerTarefa.\n";
+    $prompt .= "- Se o usuário pedir para REGISTRAR uma receita ou despesa, use a função adicionarTransacao.\n";
+    $prompt .= "- Sempre execute as ações solicitadas pelo usuário usando as funções disponíveis.\n";
+    $prompt .= "- Após executar uma ação, confirme ao usuário de forma clara e objetiva.\n";
+    $prompt .= "- Formate números monetários em R$ e datas em formato brasileiro (dd/mm/aaaa).";
+    
+    // Definir tools (funções) disponíveis para a IA
+    $tools = [
+        [
+            'functionDeclarations' => [
+                [
+                    'name' => 'adicionarTarefa',
+                    'description' => 'Adiciona uma nova tarefa ao painel. Use quando o usuário pedir para criar, adicionar ou registrar uma tarefa.',
+                    'parameters' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'descricao' => [
+                                'type' => 'string',
+                                'description' => 'Descrição da tarefa a ser criada'
+                            ],
+                            'prioridade' => [
+                                'type' => 'string',
+                                'description' => 'Prioridade da tarefa: "Alta", "Média" ou "Baixa". Padrão: "Média"',
+                                'enum' => ['Alta', 'Média', 'Baixa']
+                            ],
+                            'dataLimite' => [
+                                'type' => 'string',
+                                'description' => 'Data limite da tarefa no formato dd/mm/yyyy (opcional)'
+                            ]
+                        ],
+                        'required' => ['descricao']
+                    ]
+                ],
+                [
+                    'name' => 'removerTarefa',
+                    'description' => 'Remove uma tarefa existente do painel. Use quando o usuário pedir para remover, apagar, deletar ou excluir uma tarefa.',
+                    'parameters' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'descricaoOuId' => [
+                                'type' => 'string',
+                                'description' => 'ID numérico da tarefa ou parte da descrição da tarefa a ser removida'
+                            ]
+                        ],
+                        'required' => ['descricaoOuId']
+                    ]
+                ],
+                [
+                    'name' => 'adicionarTransacao',
+                    'description' => 'Registra uma nova transação financeira (receita ou despesa) no painel. Use quando o usuário pedir para registrar, adicionar ou criar uma receita ou despesa.',
+                    'parameters' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'valor' => [
+                                'type' => 'number',
+                                'description' => 'Valor da transação (deve ser maior que zero)'
+                            ],
+                            'tipo' => [
+                                'type' => 'string',
+                                'description' => 'Tipo da transação: "receita" ou "despesa"',
+                                'enum' => ['receita', 'despesa']
+                            ],
+                            'descricao' => [
+                                'type' => 'string',
+                                'description' => 'Descrição da transação'
+                            ],
+                            'data' => [
+                                'type' => 'string',
+                                'description' => 'Data da transação no formato dd/mm/yyyy (opcional, padrão: hoje)'
+                            ]
+                        ],
+                        'required' => ['valor', 'tipo', 'descricao']
+                    ]
+                ]
+            ]
+        ]
+    ];
     
     $data = [
         'contents' => [
@@ -306,7 +384,8 @@ try {
                     ['text' => $prompt]
                 ]
             ]
-        ]
+        ],
+        'tools' => $tools
     ];
     
     $lastError = null;
