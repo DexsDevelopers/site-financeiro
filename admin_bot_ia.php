@@ -72,6 +72,7 @@ try {
     
     $pergunta = trim($input['pergunta'] ?? '');
     $userId = isset($input['user_id']) ? (int)$input['user_id'] : null;
+    $phoneNumber = $input['phone'] ?? null; // Número do WhatsApp (opcional, mas recomendado)
     
     if (empty($pergunta) || !$userId) {
         http_response_code(400);
@@ -82,7 +83,7 @@ try {
         exit;
     }
     
-    // 5. Validar que o usuário existe
+    // 5. Validar que o usuário existe e está associado ao número do WhatsApp (se fornecido)
     $stmt = $pdo->prepare("SELECT id, nome_completo FROM usuarios WHERE id = ?");
     $stmt->execute([$userId]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -93,6 +94,45 @@ try {
             'resposta' => 'Usuário inválido. Faça login novamente com !login'
         ], JSON_UNESCAPED_UNICODE);
         exit;
+    }
+    
+    // 5.1. Se o número de telefone foi fornecido, validar que corresponde ao user_id
+    if ($phoneNumber) {
+        // Normalizar número (remover caracteres não numéricos e adicionar +55 se necessário)
+        $phoneNormalized = preg_replace('/\D+/', '', $phoneNumber);
+        if (strlen($phoneNormalized) === 11 && substr($phoneNormalized, 0, 2) !== '55') {
+            $phoneNormalized = '55' . $phoneNormalized;
+        }
+        if (substr($phoneNormalized, 0, 2) !== '55') {
+            $phoneNormalized = '55' . $phoneNormalized;
+        }
+        $phoneNormalized = '+' . $phoneNormalized;
+        
+        // Verificar se existe sessão ativa para este número e user_id
+        $stmt_session = $pdo->prepare("
+            SELECT ws.user_id 
+            FROM whatsapp_sessions ws 
+            WHERE ws.phone_number = ? 
+            AND ws.user_id = ? 
+            AND ws.is_active = 1 
+            LIMIT 1
+        ");
+        $stmt_session->execute([$phoneNormalized, $userId]);
+        $session = $stmt_session->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$session) {
+            error_log("[BOT_IA] AVISO: user_id $userId não corresponde ao número $phoneNormalized ou sessão inativa");
+            http_response_code(403);
+            echo json_encode([
+                'success' => false,
+                'resposta' => 'Sessão inválida. Faça login novamente com !login no WhatsApp'
+            ], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        
+        error_log("[BOT_IA] Sessão validada: user_id $userId corresponde ao número $phoneNormalized");
+    } else {
+        error_log("[BOT_IA] AVISO: Número de telefone não fornecido na requisição - validação de sessão pulada");
     }
     
     // 6. Buscar dados financeiros do usuário (queries SQL diretas)

@@ -460,7 +460,8 @@ try {
                 
                 $postData = [
                     'pergunta' => $pergunta,
-                    'user_id' => $userId
+                    'user_id' => $userId,
+                    'phone' => $phoneNormalized // Enviar número do WhatsApp para validação
                 ];
                 
                 $ch = curl_init($iaUrl);
