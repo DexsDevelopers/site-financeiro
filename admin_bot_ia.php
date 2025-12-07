@@ -332,6 +332,46 @@ function atualizarTarefa(PDO $pdo, int $userId, string $descricaoOuId, string $n
     }
 }
 
+function removerTodasTarefas(PDO $pdo, int $userId): array {
+    try {
+        // Primeiro, contar quantas tarefas serão removidas
+        $stmt_count = $pdo->prepare("SELECT COUNT(*) as total FROM tarefas WHERE id_usuario = ? AND status = 'pendente'");
+        $stmt_count->execute([$userId]);
+        $count = $stmt_count->fetch(PDO::FETCH_ASSOC);
+        $total = (int)$count['total'];
+        
+        if ($total === 0) {
+            return ['resultado' => 'Você não possui tarefas pendentes para remover.'];
+        }
+        
+        // Buscar IDs das tarefas para deletar subtarefas
+        $stmt_ids = $pdo->prepare("SELECT id FROM tarefas WHERE id_usuario = ? AND status = 'pendente'");
+        $stmt_ids->execute([$userId]);
+        $tarefaIds = $stmt_ids->fetchAll(PDO::FETCH_COLUMN);
+        
+        // Deletar subtarefas primeiro
+        if (!empty($tarefaIds)) {
+            $placeholders = implode(',', array_fill(0, count($tarefaIds), '?'));
+            $stmt_sub = $pdo->prepare("DELETE FROM subtarefas WHERE id_tarefa_principal IN ($placeholders)");
+            $stmt_sub->execute($tarefaIds);
+        }
+        
+        // Deletar todas as tarefas pendentes
+        $stmt_del = $pdo->prepare("DELETE FROM tarefas WHERE id_usuario = ? AND status = 'pendente'");
+        $stmt_del->execute([$userId]);
+        
+        $removidas = $stmt_del->rowCount();
+        
+        if ($removidas > 0) {
+            return ['resultado' => "✅ Todas as tarefas pendentes foram removidas! ($removidas tarefa(s) removida(s))"];
+        }
+        return ['resultado' => 'Nenhuma tarefa foi removida.'];
+    } catch (PDOException $e) {
+        error_log("Erro ao remover todas as tarefas: " . $e->getMessage());
+        return ['resultado' => 'Erro ao remover tarefas. Tente novamente.'];
+    }
+}
+
 // Carregar configuração
 $config = [];
 try {
@@ -600,6 +640,14 @@ $tools = [
                     ],
                     'required' => ['descricaoOuId']
                 ]
+            ],
+            [
+                'name' => 'removerTodasTarefas',
+                'description' => 'Remove TODAS as tarefas pendentes do usuário. Use quando o usuário pedir para apagar/deletar/remover todas as tarefas',
+                'parameters' => [
+                    'type' => 'OBJECT',
+                    'properties' => (object)[]  // Objeto vazio, não array
+                ]
             ]
         ]
     ]
@@ -820,6 +868,9 @@ try {
                         } else {
                             $result = ['resultado' => 'É necessário informar o ID ou descrição da tarefa a ser atualizada.'];
                         }
+                        break;
+                    case 'removerTodasTarefas':
+                        $result = removerTodasTarefas($pdo, $userId);
                         break;
                     default:
                         $result = ['resultado' => 'Função não reconhecida: ' . $functionName];
