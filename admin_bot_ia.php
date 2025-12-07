@@ -24,8 +24,10 @@ register_shutdown_function(function() {
 });
 
 try {
-    // 1. Carregar apenas db_connect.php
+    // 1. Carregar dependências
     require_once 'includes/db_connect.php';
+    require_once 'includes/finance_helper.php';
+    require_once 'includes/tasks_helper.php';
     
     // Verificar conexão com banco
     if (!isset($pdo) || $pdo === null) {
@@ -98,37 +100,59 @@ try {
     
     // 5.1. Se o número de telefone foi fornecido, validar que corresponde ao user_id
     if ($phoneNumber) {
-        // Normalizar número usando a mesma lógica do admin_bot_api.php
-        // Remover tudo que não é dígito
+        // Usar a mesma função de normalização do admin_bot_api.php
+        // Função normalizePhone: remove não-dígitos, adiciona 55 se tiver 11 dígitos
         $phoneNormalized = preg_replace('/\D+/', '', $phoneNumber);
-        
-        // Se tem 11 dígitos (DDD + número), adicionar código do país 55
-        if (strlen($phoneNormalized) === 11) {
+        if (strlen($phoneNormalized) === 11 && substr($phoneNormalized, 0, 2) !== '55') {
             $phoneNormalized = '55' . $phoneNormalized;
         }
-        // Se já tem código do país mas não começa com 55, manter como está
-        // Se não tem código do país e tem mais de 11 dígitos, assumir que já tem código
-        // Adicionar + no início
-        if (substr($phoneNormalized, 0, 1) !== '+') {
-            $phoneNormalized = '+' . $phoneNormalized;
-        }
+        // O admin_bot_api.php salva SEM o +, então não adicionar +
         
         error_log("[BOT_IA] Número recebido: $phoneNumber, normalizado: $phoneNormalized");
         
         // Verificar se existe sessão ativa para este número e user_id
-        $stmt_session = $pdo->prepare("
-            SELECT ws.user_id 
-            FROM whatsapp_sessions ws 
-            WHERE ws.phone_number = ? 
-            AND ws.user_id = ? 
-            AND ws.is_active = 1 
-            LIMIT 1
-        ");
-        $stmt_session->execute([$phoneNormalized, $userId]);
-        $session = $stmt_session->fetch(PDO::FETCH_ASSOC);
+        // Tentar com e sem o + para compatibilidade
+        $phoneVariations = [$phoneNormalized];
+        if (substr($phoneNormalized, 0, 1) !== '+') {
+            $phoneVariations[] = '+' . $phoneNormalized;
+        } else {
+            $phoneVariations[] = substr($phoneNormalized, 1);
+        }
+        
+        $session = null;
+        foreach ($phoneVariations as $phoneVar) {
+            $stmt_session = $pdo->prepare("
+                SELECT ws.user_id, ws.phone_number 
+                FROM whatsapp_sessions ws 
+                WHERE ws.phone_number = ? 
+                AND ws.user_id = ? 
+                AND ws.is_active = 1 
+                LIMIT 1
+            ");
+            $stmt_session->execute([$phoneVar, $userId]);
+            $session = $stmt_session->fetch(PDO::FETCH_ASSOC);
+            
+            if ($session) {
+                error_log("[BOT_IA] Sessão encontrada com variação: $phoneVar (user_id: $userId)");
+                break;
+            }
+        }
         
         if (!$session) {
+            // Debug: buscar todas as sessões deste número
+            $stmt_debug = $pdo->prepare("
+                SELECT phone_number, user_id, is_active 
+                FROM whatsapp_sessions 
+                WHERE phone_number IN (?, ?) 
+                ORDER BY last_activity DESC
+            ");
+            $stmt_debug->execute([$phoneVariations[0], $phoneVariations[1] ?? '']);
+            $allSessions = $stmt_debug->fetchAll(PDO::FETCH_ASSOC);
+            
             error_log("[BOT_IA] AVISO: user_id $userId não corresponde ao número $phoneNormalized ou sessão inativa");
+            error_log("[BOT_IA] DEBUG: Sessões encontradas: " . json_encode($allSessions));
+            error_log("[BOT_IA] DEBUG: Tentou variações: " . json_encode($phoneVariations));
+            
             http_response_code(403);
             echo json_encode([
                 'success' => false,
@@ -137,7 +161,7 @@ try {
             exit;
         }
         
-        error_log("[BOT_IA] Sessão validada: user_id $userId corresponde ao número $phoneNormalized");
+        error_log("[BOT_IA] Sessão validada: user_id $userId corresponde ao número {$session['phone_number']}");
     } else {
         error_log("[BOT_IA] AVISO: Número de telefone não fornecido na requisição - validação de sessão pulada");
     }
@@ -176,31 +200,9 @@ try {
     
     $saldo = $totalReceitas - $totalDespesas;
     
-    // 7. Buscar top 5 tarefas urgentes (queries SQL diretas)
-    $stmt = $pdo->prepare("
-        SELECT id, descricao, prioridade, data_limite,
-            CASE 
-                WHEN data_limite IS NOT NULL AND data_limite <= CURDATE() THEN 'Vencida'
-                WHEN data_limite IS NOT NULL AND data_limite <= DATE_ADD(CURDATE(), INTERVAL 3 DAY) THEN 'Urgente'
-                WHEN prioridade = 'Alta' THEN 'Alta Prioridade'
-                ELSE 'Normal'
-            END as status_urgencia
-        FROM tarefas 
-        WHERE id_usuario = ? 
-        AND status = 'pendente' 
-        AND (
-            prioridade = 'Alta' 
-            OR (data_limite IS NOT NULL AND data_limite <= DATE_ADD(CURDATE(), INTERVAL 7 DAY))
-        )
-        ORDER BY 
-            CASE WHEN data_limite IS NOT NULL AND data_limite <= CURDATE() THEN 1 ELSE 2 END,
-            CASE WHEN data_limite IS NOT NULL AND data_limite <= DATE_ADD(CURDATE(), INTERVAL 3 DAY) THEN 1 ELSE 2 END,
-            FIELD(prioridade, 'Alta', 'Média', 'Baixa'),
-            data_limite ASC
-        LIMIT 5
-    ");
-    $stmt->execute([$userId]);
-    $tarefasUrgentes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    // 7. Buscar top 5 tarefas urgentes usando helper
+    $tarefasResult = getUrgentTasks($pdo, $userId, 5);
+    $tarefasUrgentes = $tarefasResult['success'] ? ($tarefasResult['tasks'] ?? []) : [];
     
     // Formatar tarefas para contexto
     $tarefasTexto = '';
