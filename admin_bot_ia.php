@@ -202,9 +202,34 @@ function getTarefasUrgentes(PDO $pdo, int $userId): array {
     return ['resultado' => $resultado];
 }
 
-function adicionarTarefa(PDO $pdo, int $userId, string $descricao): array {
+function adicionarTarefa(PDO $pdo, int $userId, string $descricao, string $prioridade = 'Média', string $dataLimite = null): array {
     if (empty(trim($descricao))) {
         return ['resultado' => 'A descrição da tarefa não pode estar vazia.'];
+    }
+    
+    // Validar prioridade
+    $prioridade = trim($prioridade);
+    if (!in_array($prioridade, ['Alta', 'Média', 'Baixa'])) {
+        $prioridade = 'Média'; // Padrão se inválida
+    }
+    
+    // Validar e formatar data limite
+    $dataLimiteSQL = null;
+    if (!empty($dataLimite)) {
+        $dataLimite = trim($dataLimite);
+        // Tentar parsear data em formato brasileiro (dd/mm/yyyy) ou (d/m/yyyy)
+        if (preg_match('/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/', $dataLimite, $matches)) {
+            $dia = (int)$matches[1];
+            $mes = (int)$matches[2];
+            $ano = (int)$matches[3];
+            if (checkdate($mes, $dia, $ano)) {
+                $dataLimiteSQL = sprintf('%04d-%02d-%02d', $ano, $mes, $dia);
+            }
+        }
+        // Se não conseguiu parsear, tentar formato ISO
+        if (!$dataLimiteSQL && strtotime($dataLimite)) {
+            $dataLimiteSQL = date('Y-m-d', strtotime($dataLimite));
+        }
     }
     
     try {
@@ -213,13 +238,28 @@ function adicionarTarefa(PDO $pdo, int $userId, string $descricao): array {
         $max_ordem = $stmt_ordem->fetchColumn();
         $nova_ordem = ($max_ordem === null) ? 0 : $max_ordem + 1;
         
-        $sql = "INSERT INTO tarefas (id_usuario, descricao, status, data_criacao, prioridade, ordem) 
-                VALUES (?, ?, 'pendente', NOW(), 'Média', ?)";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute([$userId, $descricao, $nova_ordem]);
+        if ($dataLimiteSQL) {
+            $sql = "INSERT INTO tarefas (id_usuario, descricao, status, data_criacao, prioridade, ordem, data_limite) 
+                    VALUES (?, ?, 'pendente', NOW(), ?, ?, ?)";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([$userId, $descricao, $prioridade, $nova_ordem, $dataLimiteSQL]);
+        } else {
+            $sql = "INSERT INTO tarefas (id_usuario, descricao, status, data_criacao, prioridade, ordem) 
+                    VALUES (?, ?, 'pendente', NOW(), ?, ?)";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([$userId, $descricao, $prioridade, $nova_ordem]);
+        }
         
         if ($stmt->rowCount() > 0) {
-            return ['resultado' => "Tarefa '{$descricao}' adicionada com sucesso!"];
+            $mensagem = "Tarefa '{$descricao}' adicionada com sucesso!";
+            if ($prioridade !== 'Média') {
+                $mensagem .= " Prioridade: {$prioridade}";
+            }
+            if ($dataLimiteSQL) {
+                $dataFormatada = date('d/m/Y', strtotime($dataLimiteSQL));
+                $mensagem .= " (Prazo: {$dataFormatada})";
+            }
+            return ['resultado' => $mensagem];
         }
         return ['resultado' => 'Não foi possível adicionar a tarefa.'];
     } catch (PDOException $e) {
@@ -542,7 +582,7 @@ Você tem acesso às seguintes ferramentas:
 2. getPrincipaisCategoriasGasto - Retorna as 5 categorias com mais gastos no mês
 3. getTarefasDoUsuario - Retorna todas as tarefas pendentes (incluindo subtarefas)
 4. getTarefasUrgentes - Retorna apenas tarefas urgentes (alta prioridade ou próximas do prazo, incluindo subtarefas)
-5. adicionarTarefa - Adiciona uma nova tarefa (parâmetro: descricao)
+5. adicionarTarefa - Adiciona uma nova tarefa (parâmetros: descricao obrigatório, prioridade opcional - 'Alta', 'Média' ou 'Baixa', dataLimite opcional - formato dd/mm/yyyy)
 6. removerTarefa - Remove uma tarefa existente (parâmetro: descricaoOuId - pode ser ID numérico ou parte da descrição)
 7. removerTodasTarefas - Remove TODAS as tarefas pendentes do usuário (sem parâmetros)
 8. atualizarTarefa - Atualiza uma tarefa existente (parâmetros: descricaoOuId, novaDescricao opcional, novaPrioridade opcional - 'Alta', 'Média' ou 'Baixa')
