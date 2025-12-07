@@ -706,12 +706,13 @@ $tools = [
 
 // Verificar se GEMINI_API_KEY está definido
 if (!defined('GEMINI_API_KEY') || empty(GEMINI_API_KEY)) {
-    error_log("[BOT_IA] ERRO: GEMINI_API_KEY não está definido");
+    error_log("[BOT_IA] ERRO: GEMINI_API_KEY não está definido ou está vazia");
+    error_log("[BOT_IA] Verifique se o arquivo .env existe e contém GEMINI_API_KEY=...");
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'resposta' => 'Erro de configuração: API Key do Gemini não encontrada.'
-    ]);
+        'resposta' => '❌ Erro de configuração: API Key do Gemini não encontrada. Configure o arquivo .env na Hostinger com sua chave do Gemini. Veja README_ENV.md para instruções.'
+    ], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
