@@ -171,9 +171,29 @@ try {
     $scriptPath = dirname($_SERVER['SCRIPT_NAME'] ?? '');
     $testUrl = $protocol . '://' . $host . $scriptPath . '/admin_bot_ia.php';
     
+    // Buscar um user_id válido se não houver sessão
+    $testUserId = $userId;
+    if (!$testUserId) {
+        try {
+            $stmt = $pdo->query("SELECT id FROM usuarios LIMIT 1");
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($user) {
+                $testUserId = (int)$user['id'];
+            } else {
+                addResult('Endpoint', 'admin_bot_ia.php', 'error', "❌ Nenhum usuário encontrado no banco para teste", '');
+                $hasErrors = true;
+                continue;
+            }
+        } catch (Exception $e) {
+            addResult('Endpoint', 'admin_bot_ia.php', 'error', "❌ Erro ao buscar usuário: " . $e->getMessage(), '');
+            $hasErrors = true;
+            continue;
+        }
+    }
+    
     $testData = [
         'pergunta' => 'teste',
-        'user_id' => $userId
+        'user_id' => $testUserId
     ];
     
     $ch = curl_init($testUrl);
