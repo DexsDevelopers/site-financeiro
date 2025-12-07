@@ -501,17 +501,23 @@ try {
                 }
                 
                 // Enviar resultados das funções de volta para a IA gerar resposta final
+                // Construir array de function responses corretamente
+                $functionResponseParts = [];
+                foreach ($functionResults as $idx => $funcResult) {
+                    if (isset($functionCalls[$idx])) {
+                        $functionResponseParts[] = [
+                            'functionResponse' => [
+                                'name' => $functionCalls[$idx]['name'],
+                                'response' => $funcResult['functionResponse']['response']
+                            ]
+                        ];
+                    }
+                }
+                
                 // Adicionar a resposta da função ao histórico de conversa
                 $data['contents'][] = [
                     'role' => 'model',
-                    'parts' => [
-                        [
-                            'functionResponse' => [
-                                'name' => $functionCalls[0]['name'],
-                                'response' => $functionResults[0]['functionResponse']['response']
-                            ]
-                        ]
-                    ]
+                    'parts' => $functionResponseParts
                 ];
                 
                 // Adicionar nova mensagem do usuário pedindo resposta final
