@@ -98,15 +98,22 @@ try {
     
     // 5.1. Se o número de telefone foi fornecido, validar que corresponde ao user_id
     if ($phoneNumber) {
-        // Normalizar número (remover caracteres não numéricos e adicionar +55 se necessário)
+        // Normalizar número usando a mesma lógica do admin_bot_api.php
+        // Remover tudo que não é dígito
         $phoneNormalized = preg_replace('/\D+/', '', $phoneNumber);
-        if (strlen($phoneNormalized) === 11 && substr($phoneNormalized, 0, 2) !== '55') {
+        
+        // Se tem 11 dígitos (DDD + número), adicionar código do país 55
+        if (strlen($phoneNormalized) === 11) {
             $phoneNormalized = '55' . $phoneNormalized;
         }
-        if (substr($phoneNormalized, 0, 2) !== '55') {
-            $phoneNormalized = '55' . $phoneNormalized;
+        // Se já tem código do país mas não começa com 55, manter como está
+        // Se não tem código do país e tem mais de 11 dígitos, assumir que já tem código
+        // Adicionar + no início
+        if (substr($phoneNormalized, 0, 1) !== '+') {
+            $phoneNormalized = '+' . $phoneNormalized;
         }
-        $phoneNormalized = '+' . $phoneNormalized;
+        
+        error_log("[BOT_IA] Número recebido: $phoneNumber, normalizado: $phoneNormalized");
         
         // Verificar se existe sessão ativa para este número e user_id
         $stmt_session = $pdo->prepare("
