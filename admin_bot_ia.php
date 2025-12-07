@@ -538,6 +538,14 @@ try {
                                     $args['data'] ?? null
                                 );
                                 break;
+                            case 'removerTransacao':
+                                $result = removerTransacao(
+                                    $pdo,
+                                    $userId,
+                                    $args['idOuDescricao'] ?? null,
+                                    $args['tipo'] ?? null
+                                );
+                                break;
                             default:
                                 $result = ['success' => false, 'message' => "Função '{$functionName}' não encontrada"];
                         }
