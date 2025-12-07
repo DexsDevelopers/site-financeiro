@@ -317,6 +317,62 @@ try {
         }
     }
     
+    function removerTransacao(PDO $pdo, int $userId, ?string $idOuDescricao = null, ?string $tipo = null): array {
+        try {
+            // Se não foi especificado, remover todas as transações do usuário
+            if (empty($idOuDescricao) && empty($tipo)) {
+                $stmt = $pdo->prepare("DELETE FROM transacoes WHERE id_usuario = ?");
+                $stmt->execute([$userId]);
+                $count = $stmt->rowCount();
+                return ['success' => true, 'message' => "Todas as transações foram removidas! ({$count} transação(ões) excluída(s))"];
+            }
+            
+            // Se foi especificado um ID numérico
+            if (is_numeric($idOuDescricao)) {
+                $stmt = $pdo->prepare("SELECT id, descricao, valor, tipo FROM transacoes WHERE id = ? AND id_usuario = ?");
+                $stmt->execute([(int)$idOuDescricao, $userId]);
+                $transacao = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+                if (!$transacao) {
+                    return ['success' => false, 'message' => 'Transação não encontrada'];
+                }
+                
+                $stmt_del = $pdo->prepare("DELETE FROM transacoes WHERE id = ? AND id_usuario = ?");
+                $stmt_del->execute([(int)$idOuDescricao, $userId]);
+                
+                return ['success' => true, 'message' => "Transação '{$transacao['descricao']}' (R$ " . number_format($transacao['valor'], 2, ',', '.') . ") removida com sucesso!"];
+            }
+            
+            // Se foi especificado um tipo (receita ou despesa)
+            if ($tipo && in_array($tipo, ['receita', 'despesa'])) {
+                $stmt = $pdo->prepare("DELETE FROM transacoes WHERE id_usuario = ? AND tipo = ?");
+                $stmt->execute([$userId, $tipo]);
+                $count = $stmt->rowCount();
+                return ['success' => true, 'message' => "Todas as {$tipo}s foram removidas! ({$count} transação(ões) excluída(s))"];
+            }
+            
+            // Se foi especificada uma descrição
+            if ($idOuDescricao) {
+                $stmt = $pdo->prepare("SELECT id, descricao, valor, tipo FROM transacoes WHERE id_usuario = ? AND descricao LIKE ? LIMIT 1");
+                $stmt->execute([$userId, '%' . $idOuDescricao . '%']);
+                $transacao = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+                if (!$transacao) {
+                    return ['success' => false, 'message' => 'Transação não encontrada'];
+                }
+                
+                $stmt_del = $pdo->prepare("DELETE FROM transacoes WHERE id = ? AND id_usuario = ?");
+                $stmt_del->execute([$transacao['id'], $userId]);
+                
+                return ['success' => true, 'message' => "Transação '{$transacao['descricao']}' (R$ " . number_format($transacao['valor'], 2, ',', '.') . ") removida com sucesso!"];
+            }
+            
+            return ['success' => false, 'message' => 'Parâmetros inválidos'];
+        } catch (Exception $e) {
+            return ['success' => false, 'message' => 'Erro ao remover transação: ' . $e->getMessage()];
+        }
+    }
+    
     // 9. Sistema de Fallback em Cascata - Tentar múltiplos modelos sequencialmente
     $models = [
         'gemini-2.5-flash',      // Primary - modelo mais recente
