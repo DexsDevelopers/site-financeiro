@@ -202,7 +202,7 @@ function getTarefasUrgentes(PDO $pdo, int $userId): array {
     return ['resultado' => $resultado];
 }
 
-function adicionarTarefa(PDO $pdo, int $userId, string $descricao, string $prioridade = 'Média', string $dataLimite = null): array {
+function adicionarTarefa(PDO $pdo, int $userId, string $descricao, string $prioridade = 'Média', ?string $dataLimite = null): array {
     if (empty(trim($descricao))) {
         return ['resultado' => 'A descrição da tarefa não pode estar vazia.'];
     }
