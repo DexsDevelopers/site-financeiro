@@ -178,6 +178,114 @@ try {
     $systemContext .= "- Saldo: R$ " . number_format($saldo, 2, ',', '.') . "\n\n";
     $systemContext .= "TAREFAS URGENTES (Top 5):\n{$tarefasTexto}\n";
     
+    // 8.1. Funções para executar ações no painel
+    function adicionarTarefa(PDO $pdo, int $userId, string $descricao, string $prioridade = 'Média', ?string $dataLimite = null): array {
+        try {
+            if (empty(trim($descricao))) {
+                return ['success' => false, 'message' => 'Descrição da tarefa é obrigatória'];
+            }
+            
+            $prioridade = in_array($prioridade, ['Alta', 'Média', 'Baixa']) ? $prioridade : 'Média';
+            
+            $dataLimiteSQL = null;
+            if ($dataLimite) {
+                // Converter formato brasileiro (dd/mm/yyyy) para SQL (yyyy-mm-dd)
+                $parts = explode('/', $dataLimite);
+                if (count($parts) === 3) {
+                    $dataLimiteSQL = $parts[2] . '-' . $parts[1] . '-' . $parts[0];
+                }
+            }
+            
+            $stmt = $pdo->prepare("INSERT INTO tarefas (id_usuario, descricao, prioridade, data_limite, status, data_criacao) VALUES (?, ?, ?, ?, 'pendente', NOW())");
+            $stmt->execute([$userId, trim($descricao), $prioridade, $dataLimiteSQL]);
+            
+            return ['success' => true, 'message' => "Tarefa '{$descricao}' adicionada com sucesso!"];
+        } catch (Exception $e) {
+            return ['success' => false, 'message' => 'Erro ao adicionar tarefa: ' . $e->getMessage()];
+        }
+    }
+    
+    function removerTarefa(PDO $pdo, int $userId, string $descricaoOuId): array {
+        try {
+            if (empty(trim($descricaoOuId))) {
+                return ['success' => false, 'message' => 'É necessário informar o ID ou descrição da tarefa'];
+            }
+            
+            if (is_numeric($descricaoOuId)) {
+                $stmt = $pdo->prepare("SELECT id, descricao FROM tarefas WHERE id = ? AND id_usuario = ?");
+                $stmt->execute([(int)$descricaoOuId, $userId]);
+            } else {
+                $stmt = $pdo->prepare("SELECT id, descricao FROM tarefas WHERE id_usuario = ? AND descricao LIKE ? AND status = 'pendente' LIMIT 1");
+                $stmt->execute([$userId, '%' . $descricaoOuId . '%']);
+            }
+            
+            $tarefa = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$tarefa) {
+                return ['success' => false, 'message' => 'Tarefa não encontrada'];
+            }
+            
+            // Deletar subtarefas primeiro
+            $stmt_sub = $pdo->prepare("DELETE FROM subtarefas WHERE id_tarefa_principal = ?");
+            $stmt_sub->execute([$tarefa['id']]);
+            
+            // Deletar a tarefa
+            $stmt_del = $pdo->prepare("DELETE FROM tarefas WHERE id = ? AND id_usuario = ?");
+            $stmt_del->execute([$tarefa['id'], $userId]);
+            
+            return ['success' => true, 'message' => "Tarefa '{$tarefa['descricao']}' removida com sucesso!"];
+        } catch (Exception $e) {
+            return ['success' => false, 'message' => 'Erro ao remover tarefa: ' . $e->getMessage()];
+        }
+    }
+    
+    function adicionarTransacao(PDO $pdo, int $userId, float $valor, string $tipo, string $descricao, ?string $data = null): array {
+        try {
+            if ($valor <= 0) {
+                return ['success' => false, 'message' => 'Valor deve ser maior que zero'];
+            }
+            
+            if (!in_array($tipo, ['receita', 'despesa'])) {
+                return ['success' => false, 'message' => 'Tipo deve ser "receita" ou "despesa"'];
+            }
+            
+            // Buscar ou criar categoria padrão
+            $stmt_cat = $pdo->prepare("SELECT id FROM categorias WHERE id_usuario = ? AND tipo = ? ORDER BY id ASC LIMIT 1");
+            $stmt_cat->execute([$userId, $tipo]);
+            $categoria = $stmt_cat->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$categoria) {
+                // Criar categoria padrão
+                $stmt_ins_cat = $pdo->prepare("INSERT INTO categorias (id_usuario, nome, tipo) VALUES (?, ?, ?)");
+                $stmt_ins_cat->execute([$userId, 'Outros', $tipo]);
+                $id_categoria = $pdo->lastInsertId();
+            } else {
+                $id_categoria = $categoria['id'];
+            }
+            
+            // Buscar ou criar conta padrão
+            $stmt_conta = $pdo->prepare("SELECT id FROM contas WHERE id_usuario = ? ORDER BY id ASC LIMIT 1");
+            $stmt_conta->execute([$userId]);
+            $conta = $stmt_conta->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$conta) {
+                $stmt_ins_conta = $pdo->prepare("INSERT INTO contas (id_usuario, nome, tipo, saldo_inicial) VALUES (?, 'Geral', 'dinheiro', 0)");
+                $stmt_ins_conta->execute([$userId]);
+                $id_conta = $pdo->lastInsertId();
+            } else {
+                $id_conta = $conta['id'];
+            }
+            
+            $dataTransacao = $data ? date('Y-m-d', strtotime(str_replace('/', '-', $data))) : date('Y-m-d');
+            
+            $stmt = $pdo->prepare("INSERT INTO transacoes (id_usuario, id_categoria, id_conta, descricao, valor, tipo, data_transacao) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$userId, $id_categoria, $id_conta, trim($descricao), $valor, $tipo, $dataTransacao]);
+            
+            return ['success' => true, 'message' => "Transação de {$tipo} no valor de R$ " . number_format($valor, 2, ',', '.') . " registrada com sucesso!"];
+        } catch (Exception $e) {
+            return ['success' => false, 'message' => 'Erro ao adicionar transação: ' . $e->getMessage()];
+        }
+    }
+    
     // 9. Sistema de Fallback em Cascata - Tentar múltiplos modelos sequencialmente
     $models = [
         'gemini-2.5-flash',      // Primary - modelo mais recente
@@ -236,15 +344,120 @@ try {
         // Sucesso (HTTP 200) - processar resposta e sair do loop
         if ($httpCode === 200) {
             $apiResponse = json_decode($response, true);
-            if ($apiResponse && isset($apiResponse['candidates'][0]['content']['parts'][0]['text'])) {
-                $respostaFinal = $apiResponse['candidates'][0]['content']['parts'][0]['text'];
+            if (!$apiResponse) {
+                error_log("[BOT_IA] Resposta JSON inválida do modelo {$model}");
+                $lastError = "Resposta inválida da API";
+                continue;
+            }
+            
+            $candidate = $apiResponse['candidates'][0] ?? null;
+            if (!$candidate) {
+                error_log("[BOT_IA] Candidato não encontrado na resposta do modelo {$model}");
+                $lastError = "Resposta inválida da API";
+                continue;
+            }
+            
+            $parts = $candidate['content']['parts'] ?? [];
+            $functionCalls = [];
+            $textResponse = null;
+            
+            // Processar partes da resposta
+            foreach ($parts as $part) {
+                if (isset($part['functionCall'])) {
+                    $functionCalls[] = $part['functionCall'];
+                } elseif (isset($part['text'])) {
+                    $textResponse = $part['text'];
+                }
+            }
+            
+            // Se houver function calls, executar e enviar resultado de volta para a IA
+            if (!empty($functionCalls)) {
+                error_log("[BOT_IA] Funções chamadas: " . count($functionCalls));
+                
+                $functionResults = [];
+                foreach ($functionCalls as $functionCall) {
+                    $functionName = $functionCall['name'] ?? '';
+                    $args = $functionCall['args'] ?? [];
+                    
+                    error_log("[BOT_IA] Executando função: {$functionName} com args: " . json_encode($args));
+                    
+                    $result = null;
+                    try {
+                        switch ($functionName) {
+                            case 'adicionarTarefa':
+                                $result = adicionarTarefa(
+                                    $pdo,
+                                    $userId,
+                                    $args['descricao'] ?? '',
+                                    $args['prioridade'] ?? 'Média',
+                                    $args['dataLimite'] ?? null
+                                );
+                                break;
+                            case 'removerTarefa':
+                                $result = removerTarefa($pdo, $userId, $args['descricaoOuId'] ?? '');
+                                break;
+                            case 'adicionarTransacao':
+                                $result = adicionarTransacao(
+                                    $pdo,
+                                    $userId,
+                                    (float)($args['valor'] ?? 0),
+                                    $args['tipo'] ?? '',
+                                    $args['descricao'] ?? '',
+                                    $args['data'] ?? null
+                                );
+                                break;
+                            default:
+                                $result = ['success' => false, 'message' => "Função '{$functionName}' não encontrada"];
+                        }
+                    } catch (Exception $e) {
+                        $result = ['success' => false, 'message' => 'Erro ao executar função: ' . $e->getMessage()];
+                    }
+                    
+                    $functionResults[] = [
+                        'functionResponse' => [
+                            'name' => $functionName,
+                            'response' => $result
+                        ]
+                    ];
+                }
+                
+                // Enviar resultados das funções de volta para a IA gerar resposta final
+                $data['contents'][] = [
+                    'parts' => $functionResults
+                ];
+                
+                // Segunda chamada para obter resposta final da IA
+                $ch2 = curl_init($apiUrl);
+                curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch2, CURLOPT_POST, true);
+                curl_setopt($ch2, CURLOPT_POSTFIELDS, json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+                curl_setopt($ch2, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+                curl_setopt($ch2, CURLOPT_TIMEOUT, 30);
+                curl_setopt($ch2, CURLOPT_SSL_VERIFYPEER, false);
+                
+                $response2 = curl_exec($ch2);
+                $httpCode2 = curl_getinfo($ch2, CURLINFO_HTTP_CODE);
+                curl_close($ch2);
+                
+                if ($httpCode2 === 200) {
+                    $apiResponse2 = json_decode($response2, true);
+                    if ($apiResponse2 && isset($apiResponse2['candidates'][0]['content']['parts'][0]['text'])) {
+                        $respostaFinal = $apiResponse2['candidates'][0]['content']['parts'][0]['text'];
+                        $success = true;
+                        error_log("[BOT_IA] Sucesso com modelo: {$model} (após executar funções)");
+                        break;
+                    }
+                }
+            } elseif ($textResponse) {
+                // Resposta direta sem function calls
+                $respostaFinal = $textResponse;
                 $success = true;
                 error_log("[BOT_IA] Sucesso com modelo: {$model}");
-                break; // Sair do loop - sucesso!
+                break;
             } else {
                 error_log("[BOT_IA] Resposta inválida do modelo {$model}");
                 $lastError = "Resposta inválida da API";
-                continue; // Tentar próximo modelo
+                continue;
             }
         }
         
