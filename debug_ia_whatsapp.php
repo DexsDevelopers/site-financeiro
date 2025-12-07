@@ -197,35 +197,36 @@ try {
             'pergunta' => 'teste',
             'user_id' => $testUserId
         ];
-    
-    $ch = curl_init($testUrl);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($testData));
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        'Content-Type: application/json',
-        'Authorization: Bearer site-financeiro-token-2024'
-    ]);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $curlError = curl_error($ch);
-    curl_close($ch);
-    
-    if ($curlError) {
-        addResult('Endpoint', 'admin_bot_ia.php', 'warning', "⚠️ Erro cURL: $curlError", "URL: $testUrl");
-    } else if ($httpCode === 200) {
-        $responseData = json_decode($response, true);
-        if ($responseData && isset($responseData['resposta'])) {
-            addResult('Endpoint', 'admin_bot_ia.php', 'success', "✅ Endpoint funcionando", "Resposta: " . substr($responseData['resposta'], 0, 100));
+        
+        $ch = curl_init($testUrl);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($testData));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Content-Type: application/json',
+            'Authorization: Bearer site-financeiro-token-2024'
+        ]);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+        
+        if ($curlError) {
+            addResult('Endpoint', 'admin_bot_ia.php', 'warning', "⚠️ Erro cURL: $curlError", "URL: $testUrl");
+        } else if ($httpCode === 200) {
+            $responseData = json_decode($response, true);
+            if ($responseData && isset($responseData['resposta'])) {
+                addResult('Endpoint', 'admin_bot_ia.php', 'success', "✅ Endpoint funcionando", "Resposta: " . substr($responseData['resposta'], 0, 100));
+            } else {
+                addResult('Endpoint', 'admin_bot_ia.php', 'warning', "⚠️ Resposta inválida", substr($response, 0, 200));
+            }
         } else {
-            addResult('Endpoint', 'admin_bot_ia.php', 'warning', "⚠️ Resposta inválida", substr($response, 0, 200));
+            addResult('Endpoint', 'admin_bot_ia.php', 'error', "❌ HTTP $httpCode", substr($response, 0, 200));
+            $hasErrors = true;
         }
-    } else {
-        addResult('Endpoint', 'admin_bot_ia.php', 'error', "❌ HTTP $httpCode", substr($response, 0, 200));
-        $hasErrors = true;
     }
 } catch (Exception $e) {
     addResult('Endpoint', 'admin_bot_ia.php', 'error', "❌ Exception: " . $e->getMessage(), '');
