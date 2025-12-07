@@ -332,6 +332,9 @@ try {
     $prompt .= "- Se o usuário pedir para ADICIONAR uma tarefa, use a função adicionarTarefa.\n";
     $prompt .= "- Se o usuário pedir para REMOVER/APAGAR uma tarefa, use a função removerTarefa.\n";
     $prompt .= "- Se o usuário pedir para REGISTRAR uma receita ou despesa, use a função adicionarTransacao.\n";
+    $prompt .= "- Se o usuário pedir para REMOVER/APAGAR uma transação ou todas as transações, use a função removerTransacao.\n";
+    $prompt .= "- Se o usuário pedir para apagar TODAS as transações, use removerTransacao sem parâmetros.\n";
+    $prompt .= "- Se o usuário pedir para apagar todas as RECEITAS ou todas as DESPESAS, use removerTransacao com o parâmetro tipo.\n";
     $prompt .= "- Sempre execute as ações solicitadas pelo usuário usando as funções disponíveis.\n";
     $prompt .= "- Após executar uma ação, confirme ao usuário de forma clara e objetiva.\n";
     $prompt .= "- Formate números monetários em R$ e datas em formato brasileiro (dd/mm/aaaa).";
@@ -402,6 +405,25 @@ try {
                             ]
                         ],
                         'required' => ['valor', 'tipo', 'descricao']
+                    ]
+                ],
+                [
+                    'name' => 'removerTransacao',
+                    'description' => 'Remove uma ou mais transações financeiras do painel. Use quando o usuário pedir para remover, apagar, deletar ou excluir transações. Se o usuário pedir para apagar TODAS as transações, não passe nenhum parâmetro. Se pedir para apagar todas as receitas ou despesas, use o parâmetro tipo.',
+                    'parameters' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'idOuDescricao' => [
+                                'type' => 'string',
+                                'description' => 'ID numérico da transação ou parte da descrição da transação a ser removida. Se não especificado e tipo também não for especificado, remove TODAS as transações.'
+                            ],
+                            'tipo' => [
+                                'type' => 'string',
+                                'description' => 'Tipo de transação a remover: "receita" ou "despesa". Se especificado, remove todas as transações deste tipo.',
+                                'enum' => ['receita', 'despesa']
+                            ]
+                        ],
+                        'required' => []
                     ]
                 ]
             ]
