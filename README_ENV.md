@@ -46,3 +46,4 @@ Se a chave estiver configurada corretamente, aparecerá:
 ✅ API Key configurada
 ```
 
+

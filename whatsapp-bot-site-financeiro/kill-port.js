@@ -4,13 +4,12 @@ const os = require('os');
 
 const PORT = process.env.API_PORT || 3001;
 
-console.log(`🔍 Verificando processos na porta ${PORT}...`);
-
+// Verificação silenciosa da porta
 if (os.platform() === 'win32') {
     // Windows
     exec(`netstat -ano | findstr :${PORT}`, (error, stdout, stderr) => {
         if (error || !stdout.trim()) {
-            console.log(`✅ Nenhum processo encontrado na porta ${PORT}`);
+            // Nenhum processo encontrado - continuar silenciosamente
             return;
         }
 
@@ -25,12 +24,11 @@ if (os.platform() === 'win32') {
         });
 
         if (pids.size === 0) {
-            console.log(`✅ Nenhum processo encontrado na porta ${PORT}`);
+            // Nenhum processo encontrado - continuar silenciosamente
             return;
         }
 
-        console.log(`⚠️  Encontrados ${pids.size} processo(s) na porta ${PORT}:`);
-        pids.forEach(pid => console.log(`   - PID: ${pid}`));
+        // Processos encontrados - matar silenciosamente
 
         pids.forEach(pid => {
             exec(`taskkill /F /PID ${pid}`, (killError, killStdout, killStderr) => {
@@ -46,13 +44,12 @@ if (os.platform() === 'win32') {
     // Linux/Mac
     exec(`lsof -ti:${PORT}`, (error, stdout, stderr) => {
         if (error || !stdout.trim()) {
-            console.log(`✅ Nenhum processo encontrado na porta ${PORT}`);
+            // Nenhum processo encontrado - continuar silenciosamente
             return;
         }
 
         const pids = stdout.trim().split('\n').filter(Boolean);
-        console.log(`⚠️  Encontrados ${pids.length} processo(s) na porta ${PORT}:`);
-        pids.forEach(pid => console.log(`   - PID: ${pid}`));
+        // Processos encontrados - matar silenciosamente
 
         pids.forEach(pid => {
             exec(`kill -9 ${pid}`, (killError) => {

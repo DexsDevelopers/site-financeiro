@@ -56,25 +56,36 @@ async function start() {
   const { state, saveCreds } = await useMultiFileAuthState('./auth-site-financeiro');
   // Logger customizado para reduzir verbosidade
   // Filtrar erros de descriptografia que são normais
-  const logger = pino({ 
-    level: 'error',
-    serializers: {
-      err: (err) => {
-        // Ignorar erros de descriptografia comuns que não são problemas reais
-        if (err && (
-          err.message?.includes('MessageCounterError') ||
-          err.message?.includes('Key used already') ||
-          err.message?.includes('No session found to decrypt') ||
-          err.message?.includes('Invalid PreKey ID') ||
-          err.name === 'MessageCounterError' ||
-          err.name === 'PreKeyError'
-        )) {
-          return null; // Não logar esses erros
-        }
-        return pino.stdSerializers.err(err);
-      }
-    }
-  });
+  const baseLogger = pino({ level: 'error' });
+  
+  // Criar logger wrapper que filtra mensagens indesejadas
+  const logger = {
+    trace: () => {},
+    debug: () => {},
+    info: () => {},
+    warn: (obj, msg) => {
+      // Filtrar mensagens de descriptografia
+      if (msg && (msg.includes('failed to decrypt') || msg.includes('decrypt'))) return;
+      if (obj && (obj.msg === 'failed to decrypt message' || obj.message?.includes('decrypt'))) return;
+      baseLogger.warn(obj, msg);
+    },
+    error: (obj, msg) => {
+      // Filtrar mensagens de descriptografia
+      if (msg && (msg.includes('failed to decrypt') || msg.includes('decrypt'))) return;
+      if (obj && (obj.msg === 'failed to decrypt message' || obj.message?.includes('decrypt'))) return;
+      // Filtrar também por chave do objeto
+      if (obj && obj.key && obj.msg === 'failed to decrypt message') return;
+      baseLogger.error(obj, msg);
+    },
+    fatal: (obj, msg) => {
+      // Filtrar mensagens de descriptografia
+      if (msg && (msg.includes('failed to decrypt') || msg.includes('decrypt'))) return;
+      if (obj && (obj.msg === 'failed to decrypt message' || obj.message?.includes('decrypt'))) return;
+      baseLogger.fatal(obj, msg);
+    },
+    child: () => logger,
+    level: 'error'
+  };
   
   sock = makeWASocket({
     auth: state,

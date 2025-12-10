@@ -134,3 +134,5 @@ function formatHelpMessage(string $command, ?array $loggedUser = null): string {
     return $helps[$command] ?? "Comando não encontrado. Digite !menu para ver todos os comandos.";
 }
 
+
+

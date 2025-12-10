@@ -30,3 +30,5 @@ if (fs.existsSync(authDir)) {
   console.log('ℹ️ Pasta de autenticação não existe.');
 }
 
+
+

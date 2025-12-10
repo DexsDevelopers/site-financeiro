@@ -105,3 +105,5 @@ echo "- Erro de banco de dados\n";
 echo "- Erro em alguma função específica\n";
 echo "\nVerifique os logs de erro do PHP no servidor.\n";
 
+
+

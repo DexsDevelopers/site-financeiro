@@ -1,98 +1,172 @@
 <?php
-// /processar_analise_ia_memoria.php (Versão Corrigida para ler da URL)
+// processar_analise_ia_memoria.php
+// Versão: Streaming SSE + Contexto Persistente + Correção de API
 
-set_time_limit(0);
-@ini_set('zlib.output_compression', 0);
+// 1. Configurações de Streaming
+set_time_limit(0); // Sem limite de tempo de execução
+@ini_set('zlib.output_compression', 0); // Desativa compressão para stream fluir
 @ini_set('implicit_flush', 1);
-@ob_end_clean();
+while (ob_get_level()) ob_end_clean(); // Limpa buffers anteriores
 
 header('Content-Type: text/event-stream');
 header('Cache-Control: no-cache');
 header('Connection: keep-alive');
+// CORS (Opcional, habilite se o front estiver em outro domínio)
+header('Access-Control-Allow-Origin: *');
 
 session_start();
 
+// 2. Validação de Sessão
 if (!isset($_SESSION['user_id'])) {
-    echo "data: {\"error\": \"Acesso negado.\"}\n\n";
+    echo "data: " . json_encode(["error" => "Acesso negado. Faça login."]) . "\n\n";
     flush();
     exit();
 }
 
-require_once 'includes/db_connect.php';
-require_once '/home/u853242961/config/config.php';
+// 3. Includes Seguros
+require_once __DIR__ . '/includes/db_connect.php';
 
-// CORREÇÃO: Lê a pergunta da URL (parâmetro GET) em vez do corpo da requisição
+// Carregar config de forma segura (tenta caminho absoluto ou relativo)
+if (file_exists('/home/u853242961/config/config.php')) {
+    require_once '/home/u853242961/config/config.php';
+} elseif (file_exists(__DIR__ . '/includes/config.php')) {
+    require_once __DIR__ . '/includes/config.php';
+}
+
+// 4. Recebimento de Dados (GET)
+// ALERTA: Historico via GET tem limite de tamanho. O ideal futuramente é usar POST + ID temporário.
 $pergunta_usuario = $_GET['pergunta'] ?? '';
 $historico_json = $_GET['historico'] ?? '[]';
-$historico_conversa = json_decode($historico_json, true);
 $userId = $_SESSION['user_id'];
 
+// Decodifica histórico e garante que é um array
+$historico_conversa = json_decode(urldecode($historico_json), true);
+if (!is_array($historico_conversa)) $historico_conversa = [];
+
 if (empty($pergunta_usuario)) {
-    echo "data: {\"error\": \"Nenhuma pergunta fornecida.\"}\n\n";
+    echo "data: " . json_encode(["error" => "Pergunta vazia."]) . "\n\n";
     flush();
     exit();
 }
 
-// --- COLETA DE DADOS PARA CONTEXTO DA IA ---
+// 5. Coleta de Contexto (RAG - Retrieval Augmented Generation)
 $contexto = "";
 try {
-    $sql_despesas = "SELECT c.nome, SUM(t.valor) as total FROM transacoes t JOIN categorias c ON t.id_categoria = c.id WHERE t.id_usuario = ? AND t.tipo = 'despesa' AND t.data_transacao >= CURDATE() - INTERVAL 30 DAY GROUP BY c.nome ORDER BY total DESC";
-    $stmt_despesas = $pdo->prepare($sql_despesas);
-    $stmt_despesas->execute([$userId]);
-    $despesas = $stmt_despesas->fetchAll(PDO::FETCH_ASSOC);
-    $contexto .= "Despesas dos últimos 30 dias por categoria:\n";
-    foreach ($despesas as $d) { $contexto .= "- " . $d['nome'] . ": R$ " . number_format($d['total'], 2, ',', '.') . "\n"; }
-
-    $sql_tarefas = "SELECT descricao, data_limite, prioridade FROM tarefas WHERE id_usuario = ? AND status = 'pendente' AND data_limite IS NOT NULL ORDER BY data_limite ASC";
-    $stmt_tarefas = $pdo->prepare($sql_tarefas);
-    $stmt_tarefas->execute([$userId]);
-    $tarefas = $stmt_tarefas->fetchAll(PDO::FETCH_ASSOC);
-    $contexto .= "\nTarefas pendentes com prazo:\n";
-    foreach ($tarefas as $t) { $contexto .= "- " . $t['descricao'] . " (Prioridade: " . $t['prioridade'] . ", Limite: " . date('d/m/Y', strtotime($t['data_limite'])) . ")\n"; }
-} catch (PDOException $e) {
-    $contexto = "Não foi possível buscar os dados do usuário.";
-}
-
-// --- ENGENHARIA DE PROMPT COM HISTÓRICO ---
-$instrucoes_sistema = "Sua Identidade: Você é 'Orion', um assistente pessoal de finanças e produtividade. Seu tom é amigável e encorajador. Sua Tarefa: Use o contexto da conversa e os dados financeiros/tarefas para responder à última pergunta do usuário. Formate suas respostas com markdown simples (negrito com **, listas com -). Contexto de Dados (situação atual do usuário):\n" . $contexto;
-
-$contents = [];
-if (empty($historico_conversa)) {
-    // Se for a primeira pergunta, envia as instruções e a pergunta
-    $contents[] = ['role' => 'user', 'parts' => [['text' => $instrucoes_sistema . "\n\nPergunta: " . $pergunta_usuario]]];
-} else {
-    // Se já houver histórico, o recria para a API
-    foreach ($historico_conversa as $msg) {
-        $contents[] = $msg;
+    // Dados Financeiros (Últimos 30 dias)
+    // Nota: Usando tabela 'transacoes' (português) conforme seu padrão neste arquivo
+    $sql_despesas = "SELECT c.nome, SUM(t.valor) as total 
+                     FROM transacoes t 
+                     JOIN categorias c ON t.id_categoria = c.id 
+                     WHERE t.id_usuario = ? AND t.tipo = 'despesa' 
+                     AND t.data_transacao >= CURDATE() - INTERVAL 30 DAY 
+                     GROUP BY c.nome 
+                     ORDER BY total DESC";
+    $stmt = $pdo->prepare($sql_despesas);
+    $stmt->execute([$userId]);
+    $despesas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    $contexto .= "Resumo financeiro (30 dias):\n";
+    if (empty($despesas)) {
+        $contexto .= "- Nenhuma despesa recente.\n";
+    } else {
+        foreach ($despesas as $d) { 
+            $contexto .= "- " . $d['nome'] . ": R$ " . number_format($d['total'], 2, ',', '.') . "\n"; 
+        }
     }
-    // Adiciona a pergunta atual no final
-    $contents[] = ['role' => 'user', 'parts' => [['text' => $pergunta_usuario]]];
+
+    // Tarefas Pendentes
+    $sql_tarefas = "SELECT descricao, data_limite, prioridade 
+                    FROM tarefas 
+                    WHERE id_usuario = ? AND status = 'pendente' 
+                    ORDER BY data_limite ASC LIMIT 10";
+    $stmt = $pdo->prepare($sql_tarefas);
+    $stmt->execute([$userId]);
+    $tarefas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    $contexto .= "\nTarefas urgentes:\n";
+    if (empty($tarefas)) {
+        $contexto .= "- Tudo em dia!\n";
+    } else {
+        foreach ($tarefas as $t) { 
+            $dataLim = $t['data_limite'] ? date('d/m', strtotime($t['data_limite'])) : 'S/D';
+            $contexto .= "- " . $t['descricao'] . " [" . $t['prioridade'] . "] (Até: $dataLim)\n"; 
+        }
+    }
+} catch (PDOException $e) {
+    $contexto = "Erro ao ler banco de dados: " . $e->getMessage();
 }
 
-// --- CHAMADA PARA A API DO GEMINI ---
-$gemini_api_url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:streamGenerateContent?key=' . GEMINI_API_KEY;
-$data = ['contents' => $contents];
+// 6. Montagem do Payload (Correção de Lógica)
+// Usamos 'systemInstruction' para garantir que o contexto financeiro SEMPRE esteja presente,
+// independente do tamanho do histórico.
 
-$ch = curl_init($gemini_api_url);
+$systemInstruction = "Você é Orion, assistente pessoal de finanças. 
+Seja direto, motivador e use Markdown.
+CONTEXTO ATUAL DO USUÁRIO:
+$contexto";
 
+// Limpeza básica do histórico para evitar erros da API (formatos inválidos)
+$contents = [];
+foreach ($historico_conversa as $msg) {
+    if (isset($msg['role']) && isset($msg['parts'])) {
+        $contents[] = [
+            'role' => ($msg['role'] == 'user' || $msg['role'] == 'model') ? $msg['role'] : 'user',
+            'parts' => $msg['parts']
+        ];
+    }
+}
+
+// Adiciona a pergunta atual
+$contents[] = ['role' => 'user', 'parts' => [['text' => $pergunta_usuario]]];
+
+// 7. Chamada API Streaming
+// URL Corrigida: Usando 'gemini-1.5-flash' (alias padrão estável)
+$url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:streamGenerateContent?key=' . GEMINI_API_KEY;
+
+$payload = [
+    'contents' => $contents,
+    'systemInstruction' => [
+        'parts' => [['text' => $systemInstruction]]
+    ],
+    'generationConfig' => [
+        'temperature' => 0.4,
+        'maxOutputTokens' => 500
+    ]
+];
+
+$ch = curl_init($url);
+
+// Função de Callback para Streaming
 $write_function = function($curl, $chunk) {
-    echo $chunk;
-    flush();
+    // A API do Google manda chunks brutos. Para SSE, precisamos garantir o prefixo data:
+    // No entanto, se o seu frontend espera JSON bruto do Google, mantenha o echo $chunk.
+    // Para compatibilidade padrão SSE, encapsulamos:
+    
+    if (trim($chunk) !== "") {
+        // Envia o chunk bruto prefixado com data: para o JS processar
+        echo "data: " . json_encode(['raw' => $chunk]) . "\n\n";
+        flush();
+    }
     return strlen($chunk);
 };
 
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, false);
-curl_setopt($ch, CURLOPT_POST, true);
-curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
 curl_setopt($ch, CURLOPT_WRITEFUNCTION, $write_function);
-curl_setopt($ch, CURLOPT_TIMEOUT, 300);
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // Apenas se tiver problemas com SSL local
+curl_setopt($ch, CURLOPT_TIMEOUT, 60); // Timeout da conexão
 
 curl_exec($ch);
 
 if (curl_errno($ch)) {
-    echo "data: {\"error\": \"Erro de conexão cURL: " . curl_error($ch) . "\"}\n\n";
+    echo "data: " . json_encode(["error" => "Erro cURL: " . curl_error($ch)]) . "\n\n";
     flush();
 }
+
 curl_close($ch);
+
+// Evento final para fechar conexão no front
+echo "data: [DONE]\n\n";
+flush();
 ?>

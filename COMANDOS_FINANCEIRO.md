@@ -30,6 +30,60 @@
    - Acesse: `http://localhost:3001/qr`
    - Ou veja no console do bot
 
+## 🌐 Configurar Ngrok (Expor Bot Publicamente)
+
+Para que o bot funcione em produção e receba webhooks, você precisa expor a porta 3001 usando ngrok.
+
+### Opção 1: Script Automático (Recomendado)
+
+```powershell
+.\start-ngrok.ps1
+```
+
+Este script:
+- ✅ Verifica se o ngrok está instalado
+- ✅ Verifica se o bot está rodando
+- ✅ Inicia o túnel ngrok na porta 3001
+- ✅ Mostra a URL pública gerada
+
+### Opção 2: Script com Atualização Automática
+
+```powershell
+.\start-ngrok-auto.ps1
+```
+
+Este script faz tudo acima **E** atualiza automaticamente o arquivo `.htaccess` com a nova URL.
+
+### Opção 3: Manual
+
+1. **Instalar ngrok:**
+   - Baixe em: https://ngrok.com/download
+   - Ou: `choco install ngrok`
+
+2. **Iniciar ngrok:**
+   ```bash
+   ngrok http 3001
+   ```
+
+3. **Copiar a URL HTTPS** (ex: `https://xxxxx.ngrok-free.app`)
+
+4. **Atualizar `.htaccess`:**
+   ```apache
+   SetEnv WHATSAPP_API_URL https://SUA-URL-NGROK.ngrok-free.app
+   ```
+
+### ⚠️ Importante
+
+- **Mantenha o terminal do ngrok aberto** enquanto o bot estiver em uso
+- URLs do ngrok **gratuito mudam a cada reinício**
+- Para URL fixa, considere upgrade do ngrok ou use um domínio próprio
+- Após iniciar o ngrok, atualize o `.htaccess` com a nova URL
+
+### 🔍 Verificar Status
+
+- **Interface web do ngrok:** http://localhost:4040
+- **Status do bot:** http://localhost:3001/status
+
 ## 📋 Comandos Disponíveis
 
 ### 🔐 Autenticação (OBRIGATÓRIO)

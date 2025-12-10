@@ -203,3 +203,5 @@ Para mais informações:
 - Verifique se o bot WhatsApp está rodando
 - Verifique se o cron job está configurado corretamente
 
+
+
