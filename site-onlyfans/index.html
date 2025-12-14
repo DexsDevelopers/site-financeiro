@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Acesso VIP exclusivo ao conteúdo premium mais ousado da internet. Assine agora e libere seu acesso ilimitado.">
+  <title>Grupo Exclusivo | Acesso VIP Imediato</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Poppins:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/css/splide-core.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+  <style>
+    /* =====================================================
+       PALETA DE CORES PREMIUM REFINADA
+       ===================================================== */
+    :root {
+      --primary-glow: #ff1744;
+      --secondary-glow: #d32f2f;
+      --accent-gold: #ffc107;
+      --accent-gold-dark: #ff8f00;
+      --gradient-primary: linear-gradient(135deg, var(--primary-glow) 0%, var(--secondary-glow) 100%);
+      --gradient-gold: linear-gradient(135deg, var(--accent-gold) 0%, var(--accent-gold-dark) 100%);
+      --gradient-dark: linear-gradient(180deg, rgba(10,10,10,0.95) 0%, rgba(0,0,0,1) 100%);
+
+      --bg-color: #000000;
+      --bg-glass: rgba(15, 15, 15, 0.75);
+      --bg-glass-hover: rgba(20, 20, 20, 0.85);
+      --glass-border: rgba(255, 255, 255, 0.1);
+      --glass-border-hover: rgba(255, 23, 68, 0.5);
+
+      --text-primary: #ffffff;
+      --text-secondary: #b0b0b0;
+      --text-muted: #707070;
+
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.5);
+      --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.7);
+      --shadow-glow: 0 0 30px rgba(255, 23, 68, 0.4);
+      --shadow-gold: 0 0 30px rgba(255, 193, 7, 0.3);
+
+      --border-radius: 20px;
+      --border-radius-sm: 12px;
+      --border-radius-lg: 30px;
+      --font-heading: 'Orbitron', sans-serif;
+      --font-body: 'Poppins', sans-serif;
+
+      --transition-fast: 0.2s ease;
+      --transition-normal: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      --transition-slow: 0.6s ease;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--bg-color);
+      color: var(--text-primary);
+      overflow-x: hidden;
+      position: relative;
+      line-height: 1.6;
+    }
+
+    /* Background com overlay melhorado */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: url('foto.jpg') no-repeat center center fixed;
+      background-size: cover;
+      filter: blur(8px) brightness(0.25) saturate(1.3);
+      z-index: -2;
+      transition: filter 0.5s ease;
+    }
+
+    /* Efeito aurora melhorado */
+    body::after {
+      content: '';
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      background: 
+        radial-gradient(circle at 20% 30%, rgba(255, 23, 68, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 80% 70%, rgba(255, 193, 7, 0.1) 0%, transparent 40%),
+        radial-gradient(circle at 50% 50%, rgba(211, 47, 47, 0.08) 0%, transparent 50%);
+      z-index: -1;
+      animation: aurora 20s ease-in-out infinite alternate;
+      pointer-events: none;
+    }
+
+    @keyframes aurora {
+      0% {
+        opacity: 0.8;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 1;
+        transform: scale(1.1);
+      }
+      100% {
+        opacity: 0.8;
+        transform: scale(1);
+      }
+    }
+
+    /* =====================================================
+       HEADER FIXO PREMIUM
+       ===================================================== */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--glass-border);
+      padding: 20px 0;
+      transition: all var(--transition-normal);
+    }
+
+    header.scrolled {
+      background: rgba(0, 0, 0, 0.95);
+      box-shadow: var(--shadow-md);
+      padding: 15px 0;
+    }
+
+    .header-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 30px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      font-family: var(--font-heading);
+      font-size: 1.5rem;
+      font-weight: 900;
+      background: var(--gradient-primary);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-decoration: none;
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo::before {
+      content: '🔥';
+      font-size: 1.8rem;
+      filter: drop-shadow(0 0 10px rgba(255, 23, 68, 0.5));
+    }
+
+    nav {
+      display: flex;
+      gap: 35px;
+      align-items: center;
+    }
+
+    nav a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.95rem;
+      position: relative;
+      transition: color var(--transition-fast);
+      padding: 5px 0;
+    }
+
+    nav a::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 0;
+      height: 2px;
+      background: var(--gradient-primary);
+      transition: width var(--transition-normal);
+    }
+
+    nav a:hover {
+      color: var(--text-primary);
+    }
+
+    nav a:hover::after {
+      width: 100%;
+    }
+
+    /* =====================================================
+       HERO SECTION PREMIUM
+       ===================================================== */
+    .hero {
+      min-height: 90vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 120px 30px 80px;
+      position: relative;
+    }
+
+    .hero-content {
+      max-width: 900px;
+      z-index: 1;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      background: var(--bg-glass);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--glass-border);
+      border-radius: 50px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--accent-gold);
+      margin-bottom: 30px;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.4); }
+      50% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); }
+    }
+
+    .hero h1 {
+      font-family: var(--font-heading);
+      font-size: clamp(2.5rem, 8vw, 5rem);
+      font-weight: 900;
+      line-height: 1.1;
+      margin-bottom: 25px;
+      background: linear-gradient(135deg, #ffffff 0%, var(--primary-glow) 50%, var(--accent-gold) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-shadow: 0 0 40px rgba(255, 23, 68, 0.3);
+      letter-spacing: -1px;
+    }
+
+    .hero p {
+      font-size: clamp(1rem, 2vw, 1.3rem);
+      color: var(--text-secondary);
+      margin-bottom: 40px;
+      max-width: 700px;
+      margin-left: auto;
+      margin-right: auto;
+      font-weight: 300;
+      line-height: 1.8;
+    }
+
+    .social-proof {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 24px;
+      background: var(--bg-glass);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--glass-border);
+      border-radius: 50px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-top: 30px;
+    }
+
+    .social-proof i {
+      color: var(--accent-gold);
+      font-size: 1.2rem;
+    }
+
+    /* =====================================================
+       CONTAINER E SEÇÕES
+       ===================================================== */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 80px 30px;
+    }
+
+    section {
+      margin-bottom: 100px;
+    }
+
+    .section-header {
+      text-align: center;
+      margin-bottom: 60px;
+    }
+
+    .section-header h2 {
+      font-family: var(--font-heading);
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 900;
+      margin-bottom: 15px;
+      background: var(--gradient-primary);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .section-header p {
+      font-size: 1.1rem;
+      color: var(--text-secondary);
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    /* =====================================================
+       CARROSSEL DE VÍDEOS MELHORADO
+       ===================================================== */
+    .video-carousel-wrapper {
+      position: relative;
+      padding: 40px 0;
+    }
+
+    .splide__slide {
+      transform: scale(0.88);
+      opacity: 0.6;
+      transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+    }
+
+    .splide__slide.is-active {
+      transform: scale(1);
+      opacity: 1;
+    }
+
+    .splide__slide video {
+      width: 100%;
+      height: auto;
+      border-radius: var(--border-radius);
+      border: 2px solid var(--glass-border);
+      filter: blur(10px);
+      transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .splide__slide.is-active video {
+      border-color: var(--accent-gold);
+      filter: blur(8px);
+      box-shadow: 0 0 40px rgba(255, 193, 7, 0.4), var(--shadow-lg);
+    }
+
+    /* Botão de desbloquear melhorado */
+    .unlock-video-btn {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 32px;
+      background: var(--gradient-gold);
+      border: none;
+      border-radius: 50px;
+      color: #000000;
+      font-weight: 700;
+      font-size: 1rem;
+      text-decoration: none;
+      opacity: 0;
+      transition: all var(--transition-normal);
+      box-shadow: var(--shadow-gold);
+      cursor: pointer;
+    }
+
+    .splide__slide.is-active .unlock-video-btn {
+      opacity: 1;
+      animation: bounce 2s ease-in-out infinite;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translate(-50%, -50%) translateY(0); }
+      50% { transform: translate(-50%, -50%) translateY(-10px); }
+    }
+
+    .unlock-video-btn:hover {
+      transform: translate(-50%, -50%) scale(1.1);
+      box-shadow: 0 0 50px rgba(255, 193, 7, 0.6);
+    }
+
+    .unlock-video-btn i {
+      font-size: 1.2rem;
+    }
+
+    /* Setas do carrossel melhoradas */
+    .splide__arrows {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      width: 100%;
+      transform: translateY(-50%);
+      z-index: 5;
+      display: flex;
+      justify-content: space-between;
+      padding: 0 20px;
+      pointer-events: none;
+    }
+
+    .splide__arrow {
+      position: static;
+      transform: none;
+      pointer-events: auto;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: var(--bg-glass);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--glass-border);
+      opacity: 0.8;
+      transition: all var(--transition-normal);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .splide__arrow svg {
+      fill: var(--text-primary);
+      width: 24px;
+      height: 24px;
+      filter: drop-shadow(0 0 5px rgba(255, 193, 7, 0.5));
+    }
+
+    .splide__arrow:hover:not(:disabled) {
+      background: var(--bg-glass-hover);
+      border-color: var(--primary-glow);
+      opacity: 1;
+      transform: scale(1.1);
+      box-shadow: var(--shadow-glow);
+    }
+
+    /* =====================================================
+       CARDS DE PLANOS PREMIUM
+       ===================================================== */
+    .plans-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 40px;
+      margin-top: 60px;
+    }
+
+    .plan-card {
+      position: relative;
+      perspective: 1000px;
+    }
+
+    .plan-card-inner {
+      position: relative;
+      padding: 40px 35px;
+      background: var(--bg-glass);
+      backdrop-filter: blur(20px);
+      border: 2px solid var(--glass-border);
+      border-radius: var(--border-radius-lg);
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      text-align: center;
+      transition: all var(--transition-normal);
+      overflow: hidden;
+    }
+
+    .plan-card-inner::before {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      background: var(--gradient-primary);
+      border-radius: var(--border-radius-lg);
+      opacity: 0;
+      transition: opacity var(--transition-normal);
+      z-index: -1;
+    }
+
+    .plan-card:hover .plan-card-inner {
+      transform: translateY(-10px);
+      border-color: var(--glass-border-hover);
+      box-shadow: var(--shadow-glow);
+    }
+
+    .plan-card:hover .plan-card-inner::before {
+      opacity: 0.2;
+    }
+
+    .plan-card.featured .plan-card-inner {
+      border-color: var(--accent-gold);
+      background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 15, 15, 0.05) 100%);
+    }
+
+    .plan-card.featured .plan-card-inner::before {
+      background: var(--gradient-gold);
+      opacity: 0.3;
+    }
+
+    .popular-tag {
+      position: absolute;
+      top: -15px;
+      right: 30px;
+      background: var(--gradient-gold);
+      color: #000000;
+      padding: 8px 20px;
+      border-radius: 50px;
+      font-size: 0.75rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      box-shadow: var(--shadow-gold);
+      z-index: 10;
+    }
+
+    .plan-card h3 {
+      font-family: var(--font-heading);
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 20px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .plan-card .price {
+      font-family: var(--font-heading);
+      font-weight: 900;
+      font-size: 4rem;
+      color: var(--text-primary);
+      margin: 25px 0;
+      line-height: 1;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 5px;
+    }
+
+    .plan-card .price .currency {
+      font-size: 2rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-top: 8px;
+    }
+
+    .plan-card.featured .price {
+      background: var(--gradient-gold);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .plan-card ul {
+      list-style: none;
+      margin: 30px 0;
+      padding: 0;
+      text-align: left;
+      flex-grow: 1;
+    }
+
+    .plan-card ul li {
+      color: var(--text-secondary);
+      padding: 15px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.95rem;
+      transition: all var(--transition-fast);
+    }
+
+    .plan-card ul li:first-child {
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .plan-card ul li::before {
+      content: '✓';
+      width: 24px;
+      height: 24px;
+      background: var(--gradient-primary);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+    }
+
+    .plan-card ul li:hover {
+      color: var(--text-primary);
+      padding-left: 10px;
+    }
+
+    .plan-card .btn {
+      margin-top: auto;
+      width: 100%;
+    }
+
+    /* =====================================================
+       BOTÕES PREMIUM
+       ===================================================== */
+    .btn {
+      display: inline-block;
+      padding: 18px 40px;
+      background: var(--gradient-primary);
+      color: white;
+      font-family: var(--font-body);
+      text-decoration: none;
+      border-radius: 50px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      transition: all var(--transition-normal);
+      box-shadow: 0 4px 20px rgba(255, 23, 68, 0.3);
+    }
+
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      transform: translate(-50%, -50%);
+      transition: width 0.6s, height 0.6s;
+    }
+
+    .btn:hover::before {
+      width: 300px;
+      height: 300px;
+    }
+
+    .btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 30px rgba(255, 23, 68, 0.5);
+    }
+
+    .btn span {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* =====================================================
+       FOOTER PREMIUM
+       ===================================================== */
+    footer {
+      text-align: center;
+      padding: 60px 30px;
+      border-top: 1px solid var(--glass-border);
+      margin-top: 100px;
+    }
+
+    .footer-content {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .trust-seals {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+    }
+
+    .trust-seals div {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+    }
+
+    .trust-seals i {
+      font-size: 1.3rem;
+      color: var(--accent-gold);
+    }
+
+    .footer-links,
+    .footer-legal {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 20px;
+      line-height: 1.8;
+    }
+
+    /* =====================================================
+       ANIMAÇÕES DE SCROLL
+       ===================================================== */
+    .reveal-on-scroll {
+      opacity: 0;
+      transform: translateY(50px);
+      transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .reveal-on-scroll.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* =====================================================
+       RESPONSIVIDADE
+       ===================================================== */
+    @media (max-width: 768px) {
+      .header-content {
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      nav {
+        gap: 25px;
+        font-size: 0.9rem;
+      }
+
+      .hero {
+        min-height: 70vh;
+        padding: 100px 20px 60px;
+      }
+
+      .container {
+        padding: 60px 20px;
+      }
+
+      .plans-grid {
+        grid-template-columns: 1fr;
+        gap: 30px;
+      }
+
+      .plan-card .price {
+        font-size: 3rem;
+      }
+
+      .splide__arrow {
+        width: 40px;
+        height: 40px;
+      }
+
+      .splide__arrows {
+        padding: 0 10px;
+      }
+
+      .trust-seals {
+        flex-direction: column;
+        gap: 15px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .hero h1 {
+        font-size: 2rem;
+      }
+
+      .section-header h2 {
+        font-size: 1.8rem;
+      }
+
+      .plan-card-inner {
+        padding: 30px 25px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header id="main-header">
+    <div class="header-content">
+      <a href="#" class="logo">Grupo Exclusivo</a>
+      <nav>
+        <a href="#sobre">O Que é?</a>
+        <a href="#galeria">Amostras</a>
+        <a href="#planos">Assinaturas</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-content">
+        <div class="hero-badge reveal-on-scroll">
+          <i class="bi bi-star-fill"></i>
+          <span>Acesso VIP Exclusivo</span>
+        </div>
+        <h1 class="reveal-on-scroll">Entre no Universo<br>Mais Exclusivo</h1>
+        <p class="reveal-on-scroll">
+          Desbloqueie um mundo privado de conteúdo premium. Conteúdo exclusivo, 
+          sem limites e sem censura. Sua curiosidade não tem fronteiras.
+        </p>
+        <div class="social-proof reveal-on-scroll">
+          <i class="bi bi-people-fill"></i>
+          <span>Junte-se a mais de 7.000 membros VIP</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="sobre" class="container">
+      <div class="section-header reveal-on-scroll">
+        <h2>Um Universo de Fantasias</h2>
+        <p>Entre em um espaço privado onde a curiosidade não tem limites. Receba semanalmente novos packs, vídeos e ensaios exclusivos.</p>
+      </div>
+    </section>
+
+    <section id="galeria" class="container reveal-on-scroll">
+      <div class="section-header">
+        <h2>Aperitivo VIP 🔞🎬</h2>
+        <p>Uma prévia do que te espera. Desbloqueie todo o conteúdo exclusivo.</p>
+      </div>
+      
+      <div class="video-carousel-wrapper">
+        <div class="splide" role="group" aria-label="Galeria de vídeos VIP">
+          <div class="splide__track">
+            <ul class="splide__list">
+              <li class="splide__slide">
+                <video muted autoplay loop playsinline src="video1.mp4"></video>
+                <a href="#planos" class="unlock-video-btn">
+                  <i class="bi bi-unlock-fill"></i>
+                  <span>Desbloquear Agora</span>
+                </a>
+              </li>
+              <li class="splide__slide">
+                <video muted autoplay loop playsinline src="video2.mp4"></video>
+                <a href="#planos" class="unlock-video-btn">
+                  <i class="bi bi-unlock-fill"></i>
+                  <span>Desbloquear Agora</span>
+                </a>
+              </li>
+              <li class="splide__slide">
+                <video muted autoplay loop playsinline src="video3.mp4"></video>
+                <a href="#planos" class="unlock-video-btn">
+                  <i class="bi bi-unlock-fill"></i>
+                  <span>Desbloquear Agora</span>
+                </a>
+              </li>
+              <li class="splide__slide">
+                <video muted autoplay loop playsinline src="video4.mp4"></video>
+                <a href="#planos" class="unlock-video-btn">
+                  <i class="bi bi-unlock-fill"></i>
+                  <span>Desbloquear Agora</span>
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="planos" class="container">
+      <div class="section-header reveal-on-scroll">
+        <h2>Escolha Seu Acesso VIP</h2>
+        <p>Planos flexíveis para atender suas necessidades. Cancele quando quiser.</p>
+      </div>
+      
+      <div class="plans-grid">
+        <div class="plan-card reveal-on-scroll">
+          <div class="plan-card-inner">
+            <h3>Mensal</h3>
+            <p class="price">
+              <span class="currency">R$</span>
+              <span>19,90</span>
+            </p>
+            <ul>
+              <li>Liberdade total por 30 dias</li>
+              <li>Novos conteúdos toda semana</li>
+              <li>Qualidade Full HD</li>
+              <li>Acesso ilimitado 24/7</li>
+              <li>Cancele quando quiser</li>
+            </ul>
+            <a href="pagamento-19,90.html" class="btn">
+              <span>Assinar Agora</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="plan-card featured reveal-on-scroll">
+          <div class="popular-tag">MAIS POPULAR</div>
+          <div class="plan-card-inner">
+            <h3>Trimestral</h3>
+            <p class="price">
+              <span class="currency">R$</span>
+              <span>39,90</span>
+            </p>
+            <ul>
+              <li>Melhor Custo-Benefício</li>
+              <li>Acesso aos bastidores</li>
+              <li>Bônus secretos exclusivos</li>
+              <li>Conteúdo prioritário</li>
+              <li>Economia de 33%</li>
+            </ul>
+            <a href="pagamento-39,90.html" class="btn">
+              <span>Assinar Agora</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="plan-card reveal-on-scroll">
+          <div class="plan-card-inner">
+            <h3>Anual</h3>
+            <p class="price">
+              <span class="currency">R$</span>
+              <span>99,90</span>
+            </p>
+            <ul>
+              <li>Acesso VIP Ilimitado</li>
+              <li>12 meses de conteúdo premium</li>
+              <li>Conteúdo em 4K</li>
+              <li>Bônus exclusivos mensais</li>
+              <li>Economia de 58%</li>
+            </ul>
+            <a href="pagamento-99,90.html" class="btn">
+              <span>Assinar Agora</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="footer-content">
+      <div class="trust-seals">
+        <div>
+          <i class="bi bi-shield-check"></i>
+          <span>Pagamento Seguro</span>
+        </div>
+        <div>
+          <i class="bi bi-lock-fill"></i>
+          <span>Privacidade Garantida</span>
+        </div>
+        <div>
+          <i class="bi bi-credit-card"></i>
+          <span>100% Criptografado</span>
+        </div>
+      </div>
+      <div class="footer-links">
+        <p>© 2025 ClubExclusivo.vip - Todos os direitos reservados.</p>
+      </div>
+      <div class="footer-legal">
+        <p>Este conteúdo é destinado exclusivamente para maiores de 18 anos.</p>
+        <p>Contato: empresatokio@gmail.com</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/js/splide.min.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      // Header scroll effect
+      const header = document.getElementById('main-header');
+      window.addEventListener('scroll', () => {
+        if (window.scrollY > 50) {
+          header.classList.add('scrolled');
+        } else {
+          header.classList.remove('scrolled');
+        }
+      });
+
+      // Inicializa o Carrossel
+      new Splide('.splide', {
+        type: 'loop',
+        perPage: 3,
+        focus: 'center',
+        gap: '30px',
+        pagination: false,
+        autoplay: false,
+        breakpoints: {
+          1024: {
+            perPage: 2,
+            gap: '20px',
+          },
+          768: {
+            perPage: 1,
+            gap: '15px',
+            padding: { left: '4rem', right: '4rem' },
+          },
+        }
+      }).mount();
+
+      // Animações de Scroll
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+          }
+        });
+      }, { 
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+      });
+      
+      document.querySelectorAll('.reveal-on-scroll').forEach((el) => {
+        observer.observe(el);
+      });
+
+      // Smooth scroll para links de navegação
+      document.querySelectorAll('nav a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+          e.preventDefault();
+          const target = document.querySelector(this.getAttribute('href'));
+          if (target) {
+            target.scrollIntoView({
+              behavior: 'smooth',
+              block: 'start'
+            });
+          }
+        });
+      });
+    });
+  </script>
+</body>
+
+</html>
