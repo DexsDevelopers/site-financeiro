@@ -1045,12 +1045,71 @@ try {
                 break;
             }
             
+            // Para comando !tarefas, SEMPRE buscar subtarefas
+            $includeSubtasks = true; // Sempre incluir subtarefas para !tarefas
+            
+            error_log("[DEBUG TAREFAS] Comando: $command - Sempre buscando subtarefas");
+            error_log("[DEBUG TAREFAS] Total de tarefas: " . count($tasks['tasks']));
+            
+            // Buscar subtarefas sempre (mesmo padrão de tarefas.php e api_tarefas_pendentes.php)
+            if (!empty($tasks['tasks'])) {
+                $todos_ids = array_column($tasks['tasks'], 'id');
+                error_log("[DEBUG TAREFAS] IDs das tarefas: " . implode(', ', $todos_ids));
+                
+                if (!empty($todos_ids)) {
+                    $placeholders = implode(',', array_fill(0, count($todos_ids), '?'));
+                    $sql_subtarefas = "SELECT * FROM subtarefas WHERE id_tarefa_principal IN ($placeholders)";
+                    $stmt_subtarefas = $pdo->prepare($sql_subtarefas);
+                    $stmt_subtarefas->execute($todos_ids);
+                    $todas_as_subtarefas = $stmt_subtarefas->fetchAll(PDO::FETCH_ASSOC);
+                    
+                    error_log("[DEBUG TAREFAS] Total de subtarefas encontradas no BD: " . count($todas_as_subtarefas));
+                    
+                    // Mapear subtarefas (exatamente como tarefas.php linha 26)
+                    $subtarefas_mapeadas = [];
+                    foreach ($todas_as_subtarefas as $subtarefa) { 
+                        $subtarefas_mapeadas[$subtarefa['id_tarefa_principal']][] = $subtarefa; 
+                    }
+                    
+                    error_log("[DEBUG TAREFAS] IDs de tarefas principais com subtarefas: " . implode(', ', array_keys($subtarefas_mapeadas)));
+                    
+                    // Associar subtarefas às tarefas (exatamente como api_tarefas_pendentes.php linha 35)
+                    foreach ($tasks['tasks'] as $key => $task) { 
+                        $tasks['tasks'][$key]['subtarefas'] = $subtarefas_mapeadas[$task['id']] ?? []; 
+                        $countSubtasks = count($tasks['tasks'][$key]['subtarefas']);
+                        if ($countSubtasks > 0) {
+                            error_log("[DEBUG TAREFAS] ✅ Tarefa #{$task['id']} tem {$countSubtasks} subtarefas");
+                        } else {
+                            error_log("[DEBUG TAREFAS] ❌ Tarefa #{$task['id']} NÃO tem subtarefas (chave não encontrada no mapeamento)");
+                        }
+                    }
+                }
+            }
+            
             $msg = "📋 *SUAS TAREFAS PENDENTES*\n\n";
             foreach ($tasks['tasks'] as $task) {
                 $msg .= "ID: #" . $task['id'] . "\n";
                 $msg .= formatPriority($task['prioridade']) . "\n";
                 $msg .= "📝 " . $task['descricao'] . "\n";
-                $msg .= "📅 " . formatTaskDate($task['data_limite']) . "\n\n";
+                $msg .= "📅 " . formatTaskDate($task['data_limite']) . "\n";
+                
+                // Incluir subtarefas se existirem (sempre mostrar para !tarefas)
+                $hasSubtasks = isset($task['subtarefas']) && is_array($task['subtarefas']) && count($task['subtarefas']) > 0;
+                
+                error_log("[DEBUG TAREFAS] Montando mensagem para tarefa #{$task['id']} - hasSubtasks: " . ($hasSubtasks ? 'true' : 'false') . ", count: " . (isset($task['subtarefas']) && is_array($task['subtarefas']) ? count($task['subtarefas']) : '0'));
+                
+                if ($hasSubtasks) {
+                    $msg .= "\n   📌 *Subtarefas:*\n";
+                    foreach ($task['subtarefas'] as $subtarefa) {
+                        $status_icon = (isset($subtarefa['status']) && $subtarefa['status'] === 'concluida') ? '✅' : '⏳';
+                        $descricao = isset($subtarefa['descricao']) ? $subtarefa['descricao'] : '';
+                        if (!empty($descricao)) {
+                            $msg .= "   $status_icon " . $descricao . "\n";
+                        }
+                    }
+                }
+                
+                $msg .= "\n";
             }
             $msg .= "━━━━━━━━━━━━━━━━━━━━━\n";
             $msg .= "Total: " . $tasks['count'] . " tarefa(s)\n\n";

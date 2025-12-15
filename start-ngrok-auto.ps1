@@ -88,3 +88,7 @@ try {
     Write-Host "   Pressione Ctrl+C para parar" -ForegroundColor Yellow
     $ngrokProcess.WaitForExit()
 }
+
+
+
+
