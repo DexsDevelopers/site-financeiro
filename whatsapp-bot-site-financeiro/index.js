@@ -126,6 +126,78 @@ async function start() {
 
   sock.ev.on('creds.update', saveCreds);
 
+  // Tratamento de atualizações de polls (quando usuário vota)
+  sock.ev.on('messages.update', async (updates) => {
+    if (!isReady) return;
+    
+    for (const update of updates) {
+      try {
+        // Verificar se é uma atualização de poll
+        if (update.update?.pollUpdate) {
+          const pollUpdate = update.update.pollUpdate;
+          const pollMessage = pollUpdate.pollCreationMessageKey;
+          
+          if (pollMessage && pollMessage.id) {
+            const jid = pollMessage.remoteJid || update.key?.remoteJid;
+            if (!jid || jid.includes('@g.us')) continue; // Ignorar grupos
+            
+            const phoneNumber = jid.split('@')[0];
+            
+            // Obter informações da poll
+            const pollVote = pollUpdate.vote;
+            if (pollVote && pollVote.selectedOptions) {
+              const selectedOptionIndex = pollVote.selectedOptions[0];
+              
+              console.log(`[POLL] Usuário ${phoneNumber} votou na opção ${selectedOptionIndex}`);
+              
+              // Mapear opções para comandos
+              const optionCommands = {
+                0: '!saldo',
+                1: '!receita',
+                2: '!despesa',
+                3: '!tarefas',
+                4: '!menu'
+              };
+              
+              const command = optionCommands[selectedOptionIndex];
+              if (command) {
+                // Processar comando automaticamente
+                try {
+                  const apiUrl = `${ADMIN_API_URL}/admin_bot_api.php`;
+                  const apiResponse = await axios.post(apiUrl, {
+                    phone: phoneNumber,
+                    command: command,
+                    args: [],
+                    message: command,
+                    source: 'poll' // Indicar que veio de uma poll
+                  }, {
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${API_TOKEN}`
+                    },
+                    timeout: 30000
+                  });
+                  
+                  if (apiResponse.data && apiResponse.data.message) {
+                    await sock.sendMessage(jid, { text: apiResponse.data.message });
+                    console.log(`[POLL] Comando ${command} executado via poll`);
+                  }
+                } catch (apiError) {
+                  console.error('[POLL] Erro ao processar comando da poll:', apiError);
+                  await sock.sendMessage(jid, { 
+                    text: `❌ Erro ao processar sua escolha. Digite ${command} manualmente.` 
+                  });
+                }
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('[POLL] Erro ao processar atualização de poll:', error);
+      }
+    }
+  });
+
   sock.ev.on('connection.update', (update) => {
     const { connection, lastDisconnect, qr } = update;
 
