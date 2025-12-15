@@ -545,6 +545,35 @@ app.post('/check', auth, async (req, res) => {
   }
 });
 
+// Endpoint para enviar poll (enquete)
+app.post('/send-poll', auth, async (req, res) => {
+  if (!isReady) return res.status(503).json({ ok: false, error: 'Bot não está pronto' });
+  const { to, question, options } = req.body;
+  
+  if (!to || !question || !options || !Array.isArray(options)) {
+    return res.status(400).json({ 
+      ok: false, 
+      error: 'to, question e options (array) são obrigatórios. Options deve ter entre 2 e 12 itens.' 
+    });
+  }
+  
+  if (options.length < 2 || options.length > 12) {
+    return res.status(400).json({ 
+      ok: false, 
+      error: 'Poll deve ter entre 2 e 12 opções' 
+    });
+  }
+
+  try {
+    const jid = await resolveJID(to);
+    const result = await sendPoll(sock, jid, question, options);
+    return res.json({ ok: true, ...result, to: to, jid });
+  } catch (e) {
+    console.error('[SEND-POLL] Erro:', e);
+    return res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 app.listen(PORT, () => console.log(`API WhatsApp (Site Financeiro) rodando em http://localhost:${PORT}`));
 start().catch(console.error);
 
