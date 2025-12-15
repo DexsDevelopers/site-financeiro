@@ -48,6 +48,34 @@ function formatBrazilNumber(raw) {
   return digits;
 }
 
+// Função helper para criar e enviar poll (enquete)
+async function sendPoll(sock, jid, question, options) {
+  try {
+    if (!options || options.length < 2 || options.length > 12) {
+      throw new Error('Poll deve ter entre 2 e 12 opções');
+    }
+
+    // Criar mensagem de poll usando proto
+    const pollMessage = {
+      pollCreationMessage: {
+        name: question,
+        options: options.map((opt) => ({
+          optionName: String(opt)
+        })),
+        selectableOptionsCount: 1 // Permite apenas uma escolha
+      }
+    };
+
+    // Enviar poll
+    const sent = await sock.sendMessage(jid, pollMessage);
+    console.log(`[POLL] Enquete enviada: "${question}" com ${options.length} opções`);
+    return { success: true, messageId: sent.key.id };
+  } catch (error) {
+    console.error('[POLL] Erro ao enviar enquete:', error);
+    throw error;
+  }
+}
+
 async function start() {
   const { version, isLatest } = await fetchLatestBaileysVersion();
   console.log(`WhatsApp Web version: ${version?.join('.')} (latest=${isLatest})`);
@@ -239,6 +267,27 @@ async function start() {
             const args = parts.slice(1);
             
             console.log(`[COMMAND] ${phoneNumber}: ${command} ${args.join(' ')}`);
+            
+            // Se for comando !menu, enviar poll interativa
+            if (command === '!menu') {
+              try {
+                const pollQuestion = '👋 Olá! Como posso ajudar você hoje?';
+                const pollOptions = [
+                  '📊 Ver saldo',
+                  '💰 Registrar receita',
+                  '💸 Registrar despesa',
+                  '📋 Ver tarefas',
+                  '❓ Ver menu completo'
+                ];
+                
+                await sendPoll(sock, jid, pollQuestion, pollOptions);
+                console.log(`[COMMAND] Poll enviada para ${jid} via !menu`);
+                continue; // Não enviar para API, já processamos aqui
+              } catch (pollError) {
+                console.error('[COMMAND] Erro ao enviar poll, enviando menu texto:', pollError);
+                // Fallback: enviar para API normalmente
+              }
+            }
             
             // Se for comando !comprovante, aguardar foto
             if (command === '!comprovante' && args.length > 0) {
