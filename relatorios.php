@@ -129,10 +129,16 @@ try {
         <style>
         /* Garantir que a tabela seja sempre visível */
         .table-responsive {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
             width: 100%;
             display: block;
+        }
+        
+        /* Desktop: permite scroll horizontal se necessário */
+        @media (min-width: 768px) {
+            .table-responsive {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
         }
         
         .table {
@@ -170,9 +176,20 @@ try {
         
         /* Responsividade específica para tabela de relatórios */
         @media (max-width: 767.98px) {
+            /* Garantir que o card não cause overflow */
+            .card-body {
+                padding: 1rem !important;
+                overflow-x: hidden;
+            }
+            
             .table-responsive {
                 display: block !important;
                 width: 100% !important;
+                max-width: 100% !important;
+                overflow-x: hidden !important;
+                overflow-y: visible !important;
+                margin: 0;
+                padding: 0;
             }
             
             .table {
@@ -180,6 +197,7 @@ try {
                 width: 100% !important;
                 border-collapse: separate;
                 border-spacing: 0;
+                table-layout: fixed;
             }
             
             .table thead {
@@ -194,12 +212,14 @@ try {
             .table tbody tr {
                 display: block !important;
                 width: 100% !important;
+                max-width: 100% !important;
                 margin-bottom: 1rem;
                 border: 1px solid rgba(255, 255, 255, 0.1);
-                border-radius: 8px;
-                padding: 0.75rem;
-                background: rgba(255, 255, 255, 0.02);
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+                border-radius: 12px;
+                padding: 1rem;
+                background: rgba(255, 255, 255, 0.03);
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+                box-sizing: border-box;
             }
             
             .table tbody td {
@@ -208,25 +228,69 @@ try {
                 max-width: 100% !important;
                 justify-content: space-between;
                 align-items: center;
-                padding: 0.5rem 0 !important;
+                padding: 0.75rem 0 !important;
                 border: none !important;
                 border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
                 text-align: right;
                 box-sizing: border-box;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
             }
             
             .table tbody td:last-child {
                 border-bottom: none !important;
+                padding-bottom: 0 !important;
+            }
+            
+            .table tbody td:first-child {
+                padding-top: 0 !important;
             }
             
             .table tbody td::before {
                 content: attr(data-label) ": ";
                 font-weight: 600;
                 text-align: left;
-                margin-right: 1rem;
+                margin-right: 0.75rem;
                 color: rgba(255, 255, 255, 0.7);
                 flex-shrink: 0;
-                min-width: 80px;
+                min-width: 85px;
+                max-width: 40%;
+            }
+            
+            /* Garantir que o conteúdo não ultrapasse */
+            .table tbody td > * {
+                max-width: 100%;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+            }
+            
+            /* Garantir que textos longos quebrem corretamente */
+            .table tbody td {
+                word-break: break-word;
+                hyphens: auto;
+            }
+            
+            /* Badges e outros elementos dentro das células */
+            .table tbody td .badge {
+                font-size: 0.75rem;
+                padding: 0.25rem 0.5rem;
+                white-space: normal;
+                word-break: break-word;
+                max-width: 100%;
+            }
+            
+            /* Valores monetários */
+            .table tbody td.font-monospace {
+                font-size: 0.9rem;
+                white-space: normal;
+                word-break: break-word;
+                text-align: right;
+            }
+            
+            /* Garantir que o card não ultrapasse a largura */
+            .table tbody tr {
+                box-sizing: border-box;
+                overflow: hidden;
             }
             
             /* Garantir que células vazias também apareçam */
@@ -234,32 +298,31 @@ try {
                 display: none !important;
             }
             
-            /* Garantir visibilidade do conteúdo */
-            .table tbody td * {
-                display: inline-block;
-            }
-            
             /* Forçar visibilidade da tabela de transações */
             #tabela-transacoes-relatorio {
                 display: block !important;
                 visibility: visible !important;
                 opacity: 1 !important;
+                overflow: visible !important;
             }
             
             #tabela-transacoes-relatorio .table {
                 display: block !important;
                 visibility: visible !important;
+                overflow: visible !important;
             }
             
             #tabela-transacoes-relatorio .table tbody {
                 display: block !important;
                 visibility: visible !important;
+                overflow: visible !important;
             }
             
             #tabela-transacoes-relatorio .table tbody tr {
                 display: block !important;
                 visibility: visible !important;
                 opacity: 1 !important;
+                overflow: visible !important;
             }
         }
         
