@@ -258,37 +258,20 @@ if (!isset($_SESSION['dias_uso_cache_time']) ||
             -webkit-backdrop-filter: blur(10px); 
         }
         
-        /* Topbar com efeito de vidro (mobile) */
+        /* Topbar minimalista - apenas botão hamburguer */
         .topbar-glass {
-            background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)) , var(--card-background) !important;
-            border-bottom: 1px solid var(--border-color);
-            backdrop-filter: blur(14px) saturate(140%);
-            -webkit-backdrop-filter: blur(14px) saturate(140%);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+            background: transparent !important;
+            border: none;
             position: sticky;
             top: 0;
             z-index: 1030;
-            border-radius: 0 0 var(--border-radius) var(--border-radius);
-            overflow: hidden;
+            display: flex;
+            justify-content: flex-start;
+            align-items: flex-start;
+            padding: 0 !important;
         }
-        .topbar-glass::after {
-            content: '';
-            position: absolute;
-            left: 0; right: 0; top: 0;
-            height: 2px;
-            background: linear-gradient(90deg, rgba(229,9,20,0.75), rgba(229,9,20,0) 30%, rgba(255,255,255,0.15) 70%, rgba(229,9,20,0.5));
-            opacity: .85;
-        }
-        .topbar-glass .navbar-brand, .topbar-glass .btn {
-            color: var(--text-primary);
-        }
-        .topbar-glass .navbar-brand {
-            display: none; /* Remove o texto */
-        }
-        .topbar-glass .btn.btn-outline-light {
-            border-color: var(--border-color);
-            background: rgba(255,255,255,0.02);
-        }
+        
+        /* Botão hamburguer minimalista colado no canto esquerdo */
         .navbar-toggler-custom {
             border: none;
             background: transparent;
@@ -296,15 +279,20 @@ if (!isset($_SESSION['dias_uso_cache_time']) ||
             border-radius: 8px;
             transition: all 0.2s ease;
             color: var(--text-primary);
-            font-size: 1.5rem;
+            font-size: 1.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 !important;
         }
         
         .navbar-toggler-custom:hover {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.08);
         }
         
         .navbar-toggler-custom:active {
-            transform: scale(0.95);
+            transform: scale(0.92);
+            background: rgba(255, 255, 255, 0.12);
         }
         
         .navbar-toggler-custom i {
@@ -794,12 +782,10 @@ if (!isset($_SESSION['dias_uso_cache_time']) ||
     </div>
 
     <div class="main-content">
-        <nav class="navbar d-lg-none navbar-dark topbar-glass mb-3">
-            <div class="container-fluid d-flex align-items-center px-3">
-                <button class="btn btn-outline-light navbar-toggler-custom" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-label="Abrir menu">
-                    <i class="bi bi-list"></i>
-                </button>
-            </div>
+        <nav class="navbar d-lg-none navbar-dark topbar-glass mb-3" style="padding: 0;">
+            <button class="btn navbar-toggler-custom" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-label="Abrir menu" style="margin: 0.5rem 0 0.5rem 0.75rem;">
+                <i class="bi bi-list"></i>
+            </button>
         </nav>
 
         <?php if (isset($dias_de_uso) && $dias_de_uso > 0): ?>
