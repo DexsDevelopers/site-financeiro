@@ -491,7 +491,68 @@ if ($saldoMes > 0) {
     </div>
 </main>
 
-<div class="modal fade" id="modalNovoLancamento" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="modalLabel"><i class="bi bi-pencil-square me-2"></i>Novo Lançamento</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><form action="salvar_transacao.php" method="POST" id="formNovoLancamento"><div class="modal-body"><div class="mb-3"><label for="descricao" class="form-label">Descrição</label><input type="text" class="form-control" id="descricao" name="descricao" placeholder="Ex: Almoço, Salário" required></div><div class="row"><div class="col-md-6 mb-3"><label for="valor" class="form-label">Valor (R$)</label><input type="number" class="form-control" id="valor" name="valor" step="0.01" min="0" placeholder="25,50" required></div><div class="col-md-6 mb-3"><label for="data_transacao" class="form-label">Data</label><input type="date" class="form-control" id="data_transacao" name="data_transacao" value="<?php echo date('Y-m-d'); ?>" required></div></div><div class="mb-3"><label for="id_categoria" class="form-label">Categoria</label><select class="form-select" name="id_categoria" id="id_categoria" required><option value="">Selecione uma categoria</option><optgroup label="Despesas"><?php foreach($lista_categorias as $cat): if($cat['tipo'] == 'despesa'): ?><option value="<?php echo $cat['id']; ?>"><?php echo htmlspecialchars($cat['nome']); ?></option><?php endif; endforeach; ?></optgroup><optgroup label="Receitas"><?php foreach($lista_categorias as $cat): if($cat['tipo'] == 'receita'): ?><option value="<?php echo $cat['id']; ?>"><?php echo htmlspecialchars($cat['nome']); ?></option><?php endif; endforeach; ?></optgroup></select></div><div class="mb-3"><label for="id_conta" class="form-label">Conta</label><select class="form-select" name="id_conta" id="id_conta" required><option value="">Selecione uma conta</option><option value="<?php echo ($conta_id > 0) ? $conta_id : ''; ?>" <?php echo ($conta_id > 0) ? 'selected' : ''; ?>><?php echo ($conta_id > 0) ? (htmlspecialchars(array_values(array_filter($lista_contas, fn($c) => (int)$c['id'] === $conta_id))[0]['nome'] ?? 'Selecionada')) : '—'; ?></option><?php foreach($lista_contas as $conta): ?><option value="<?php echo (int)$conta['id']; ?>"><?php echo htmlspecialchars($conta['nome']); ?></option><?php endforeach; ?></select></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-custom-red">Salvar Lançamento</button></div></form></div></div></div>
+<!-- Modal Novo Lançamento -->
+<div class="modal fade" id="modalNovoLancamento" tabindex="-1" aria-labelledby="modalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalLabel">
+                    <i class="bi bi-pencil-square me-2"></i>Novo Lançamento
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <form action="salvar_transacao.php" method="POST" id="formNovoLancamento">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="descricao" class="form-label">Descrição</label>
+                        <input type="text" class="form-control" id="descricao" name="descricao" placeholder="Ex: Almoço, Salário" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="valor" class="form-label">Valor (R$)</label>
+                            <input type="number" class="form-control" id="valor" name="valor" step="0.01" min="0" placeholder="25,50" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="data_transacao" class="form-label">Data</label>
+                            <input type="date" class="form-control" id="data_transacao" name="data_transacao" value="<?php echo date('Y-m-d'); ?>" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_categoria" class="form-label">Categoria</label>
+                        <select class="form-select" name="id_categoria" id="id_categoria" required>
+                            <option value="">Selecione uma categoria</option>
+                            <optgroup label="Despesas">
+                                <?php foreach($lista_categorias as $cat): if($cat['tipo'] == 'despesa'): ?>
+                                    <option value="<?php echo $cat['id']; ?>"><?php echo htmlspecialchars($cat['nome']); ?></option>
+                                <?php endif; endforeach; ?>
+                            </optgroup>
+                            <optgroup label="Receitas">
+                                <?php foreach($lista_categorias as $cat): if($cat['tipo'] == 'receita'): ?>
+                                    <option value="<?php echo $cat['id']; ?>"><?php echo htmlspecialchars($cat['nome']); ?></option>
+                                <?php endif; endforeach; ?>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_conta" class="form-label">Conta</label>
+                        <select class="form-select" name="id_conta" id="id_conta" required>
+                            <option value="">Selecione uma conta</option>
+                            <?php foreach($lista_contas as $conta): ?>
+                                <option value="<?php echo (int)$conta['id']; ?>" <?php echo ($conta_id === (int)$conta['id']) ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($conta['nome']); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-custom-red">Salvar Lançamento</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 
 <script>
@@ -1583,65 +1644,77 @@ body.saldo-oculto .valor-sensivel {
 /* MODAL - CORRIGIDO */
 /* ================================================== */
 
-.modal {
-    z-index: 1060 !important;
+#modalNovoLancamento {
+    z-index: 9999 !important;
 }
 
-.modal-backdrop {
-    z-index: 1050 !important;
+#modalNovoLancamento .modal-dialog {
+    pointer-events: none;
 }
 
-.modal-dialog {
-    z-index: 1070 !important;
-    pointer-events: auto !important;
-}
-
-.modal-content {
-    background: rgba(20, 20, 25, 0.98) !important;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid var(--border);
+#modalNovoLancamento .modal-content {
+    background: #1a1a1e !important;
+    border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: var(--radius-lg);
     pointer-events: auto !important;
-    position: relative;
-    z-index: 1080 !important;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
 }
 
-.modal-header {
-    border-bottom-color: var(--border);
+#modalNovoLancamento .modal-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     padding: 1.25rem 1.5rem;
-    position: relative;
-    z-index: 1;
+    background: transparent;
 }
 
-.modal-body {
-    position: relative;
-    z-index: 1;
-    pointer-events: auto !important;
+#modalNovoLancamento .modal-body {
+    padding: 1.5rem;
 }
 
-.modal-body input,
-.modal-body select,
-.modal-body textarea {
-    pointer-events: auto !important;
-    position: relative;
-    z-index: 10 !important;
-}
-
-.modal-footer {
-    border-top-color: var(--border);
+#modalNovoLancamento .modal-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
     padding: 1rem 1.5rem;
-    position: relative;
-    z-index: 1;
+    background: transparent;
 }
 
-.modal .btn-close {
-    filter: invert(1);
-    opacity: 0.8;
+#modalNovoLancamento .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+    opacity: 0.7;
 }
 
-.modal .btn-close:hover {
+#modalNovoLancamento .btn-close:hover {
     opacity: 1;
+}
+
+#modalNovoLancamento .form-label {
+    color: var(--text-primary);
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+#modalNovoLancamento .form-control,
+#modalNovoLancamento .form-select {
+    background: rgba(0, 0, 0, 0.4) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    color: #fff !important;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+}
+
+#modalNovoLancamento .form-control:focus,
+#modalNovoLancamento .form-select:focus {
+    background: rgba(0, 0, 0, 0.5) !important;
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.25) !important;
+    color: #fff !important;
+}
+
+#modalNovoLancamento .form-control::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* Garantir que o backdrop não bloqueie */
+.modal-backdrop.show {
+    opacity: 0.7;
 }
 
 .form-control, .form-select {
