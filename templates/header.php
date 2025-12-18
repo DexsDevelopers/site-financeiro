@@ -280,15 +280,42 @@ if (!isset($_SESSION['dias_uso_cache_time']) ||
             opacity: 1;
         }
         
-        /* Esconder overlays de tour quando modal está aberto */
+        /* Esconder/Destruir overlays de tour quando modal está aberto */
         body.modal-open .tourlite-overlay,
         body.modal-open .tourlite-hole,
-        body.modal-open .tourlite-tooltip {
+        body.modal-open .tourlite-tooltip,
+        body.modal-open [class*="tourlite"] {
             display: none !important;
             visibility: hidden !important;
             opacity: 0 !important;
             pointer-events: none !important;
-            z-index: 0 !important;
+            z-index: -1 !important;
+            width: 0 !important;
+            height: 0 !important;
+            position: absolute !important;
+            left: -9999px !important;
+        }
+        
+        /* Garantir que modais Bootstrap ficam SEMPRE em cima */
+        body.modal-open .modal {
+            z-index: 10500 !important;
+        }
+        
+        body.modal-open .modal-backdrop {
+            z-index: 10400 !important;
+        }
+        
+        body.modal-open .modal-dialog {
+            z-index: 10501 !important;
+        }
+        
+        body.modal-open .modal-content {
+            z-index: 10502 !important;
+            pointer-events: auto !important;
+        }
+        
+        body.modal-open .modal-content * {
+            pointer-events: auto !important;
         }
         
         /* NOVA: Animação sutil apenas para cards importantes */

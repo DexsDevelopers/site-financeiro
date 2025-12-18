@@ -72,9 +72,16 @@
         }
 
         start(index = 0) {
+            // Não iniciar se um modal Bootstrap estiver aberto
+            if (document.body.classList.contains('modal-open')) return;
+            
             if (!this.steps.length) return;
             this.current = index;
             this.active = true;
+            
+            // Registrar instância global para poder ser parada
+            window._activeTourInstance = this;
+            
             this.build();
             this.showStep();
             // Throttle com rAF para posicionamento em scroll/resize
@@ -87,6 +94,12 @@
 
         stop() {
             this.active = false;
+            
+            // Limpar referência global
+            if (window._activeTourInstance === this) {
+                window._activeTourInstance = null;
+            }
+            
             window.removeEventListener('resize', this._onScrollOrResize || this.handleResize);
             window.removeEventListener('scroll', this._onScrollOrResize || this.handleResize);
             if (this._kbd) window.removeEventListener('keydown', this._kbd);
