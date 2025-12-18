@@ -106,7 +106,7 @@ try {
 <div class="card card-custom">
     <div class="card-body">
         <h4 class="card-title p-4">Transações no Período</h4>
-        <div class="table-responsive">
+        <div class="table-responsive" id="tabela-transacoes-relatorio">
             <table class="table table-hover align-middle">
                 <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th class="text-end">Valor (R$)</th></tr></thead>
                 <tbody>
@@ -131,12 +131,15 @@ try {
         .table-responsive {
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
+            width: 100%;
+            display: block;
         }
         
         .table {
             width: 100%;
             margin-bottom: 0;
             color: var(--text-primary);
+            border-collapse: collapse;
         }
         
         .table thead th {
@@ -146,10 +149,19 @@ try {
             padding: 1rem;
         }
         
+        .table tbody {
+            display: table-row-group;
+        }
+        
+        .table tbody tr {
+            display: table-row;
+        }
+        
         .table tbody td {
             padding: 0.75rem 1rem;
             border-bottom: 1px solid var(--border-color);
             vertical-align: middle;
+            display: table-cell;
         }
         
         .table tbody tr:hover {
@@ -158,39 +170,113 @@ try {
         
         /* Responsividade específica para tabela de relatórios */
         @media (max-width: 767.98px) {
+            .table-responsive {
+                display: block !important;
+                width: 100% !important;
+            }
+            
+            .table {
+                display: block !important;
+                width: 100% !important;
+                border-collapse: separate;
+                border-spacing: 0;
+            }
+            
             .table thead {
-                display: none;
+                display: none !important;
+            }
+            
+            .table tbody {
+                display: block !important;
+                width: 100% !important;
             }
             
             .table tbody tr {
-                display: block;
+                display: block !important;
+                width: 100% !important;
                 margin-bottom: 1rem;
                 border: 1px solid rgba(255, 255, 255, 0.1);
                 border-radius: 8px;
                 padding: 0.75rem;
                 background: rgba(255, 255, 255, 0.02);
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             }
             
             .table tbody td {
                 display: flex !important;
+                width: 100% !important;
+                max-width: 100% !important;
                 justify-content: space-between;
                 align-items: center;
-                padding: 0.5rem 0;
-                border: none;
+                padding: 0.5rem 0 !important;
+                border: none !important;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
                 text-align: right;
+                box-sizing: border-box;
+            }
+            
+            .table tbody td:last-child {
+                border-bottom: none !important;
             }
             
             .table tbody td::before {
-                content: attr(data-label);
+                content: attr(data-label) ": ";
                 font-weight: 600;
                 text-align: left;
                 margin-right: 1rem;
                 color: rgba(255, 255, 255, 0.7);
+                flex-shrink: 0;
+                min-width: 80px;
+            }
+            
+            /* Garantir que células vazias também apareçam */
+            .table tbody tr:empty {
+                display: none !important;
+            }
+            
+            /* Garantir visibilidade do conteúdo */
+            .table tbody td * {
+                display: inline-block;
+            }
+            
+            /* Forçar visibilidade da tabela de transações */
+            #tabela-transacoes-relatorio {
+                display: block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+            }
+            
+            #tabela-transacoes-relatorio .table {
+                display: block !important;
+                visibility: visible !important;
+            }
+            
+            #tabela-transacoes-relatorio .table tbody {
+                display: block !important;
+                visibility: visible !important;
+            }
+            
+            #tabela-transacoes-relatorio .table tbody tr {
+                display: block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
             }
         }
         
         /* Garantir visibilidade em desktop */
         @media (min-width: 768px) {
+            .table {
+                display: table;
+            }
+            
+            .table tbody {
+                display: table-row-group;
+            }
+            
+            .table tbody tr {
+                display: table-row;
+            }
+            
             .table tbody td {
                 display: table-cell !important;
             }
@@ -241,6 +327,25 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    
+    // Garantir que a tabela seja visível no mobile
+    function garantirVisibilidadeTabela() {
+        const tabela = document.getElementById('tabela-transacoes-relatorio');
+        if (tabela) {
+            const linhas = tabela.querySelectorAll('tbody tr');
+            linhas.forEach(linha => {
+                linha.style.display = 'block';
+                linha.style.visibility = 'visible';
+                linha.style.opacity = '1';
+            });
+        }
+    }
+    
+    // Executar após o carregamento
+    garantirVisibilidadeTabela();
+    
+    // Executar também após um pequeno delay para garantir
+    setTimeout(garantirVisibilidadeTabela, 100);
 });
 </script>
 
