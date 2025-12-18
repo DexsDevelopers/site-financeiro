@@ -1662,69 +1662,47 @@ body.saldo-oculto .valor-sensivel {
 /* ================================================== */
 
 /* ================================================== */
-/* MODAL - CORRIGIDO */
+/* MODAL - CORREÇÃO DEFINITIVA */
 /* ================================================== */
 
-/* Remove o efeito ::before do card para o modal */
-#modalNovoLancamento .modal-content::before {
-    display: none !important;
-    content: none !important;
-}
-
-#modalNovoLancamento {
-    z-index: 1055 !important;
-}
-
-#modalNovoLancamento .modal-dialog {
-    pointer-events: none;
-    z-index: 1056 !important;
-}
-
+/* Estilo visual do modal */
 #modalNovoLancamento .modal-content {
     background: #1a1a1e !important;
     border: 1px solid rgba(255, 255, 255, 0.15) !important;
     border-radius: 16px !important;
-    pointer-events: auto !important;
     box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5) !important;
-    position: relative !important;
-    z-index: 1057 !important;
     overflow: visible !important;
 }
 
-/* Remove qualquer overlay interno */
+/* Remove pseudo-elementos que podem criar overlays */
+#modalNovoLancamento .modal-content::before,
+#modalNovoLancamento .modal-content::after,
 #modalNovoLancamento .modal-content > *::before,
 #modalNovoLancamento .modal-content > *::after {
     display: none !important;
+    content: none !important;
 }
 
 #modalNovoLancamento .modal-header {
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     padding: 1.25rem 1.5rem;
     background: transparent !important;
-    position: relative;
-    z-index: 10;
 }
 
 #modalNovoLancamento .modal-body {
     padding: 1.5rem;
     background: transparent !important;
-    position: relative;
-    z-index: 10;
 }
 
 #modalNovoLancamento .modal-footer {
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     padding: 1rem 1.5rem;
     background: transparent !important;
-    position: relative;
-    z-index: 10;
 }
 
 #modalNovoLancamento .btn-close {
     filter: invert(1) grayscale(100%) brightness(200%);
     opacity: 0.7;
-    position: relative;
-    z-index: 20;
 }
 
 #modalNovoLancamento .btn-close:hover {
@@ -1744,8 +1722,6 @@ body.saldo-oculto .valor-sensivel {
     color: #fff !important;
     padding: 0.75rem 1rem;
     border-radius: 8px;
-    position: relative;
-    z-index: 15;
 }
 
 #modalNovoLancamento .form-control:focus,
@@ -1758,43 +1734,6 @@ body.saldo-oculto .valor-sensivel {
 
 #modalNovoLancamento .form-control::placeholder {
     color: rgba(255, 255, 255, 0.4);
-}
-
-#modalNovoLancamento .btn {
-    position: relative;
-    z-index: 15;
-}
-
-/* Backdrop do modal */
-.modal-backdrop {
-    z-index: 10000 !important;
-}
-
-.modal-backdrop.show {
-    opacity: 0.85 !important;
-    background-color: #000 !important;
-}
-
-/* Garantir que o modal fique acima de TUDO */
-#modalNovoLancamento {
-    z-index: 10001 !important;
-}
-
-#modalNovoLancamento .modal-dialog {
-    z-index: 10002 !important;
-}
-
-#modalNovoLancamento .modal-content {
-    z-index: 10003 !important;
-}
-
-/* Desativar qualquer overlay de tour quando modal está aberto */
-body.modal-open .tourlite-overlay,
-body.modal-open .modal-overlay:not(#modalNovoLancamento) {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
 }
 
 .form-control, .form-select {

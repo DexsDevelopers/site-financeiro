@@ -124,13 +124,13 @@
         }
 
         build() {
-            // Overlay
+            // Overlay - z-index menor que modais Bootstrap (1040-1050)
             this.overlay = createEl('div', 'tourlite-overlay');
             this.overlay.style.cssText = `
                 position: fixed;
                 inset: 0;
                 background: rgba(0,0,0,0.6);
-                z-index: 10000;
+                z-index: 1030;
                 pointer-events: auto;
                 transition: background 0.2s ease;
                 backdrop-filter: blur(2px);
@@ -153,7 +153,7 @@
             `;
             this.overlay.appendChild(this.hole);
 
-            // Tooltip
+            // Tooltip - z-index menor que modais Bootstrap
             this.tooltip = createEl('div', 'tourlite-tooltip');
             this.tooltip.style.cssText = `
                 position: absolute;
@@ -163,7 +163,7 @@
                 border: 1px solid var(--border-color, rgba(255,255,255,0.1));
                 border-radius: 10px;
                 padding: 14px 14px 10px 14px;
-                z-index: 10001;
+                z-index: 1031;
                 transform-origin: top left;
                 transition: transform 0.2s ease, opacity 0.2s ease;
                 box-shadow: 0 8px 24px rgba(0,0,0,0.35);

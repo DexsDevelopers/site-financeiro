@@ -225,41 +225,59 @@ if (!isset($_SESSION['dias_uso_cache_time']) ||
         }
         
         /* ================================================== */
-        /* CORREÇÃO GLOBAL DE MODAIS */
+        /* CORREÇÃO GLOBAL DE MODAIS - ÚNICA DEFINIÇÃO */
         /* ================================================== */
         
-        /* Remove pseudo-elementos do modal */
+        /* Remove pseudo-elementos do modal que podem criar overlay */
         .modal-content::before,
         .modal-content::after {
             display: none !important;
             content: none !important;
         }
         
-        /* Z-index alto para modais */
-        .modal {
-            z-index: 10050 !important;
-        }
-        
+        /* Backdrop do modal - fica ATRÁS do modal */
         .modal-backdrop {
-            z-index: 10040 !important;
+            z-index: 1040 !important;
             background-color: #000 !important;
         }
         
         .modal-backdrop.show {
-            opacity: 0.85 !important;
+            opacity: 0.8 !important;
+        }
+        
+        /* Modal - fica NA FRENTE do backdrop */
+        .modal {
+            z-index: 1050 !important;
         }
         
         .modal-dialog {
-            z-index: 10060 !important;
-            pointer-events: none;
+            z-index: 1051 !important;
         }
         
         .modal-content {
             background: #1a1a1e !important;
             border: 1px solid rgba(255, 255, 255, 0.15) !important;
             pointer-events: auto !important;
-            position: relative !important;
-            z-index: 10070 !important;
+            z-index: 1052 !important;
+        }
+        
+        /* Garantir que TODOS os elementos dentro do modal são clicáveis */
+        .modal-content,
+        .modal-content *,
+        .modal-header,
+        .modal-header *,
+        .modal-body,
+        .modal-body *,
+        .modal-footer,
+        .modal-footer *,
+        .modal input,
+        .modal select,
+        .modal textarea,
+        .modal button,
+        .modal .form-control,
+        .modal .form-select,
+        .modal .btn {
+            pointer-events: auto !important;
         }
         
         .modal-header,
@@ -267,13 +285,11 @@ if (!isset($_SESSION['dias_uso_cache_time']) ||
         .modal-footer {
             background: transparent !important;
             position: relative;
-            z-index: 1;
         }
         
         .modal .btn-close {
             filter: invert(1) grayscale(100%) brightness(200%);
             opacity: 0.7;
-            z-index: 10;
         }
         
         .modal .btn-close:hover {
@@ -289,33 +305,17 @@ if (!isset($_SESSION['dias_uso_cache_time']) ||
             visibility: hidden !important;
             opacity: 0 !important;
             pointer-events: none !important;
-            z-index: -1 !important;
+            z-index: -9999 !important;
             width: 0 !important;
             height: 0 !important;
             position: absolute !important;
-            left: -9999px !important;
+            left: -99999px !important;
+            top: -99999px !important;
         }
         
-        /* Garantir que modais Bootstrap ficam SEMPRE em cima */
-        body.modal-open .modal {
-            z-index: 10500 !important;
-        }
-        
-        body.modal-open .modal-backdrop {
-            z-index: 10400 !important;
-        }
-        
-        body.modal-open .modal-dialog {
-            z-index: 10501 !important;
-        }
-        
-        body.modal-open .modal-content {
-            z-index: 10502 !important;
-            pointer-events: auto !important;
-        }
-        
-        body.modal-open .modal-content * {
-            pointer-events: auto !important;
+        /* Esconder também o install-prompt quando modal está aberto */
+        body.modal-open .install-prompt {
+            display: none !important;
         }
         
         /* NOVA: Animação sutil apenas para cards importantes */

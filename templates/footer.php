@@ -82,15 +82,15 @@
     document.addEventListener('show.bs.modal', function(event) {
         removeAllBlockingOverlays();
         
-        // Garantir que o modal tem z-index correto
+        // Garantir que o modal tem z-index correto (padrão Bootstrap)
         const modal = event.target;
-        modal.style.zIndex = '10500';
+        modal.style.zIndex = '1050';
         
-        // Garantir que o backdrop também
+        // Garantir que o backdrop também (deve ficar ATRÁS do modal)
         setTimeout(() => {
             const backdrop = document.querySelector('.modal-backdrop');
             if (backdrop) {
-                backdrop.style.zIndex = '10400';
+                backdrop.style.zIndex = '1040';
             }
         }, 10);
     });
