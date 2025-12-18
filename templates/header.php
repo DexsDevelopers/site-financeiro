@@ -282,65 +282,30 @@ if (!isset($_SESSION['dias_uso_cache_time']) ||
         .topbar-glass .navbar-brand {
             display: none; /* Remove o texto */
         }
-        
-        .app-icon {
-            width: 44px;
-            height: 44px;
-            border-radius: 12px;
-            background: linear-gradient(135deg, var(--accent-red) 0%, #ff6b6b 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.6rem;
-            box-shadow: 0 4px 15px rgba(229, 9, 20, 0.4), 0 0 0 2px rgba(229, 9, 20, 0.2);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
-            text-decoration: none;
-            margin-left: auto;
-        }
-        
-        .app-icon::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, transparent 100%);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-        
-        .app-icon:hover {
-            transform: scale(1.1) rotate(5deg);
-            box-shadow: 0 6px 20px rgba(229, 9, 20, 0.6), 0 0 0 3px rgba(229, 9, 20, 0.3);
-        }
-        
-        .app-icon:hover::before {
-            opacity: 1;
-        }
-        
-        .app-icon:active {
-            transform: scale(0.95);
-        }
         .topbar-glass .btn.btn-outline-light {
             border-color: var(--border-color);
             background: rgba(255,255,255,0.02);
         }
         .navbar-toggler-custom {
-            border-radius: 10px;
-            border: 1px solid var(--border-color);
-            background: rgba(255,255,255,0.03);
-            transition: transform .15s ease, box-shadow .2s ease, background .2s ease;
+            border: none;
+            background: transparent;
+            padding: 0.5rem;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            color: var(--text-primary);
+            font-size: 1.5rem;
         }
+        
         .navbar-toggler-custom:hover {
-            transform: translateY(-1px);
-            background: rgba(255,255,255,0.06);
-            box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+            background: rgba(255, 255, 255, 0.1);
         }
+        
         .navbar-toggler-custom:active {
-            transform: translateY(0);
+            transform: scale(0.95);
+        }
+        
+        .navbar-toggler-custom i {
+            color: var(--text-primary);
         }
         
         /* Cabeçalho do menu lateral com vidro e borda */
@@ -827,13 +792,10 @@ if (!isset($_SESSION['dias_uso_cache_time']) ||
 
     <div class="main-content">
         <nav class="navbar d-lg-none navbar-dark topbar-glass mb-3">
-            <div class="container-fluid d-flex justify-content-between align-items-center px-3">
+            <div class="container-fluid d-flex align-items-center px-3">
                 <button class="btn btn-outline-light navbar-toggler-custom" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-label="Abrir menu">
                     <i class="bi bi-list"></i>
                 </button>
-                <a href="dashboard.php" class="app-icon" title="Painel Financeiro">
-                    💰
-                </a>
             </div>
         </nav>
 
