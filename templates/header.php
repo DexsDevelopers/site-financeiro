@@ -202,7 +202,8 @@ if (!isset($_SESSION['dias_uso_cache_time']) ||
         }
         
         /* OTIMIZAÇÃO: Efeito de hover mais leve */
-        .card::before { 
+        /* Excluir modal-content do efeito */
+        .card:not(.modal-content)::before { 
             content: ''; 
             position: absolute; 
             top: 0; 
@@ -219,8 +220,15 @@ if (!isset($_SESSION['dias_uso_cache_time']) ||
             pointer-events: none; 
         }
         
-        .card:hover::before { 
+        .card:not(.modal-content):hover::before { 
             opacity: 1; 
+        }
+        
+        /* Garantir que modal funcione corretamente */
+        .modal-content::before,
+        .modal-content::after {
+            display: none !important;
+            content: none !important;
         }
         
         /* NOVA: Animação sutil apenas para cards importantes */

@@ -1644,41 +1644,66 @@ body.saldo-oculto .valor-sensivel {
 /* MODAL - CORRIGIDO */
 /* ================================================== */
 
+/* Remove o efeito ::before do card para o modal */
+#modalNovoLancamento .modal-content::before {
+    display: none !important;
+    content: none !important;
+}
+
 #modalNovoLancamento {
-    z-index: 9999 !important;
+    z-index: 1055 !important;
 }
 
 #modalNovoLancamento .modal-dialog {
     pointer-events: none;
+    z-index: 1056 !important;
 }
 
 #modalNovoLancamento .modal-content {
     background: #1a1a1e !important;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: var(--radius-lg);
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    border-radius: 16px !important;
     pointer-events: auto !important;
-    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5) !important;
+    position: relative !important;
+    z-index: 1057 !important;
+    overflow: visible !important;
+}
+
+/* Remove qualquer overlay interno */
+#modalNovoLancamento .modal-content > *::before,
+#modalNovoLancamento .modal-content > *::after {
+    display: none !important;
 }
 
 #modalNovoLancamento .modal-header {
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     padding: 1.25rem 1.5rem;
-    background: transparent;
+    background: transparent !important;
+    position: relative;
+    z-index: 10;
 }
 
 #modalNovoLancamento .modal-body {
     padding: 1.5rem;
+    background: transparent !important;
+    position: relative;
+    z-index: 10;
 }
 
 #modalNovoLancamento .modal-footer {
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     padding: 1rem 1.5rem;
-    background: transparent;
+    background: transparent !important;
+    position: relative;
+    z-index: 10;
 }
 
 #modalNovoLancamento .btn-close {
     filter: invert(1) grayscale(100%) brightness(200%);
     opacity: 0.7;
+    position: relative;
+    z-index: 20;
 }
 
 #modalNovoLancamento .btn-close:hover {
@@ -1686,7 +1711,7 @@ body.saldo-oculto .valor-sensivel {
 }
 
 #modalNovoLancamento .form-label {
-    color: var(--text-primary);
+    color: #fff;
     font-weight: 500;
     margin-bottom: 0.5rem;
 }
@@ -1698,12 +1723,14 @@ body.saldo-oculto .valor-sensivel {
     color: #fff !important;
     padding: 0.75rem 1rem;
     border-radius: 8px;
+    position: relative;
+    z-index: 15;
 }
 
 #modalNovoLancamento .form-control:focus,
 #modalNovoLancamento .form-select:focus {
     background: rgba(0, 0, 0, 0.5) !important;
-    border-color: var(--primary) !important;
+    border-color: #e50914 !important;
     box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.25) !important;
     color: #fff !important;
 }
@@ -1712,9 +1739,18 @@ body.saldo-oculto .valor-sensivel {
     color: rgba(255, 255, 255, 0.4);
 }
 
-/* Garantir que o backdrop não bloqueie */
+#modalNovoLancamento .btn {
+    position: relative;
+    z-index: 15;
+}
+
+/* Backdrop do modal */
+.modal-backdrop {
+    z-index: 1050 !important;
+}
+
 .modal-backdrop.show {
-    opacity: 0.7;
+    opacity: 0.8 !important;
 }
 
 .form-control, .form-select {
