@@ -180,24 +180,6 @@ if (!isset($_SESSION['dias_uso_cache_time']) ||
             position: relative;
             z-index: 1;
             min-height: 100vh;
-            display: block !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-        }
-        
-        /* Garantir que cards e conteúdo estão visíveis */
-        .main-content .card,
-        .main-content .container-fluid,
-        .main-content main {
-            display: block !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-        }
-        
-        /* Remover qualquer overlay que possa estar bloqueando */
-        .tourlite-overlay:not(.active),
-        .pwa-modal-overlay:not(.show) {
-            display: none !important;
         }
         
         .card { 
