@@ -280,12 +280,49 @@ if (!isset($_SESSION['dias_uso_cache_time']) ||
             color: var(--text-primary);
         }
         .topbar-glass .navbar-brand {
-            font-weight: 700;
-            letter-spacing: .2px;
-            background: linear-gradient(90deg, var(--accent-red), #ff6b6b);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
+            display: none; /* Remove o texto */
+        }
+        
+        .app-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--accent-red) 0%, #ff6b6b 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+            box-shadow: 0 4px 15px rgba(229, 9, 20, 0.4), 0 0 0 2px rgba(229, 9, 20, 0.2);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            text-decoration: none;
+            margin-left: auto;
+        }
+        
+        .app-icon::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, transparent 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .app-icon:hover {
+            transform: scale(1.1) rotate(5deg);
+            box-shadow: 0 6px 20px rgba(229, 9, 20, 0.6), 0 0 0 3px rgba(229, 9, 20, 0.3);
+        }
+        
+        .app-icon:hover::before {
+            opacity: 1;
+        }
+        
+        .app-icon:active {
+            transform: scale(0.95);
         }
         .topbar-glass .btn.btn-outline-light {
             border-color: var(--border-color);
@@ -790,11 +827,13 @@ if (!isset($_SESSION['dias_uso_cache_time']) ||
 
     <div class="main-content">
         <nav class="navbar d-lg-none navbar-dark topbar-glass mb-3">
-            <div class="container-fluid">
-                <button class="btn btn-outline-light navbar-toggler-custom" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu">
+            <div class="container-fluid d-flex justify-content-between align-items-center px-3">
+                <button class="btn btn-outline-light navbar-toggler-custom" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-label="Abrir menu">
                     <i class="bi bi-list"></i>
                 </button>
-                <a class="navbar-brand" href="dashboard.php">Painel Financeiro</a>
+                <a href="dashboard.php" class="app-icon" title="Painel Financeiro">
+                    💰
+                </a>
             </div>
         </nav>
 
