@@ -128,6 +128,7 @@ if (!isset($_SESSION['dias_uso_cache_time']) ||
     
     <!-- CSS Personalizado -->
     <link rel="stylesheet" href="assets/css/dashboard.css">
+    <link rel="stylesheet" href="assets/css/responsive-improved.css">
     
     <style>
         :root { 

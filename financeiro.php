@@ -15,6 +15,36 @@ require_once 'templates/header.php';
         font-size: 2.5rem;
         color: var(--accent-red);
     }
+    
+    /* Responsividade específica para financeiro.php */
+    @media (max-width: 767.98px) {
+        .intro-card {
+            padding: 1.5rem 1rem !important;
+        }
+        
+        .intro-card .display-5 {
+            font-size: 1.5rem !important;
+            line-height: 1.3;
+        }
+        
+        .intro-card .lead {
+            font-size: 0.95rem !important;
+            padding: 0;
+        }
+        
+        .feature-icon {
+            font-size: 2rem !important;
+            margin-bottom: 0.75rem !important;
+        }
+        
+        .card-custom h5 {
+            font-size: 1.125rem !important;
+        }
+        
+        .card-custom p {
+            font-size: 0.875rem !important;
+        }
+    }
 </style>
 
 <div class="card card-custom intro-card border-0" data-aos="fade-up">

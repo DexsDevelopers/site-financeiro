@@ -1,0 +1,543 @@
+/* =========================================== */
+/* RESPONSIVIDADE MELHORADA - SISTEMA FINANCEIRO */
+/* =========================================== */
+
+/* =========================================== */
+/* BREAKPOINTS PADRONIZADOS */
+/* =========================================== */
+:root {
+    --breakpoint-xs: 0;
+    --breakpoint-sm: 576px;
+    --breakpoint-md: 768px;
+    --breakpoint-lg: 992px;
+    --breakpoint-xl: 1200px;
+    --breakpoint-xxl: 1400px;
+}
+
+/* =========================================== */
+/* MOBILE FIRST - ATÉ 575px */
+/* =========================================== */
+@media (max-width: 575.98px) {
+    /* Container e espaçamento */
+    .container-fluid {
+        padding: 0.75rem !important;
+    }
+    
+    /* Cards */
+    .card {
+        margin-bottom: 1rem;
+        border-radius: 12px;
+    }
+    
+    .card-body {
+        padding: 1rem !important;
+    }
+    
+    /* Tipografia responsiva */
+    .display-1 { font-size: 2.5rem !important; }
+    .display-2 { font-size: 2rem !important; }
+    .display-3 { font-size: 1.75rem !important; }
+    .display-4 { font-size: 1.5rem !important; }
+    .display-5 { font-size: 1.5rem !important; }
+    .display-6 { font-size: 1.25rem !important; }
+    
+    h1 { font-size: 1.75rem !important; }
+    h2 { font-size: 1.5rem !important; }
+    h3 { font-size: 1.25rem !important; }
+    h4 { font-size: 1.125rem !important; }
+    h5 { font-size: 1rem !important; }
+    h6 { font-size: 0.875rem !important; }
+    
+    .lead {
+        font-size: 1rem !important;
+    }
+    
+    /* Grid - Forçar colunas em mobile */
+    .row > [class*="col-"] {
+        flex: 0 0 100% !important;
+        max-width: 100% !important;
+        margin-bottom: 1rem;
+    }
+    
+    /* Cards de KPI/Estatísticas */
+    .kpi-card,
+    .stats-card {
+        margin-bottom: 1rem;
+    }
+    
+    .kpi-card .display-6,
+    .stats-card .display-6 {
+        font-size: 1.5rem !important;
+    }
+    
+    /* Botões */
+    .btn {
+        width: 100%;
+        margin-bottom: 0.5rem;
+        padding: 0.75rem 1rem;
+        font-size: 1rem;
+    }
+    
+    .btn-group {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .btn-group .btn {
+        width: 100%;
+        margin-bottom: 0.5rem;
+        border-radius: 8px !important;
+    }
+    
+    .btn-sm {
+        width: auto;
+        margin-bottom: 0;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+    }
+    
+    /* Formulários */
+    .form-control,
+    .form-select {
+        font-size: 16px; /* Evita zoom automático no iOS */
+        padding: 0.75rem;
+        margin-bottom: 1rem;
+    }
+    
+    .form-label {
+        font-size: 0.875rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    /* Tabelas responsivas */
+    .table-responsive {
+        border-radius: 12px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin-bottom: 1rem;
+    }
+    
+    .table {
+        font-size: 0.875rem;
+        min-width: 600px;
+    }
+    
+    .table thead {
+        display: none;
+    }
+    
+    .table tbody tr {
+        display: block;
+        margin-bottom: 1rem;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: 0.75rem;
+        background: rgba(255, 255, 255, 0.02);
+    }
+    
+    .table tbody td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 0;
+        border: none;
+        text-align: right;
+    }
+    
+    .table tbody td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        text-align: left;
+        margin-right: 1rem;
+    }
+    
+    /* Gráficos */
+    .chart-container {
+        height: 250px !important;
+        margin-bottom: 1rem;
+    }
+    
+    canvas {
+        max-width: 100%;
+        height: auto !important;
+    }
+    
+    /* Modais */
+    .modal-dialog {
+        margin: 0.5rem;
+        max-width: calc(100% - 1rem);
+    }
+    
+    .modal-content {
+        border-radius: 12px;
+    }
+    
+    .modal-body {
+        padding: 1rem;
+    }
+    
+    /* Navegação */
+    .navbar-nav {
+        text-align: center;
+    }
+    
+    .nav-link {
+        padding: 0.75rem 1rem;
+    }
+    
+    /* Cards de features (financeiro.php) */
+    .feature-icon {
+        font-size: 2rem !important;
+    }
+    
+    .intro-card {
+        padding: 1.5rem 1rem !important;
+    }
+    
+    .intro-card .display-5 {
+        font-size: 1.5rem !important;
+    }
+    
+    /* Filtros de relatórios */
+    .formFiltroRelatorios .row {
+        margin: 0;
+    }
+    
+    .formFiltroRelatorios .col-md-5,
+    .formFiltroRelatorios .col-md-2 {
+        flex: 0 0 100% !important;
+        max-width: 100% !important;
+        margin-bottom: 1rem;
+    }
+    
+    /* KPIs em linha (relatorios.php) */
+    .row.g-4 > [class*="col-md-3"] {
+        flex: 0 0 100% !important;
+        max-width: 100% !important;
+        margin-bottom: 1rem;
+    }
+    
+    /* Cards de insights (analytics.php) */
+    .insight-card,
+    .recommendation-card {
+        margin-bottom: 1rem;
+    }
+    
+    /* Tabelas de análise */
+    .analytics-table {
+        font-size: 0.8rem;
+    }
+    
+    /* Badges e labels */
+    .badge {
+        font-size: 0.75rem;
+        padding: 0.35rem 0.65rem;
+    }
+    
+    /* Espaçamento reduzido */
+    .mb-4, .mt-4 {
+        margin-bottom: 1.5rem !important;
+        margin-top: 1.5rem !important;
+    }
+    
+    .mb-5, .mt-5 {
+        margin-bottom: 2rem !important;
+        margin-top: 2rem !important;
+    }
+    
+    /* Utilitários de display */
+    .d-md-none {
+        display: none !important;
+    }
+    
+    .d-md-block {
+        display: block !important;
+    }
+    
+    .d-md-flex {
+        display: flex !important;
+    }
+    
+    /* Text alignment */
+    .text-md-start {
+        text-align: center !important;
+    }
+    
+    .text-md-end {
+        text-align: center !important;
+    }
+}
+
+/* =========================================== */
+/* TABLET - 576px a 767px */
+/* =========================================== */
+@media (min-width: 576px) and (max-width: 767.98px) {
+    .container-fluid {
+        padding: 1rem;
+    }
+    
+    .card-body {
+        padding: 1.5rem;
+    }
+    
+    /* Grid - 2 colunas em tablet */
+    .row > [class*="col-md-6"],
+    .row > [class*="col-lg-4"] {
+        flex: 0 0 50% !important;
+        max-width: 50% !important;
+    }
+    
+    .row > [class*="col-md-3"] {
+        flex: 0 0 50% !important;
+        max-width: 50% !important;
+    }
+    
+    .row > [class*="col-md-4"] {
+        flex: 0 0 50% !important;
+        max-width: 50% !important;
+    }
+    
+    /* Gráficos */
+    .chart-container {
+        height: 300px !important;
+    }
+    
+    /* Botões */
+    .btn {
+        width: auto;
+        margin-bottom: 0;
+    }
+    
+    .btn-group {
+        flex-direction: row;
+    }
+    
+    /* Tabelas */
+    .table {
+        font-size: 0.9rem;
+    }
+    
+    .table thead {
+        display: table-header-group;
+    }
+    
+    .table tbody tr {
+        display: table-row;
+    }
+    
+    .table tbody td {
+        display: table-cell;
+    }
+    
+    .table tbody td::before {
+        display: none;
+    }
+    
+    /* Tipografia */
+    .display-5 {
+        font-size: 2rem !important;
+    }
+    
+    .display-6 {
+        font-size: 1.75rem !important;
+    }
+}
+
+/* =========================================== */
+/* DESKTOP PEQUENO - 768px a 991px */
+/* =========================================== */
+@media (min-width: 768px) and (max-width: 991.98px) {
+    .container-fluid {
+        padding: 1.5rem;
+    }
+    
+    /* Grid - 3 colunas */
+    .row > [class*="col-lg-4"] {
+        flex: 0 0 33.333333% !important;
+        max-width: 33.333333% !important;
+    }
+    
+    .row > [class*="col-md-3"] {
+        flex: 0 0 25% !important;
+        max-width: 25% !important;
+    }
+    
+    /* Gráficos */
+    .chart-container {
+        height: 350px !important;
+    }
+    
+    /* Cards */
+    .card-body {
+        padding: 2rem;
+    }
+}
+
+/* =========================================== */
+/* DESKTOP - 992px+ */
+/* =========================================== */
+@media (min-width: 992px) {
+    .container-fluid {
+        padding: 2rem;
+    }
+    
+    /* Gráficos */
+    .chart-container {
+        height: 400px !important;
+    }
+}
+
+/* =========================================== */
+/* MELHORIAS ESPECÍFICAS POR PÁGINA */
+/* =========================================== */
+
+/* Página Financeiro */
+@media (max-width: 767.98px) {
+    .intro-card .lead {
+        font-size: 0.95rem !important;
+        padding: 0 0.5rem;
+    }
+    
+    .feature-icon {
+        font-size: 2.5rem !important;
+    }
+}
+
+/* Página Relatórios */
+@media (max-width: 767.98px) {
+    .kpi-card .display-6 {
+        font-size: 1.75rem !important;
+    }
+    
+    .kpi-card h6 {
+        font-size: 0.875rem !important;
+    }
+}
+
+/* Página Analytics */
+@media (max-width: 767.98px) {
+    .insight-card .card-body,
+    .recommendation-card .card-body {
+        padding: 1rem !important;
+    }
+    
+    .insight-card .bi,
+    .recommendation-card .bi {
+        font-size: 1.5rem !important;
+    }
+}
+
+/* =========================================== */
+/* ORIENTAÇÃO LANDSCAPE MOBILE */
+/* =========================================== */
+@media (max-width: 767.98px) and (orientation: landscape) {
+    .modal-dialog {
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+    
+    .chart-container {
+        height: 200px !important;
+    }
+    
+    .navbar {
+        padding: 0.25rem 0;
+    }
+}
+
+/* =========================================== */
+/* DISPOSITIVOS TOUCH */
+/* =========================================== */
+@media (hover: none) and (pointer: coarse) {
+    .btn {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    .nav-link {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+    }
+    
+    .card {
+        cursor: pointer;
+    }
+    
+    /* Remover hover effects em touch */
+    .btn:hover {
+        transform: none;
+    }
+    
+    .card:hover {
+        transform: none;
+    }
+}
+
+/* =========================================== */
+/* ACESSIBILIDADE */
+/* =========================================== */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* Foco visível */
+*:focus-visible {
+    outline: 2px solid var(--accent-red, #e50914);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+/* =========================================== */
+/* UTILITÁRIOS RESPONSIVOS */
+/* =========================================== */
+.mobile-only {
+    display: block;
+}
+
+.desktop-only {
+    display: none;
+}
+
+@media (min-width: 768px) {
+    .mobile-only {
+        display: none;
+    }
+    
+    .desktop-only {
+        display: block;
+    }
+}
+
+/* Espaçamento responsivo */
+@media (max-width: 767.98px) {
+    .g-4 {
+        --bs-gutter-y: 1rem;
+        --bs-gutter-x: 1rem;
+    }
+    
+    .g-5 {
+        --bs-gutter-y: 1.5rem;
+        --bs-gutter-x: 1.5rem;
+    }
+}
+
+/* Texto responsivo */
+@media (max-width: 575.98px) {
+    .text-responsive {
+        font-size: 0.875rem;
+    }
+    
+    .text-responsive-lg {
+        font-size: 1rem;
+    }
+}
+

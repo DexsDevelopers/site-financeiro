@@ -164,6 +164,67 @@ function getDiaSemana($numero) {
     color: white;
 }
 
+/* Responsividade para analytics.php */
+@media (max-width: 767.98px) {
+    .analytics-header {
+        padding: 1.5rem 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .analytics-header .h2 {
+        font-size: 1.5rem !important;
+    }
+    
+    .analytics-header .btn-group {
+        flex-direction: column;
+        width: 100%;
+        margin-top: 1rem;
+    }
+    
+    .analytics-header .btn {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+    
+    .filter-panel {
+        padding: 1rem !important;
+    }
+    
+    .filter-panel .row {
+        flex-direction: column;
+    }
+    
+    .filter-panel .col-md-6 {
+        margin-bottom: 1rem;
+    }
+    
+    .metric-card {
+        padding: 1rem !important;
+    }
+    
+    .metric-value {
+        font-size: 1.75rem !important;
+    }
+    
+    .chart-container {
+        padding: 1rem !important;
+    }
+    
+    .insight-card,
+    .recommendation-item {
+        padding: 1rem !important;
+    }
+    
+    .recommendation-item {
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+    
+    .recommendation-icon {
+        margin-bottom: 0.5rem;
+    }
+}
+
 .metric-card {
     background: var(--card-bg-light);
     border: 1px solid var(--border);

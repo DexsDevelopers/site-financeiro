@@ -65,23 +65,22 @@ try {
 }
 ?>
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="h2">Relatórios</h1>
+<div class="d-flex justify-content-between align-items-center mb-4 flex-column flex-md-row">
+    <h1 class="h2 mb-3 mb-md-0">Relatórios</h1>
 </div>
 
 <div class="card card-custom mb-4">
     <div class="card-body">
-        <form id="formFiltroRelatorios" class="row g-3 align-items-center">
-            <div class="col-md-5">
+        <form id="formFiltroRelatorios" class="row g-3 align-items-end">
+            <div class="col-12 col-md-5">
                 <label for="data_inicio" class="form-label">Período de:</label>
                 <input type="date" class="form-control" id="data_inicio" name="inicio" value="<?php echo $data_inicio; ?>">
             </div>
-            <div class="col-md-5">
+            <div class="col-12 col-md-5">
                 <label for="data_fim" class="form-label">Até:</label>
                 <input type="date" class="form-control" id="data_fim" name="fim" value="<?php echo $data_fim; ?>">
             </div>
-            <div class="col-md-2 d-grid">
-                <label class="form-label">&nbsp;</label>
+            <div class="col-12 col-md-2 d-grid">
                 <button type="submit" class="btn btn-danger">Filtrar</button>
             </div>
         </form>
@@ -109,16 +108,16 @@ try {
         <h4 class="card-title p-4">Transações no Período</h4>
         <div class="table-responsive">
             <table class="table table-hover align-middle">
-                <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th class="text-end">Valor (R$)</th></tr></thead>
+                <thead class="d-none d-md-table-header-group"><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th class="text-end">Valor (R$)</th></tr></thead>
                 <tbody>
                     <?php if (empty($transacoes_filtradas)): ?>
                         <tr><td colspan="4" class="text-center text-muted py-4">Nenhuma transação encontrada para o período selecionado.</td></tr>
                     <?php else: foreach ($transacoes_filtradas as $t): ?>
                         <tr>
-                            <td><?php echo date('d/m/Y', strtotime($t['data_transacao'])); ?></td>
-                            <td><?php echo htmlspecialchars($t['descricao']); ?></td>
-                            <td><span class="badge bg-secondary"><?php echo htmlspecialchars($t['nome_categoria'] ?? 'Sem Categoria'); ?></span></td>
-                            <td class="text-end fw-bold font-monospace <?php echo ($t['tipo'] == 'receita') ? 'text-success' : 'text-danger'; ?>">
+                            <td data-label="Data" class="d-md-table-cell"><?php echo date('d/m/Y', strtotime($t['data_transacao'])); ?></td>
+                            <td data-label="Descrição" class="d-md-table-cell"><?php echo htmlspecialchars($t['descricao']); ?></td>
+                            <td data-label="Categoria" class="d-md-table-cell"><span class="badge bg-secondary"><?php echo htmlspecialchars($t['nome_categoria'] ?? 'Sem Categoria'); ?></span></td>
+                            <td data-label="Valor" class="text-end fw-bold font-monospace <?php echo ($t['tipo'] == 'receita') ? 'text-success' : 'text-danger'; ?> d-md-table-cell">
                                 <?php echo ($t['tipo'] == 'receita' ? '+' : '-'); ?> R$ <?php echo number_format($t['valor'], 2, ',', '.'); ?>
                             </td>
                         </tr>
@@ -126,6 +125,37 @@ try {
                 </tbody>
             </table>
         </div>
+        
+        <style>
+        /* Responsividade específica para tabela de relatórios */
+        @media (max-width: 767.98px) {
+            .table tbody tr {
+                display: block;
+                margin-bottom: 1rem;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 8px;
+                padding: 0.75rem;
+                background: rgba(255, 255, 255, 0.02);
+            }
+            
+            .table tbody td {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 0.5rem 0;
+                border: none;
+                text-align: right;
+            }
+            
+            .table tbody td::before {
+                content: attr(data-label);
+                font-weight: 600;
+                text-align: left;
+                margin-right: 1rem;
+                color: rgba(255, 255, 255, 0.7);
+            }
+        }
+        </style>
     </div>
 </div>
 
