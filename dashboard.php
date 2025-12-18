@@ -901,6 +901,7 @@ if ($saldoMes > 0) {
     font-size: 0.9rem;
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 0.5rem;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -910,6 +911,11 @@ if ($saldoMes > 0) {
 .btn-novo-lancamento:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(229, 9, 20, 0.4);
+}
+
+.btn-novo-lancamento i {
+    font-size: 1.1rem;
+    line-height: 1;
 }
 
 /* FILTROS */
@@ -1775,6 +1781,7 @@ body.saldo-oculto .valor-sensivel {
     .btn-novo-lancamento {
         padding: 0;
         width: 44px;
+        justify-content: center;
     }
     
     .produtividade-stats {
