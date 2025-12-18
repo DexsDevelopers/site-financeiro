@@ -604,6 +604,27 @@ if ($saldoMes > 0) {
         const pieChartCanvas = document.getElementById('pieChart');
         if(pieChartCanvas && <?php echo json_encode(!empty($pieChartData)); ?>){ new Chart(pieChartCanvas.getContext('2d'), { type: 'doughnut', data: { labels: <?php echo json_encode($pieChartLabels); ?>, datasets: [{ data: <?php echo json_encode($pieChartData); ?>, backgroundColor: <?php echo json_encode($pieChartColors); ?>, borderColor: '#1f1f1f', borderWidth: 3 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#f5f5f1' } }, tooltip: { callbacks: { label: function(c) { let l = c.label || ''; if(l) l += ': '; let v = c.parsed || 0; l += 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 2 }); return l; } } } } } }); }
         
+        // --- CORRIGIR MODAL: Remover overlays ao abrir ---
+        const modalNovoLancamento = document.getElementById('modalNovoLancamento');
+        if (modalNovoLancamento) {
+            modalNovoLancamento.addEventListener('show.bs.modal', function() {
+                // Remover qualquer overlay que possa estar bloqueando
+                document.querySelectorAll('.tourlite-overlay, .modal-overlay').forEach(el => {
+                    if (el.id !== 'modalNovoLancamento') {
+                        el.style.display = 'none';
+                        el.style.visibility = 'hidden';
+                        el.style.pointerEvents = 'none';
+                    }
+                });
+            });
+            
+            modalNovoLancamento.addEventListener('shown.bs.modal', function() {
+                // Garantir que o modal está funcional
+                const firstInput = modalNovoLancamento.querySelector('input:not([type="hidden"])');
+                if (firstInput) firstInput.focus();
+            });
+        }
+        
         const formNovoLancamento = document.getElementById('formNovoLancamento');
         if(formNovoLancamento){ formNovoLancamento.addEventListener('submit', function(e){ e.preventDefault(); const d = new FormData(formNovoLancamento); const b = formNovoLancamento.querySelector('button[type="submit"]'); b.disabled = true; b.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Salvando...'; fetch('salvar_transacao.php', { method: 'POST', body: d }).then(r => r.ok ? r.json() : r.json().then(e => { throw new Error(e.message || 'Ocorreu um erro.') })).then(d => { if(d.success){ showToast('Sucesso!', d.message); setTimeout(() => { const contaSel = (document.getElementById('selectConta')?.value || 'all'); window.location.href = `dashboard.php?mes=${selectMes.value}&ano=${selectAno.value}&conta=${encodeURIComponent(contaSel)}`; }, 1000); } else { showToast('Erro!', d.message, true); b.disabled = false; b.innerHTML = 'Salvar Lançamento'; } }).catch(e => { console.error('Erro:', e); showToast('Erro!', e.message, true); b.disabled = false; b.innerHTML = 'Salvar Lançamento'; }); }); }
 
@@ -1746,11 +1767,34 @@ body.saldo-oculto .valor-sensivel {
 
 /* Backdrop do modal */
 .modal-backdrop {
-    z-index: 1050 !important;
+    z-index: 10000 !important;
 }
 
 .modal-backdrop.show {
-    opacity: 0.8 !important;
+    opacity: 0.85 !important;
+    background-color: #000 !important;
+}
+
+/* Garantir que o modal fique acima de TUDO */
+#modalNovoLancamento {
+    z-index: 10001 !important;
+}
+
+#modalNovoLancamento .modal-dialog {
+    z-index: 10002 !important;
+}
+
+#modalNovoLancamento .modal-content {
+    z-index: 10003 !important;
+}
+
+/* Desativar qualquer overlay de tour quando modal está aberto */
+body.modal-open .tourlite-overlay,
+body.modal-open .modal-overlay:not(#modalNovoLancamento) {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
 }
 
 .form-control, .form-select {
