@@ -779,8 +779,8 @@ if (!isset($_SESSION['dias_uso_cache_time']) ||
 
     <div class="main-content">
         <nav class="navbar d-lg-none navbar-dark topbar-glass mb-3">
-            <div class="container-fluid d-flex align-items-center px-3">
-                <button class="btn btn-outline-light navbar-toggler-custom" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-label="Abrir menu">
+            <div class="container-fluid px-3" style="justify-content: flex-start;">
+                <button class="btn navbar-toggler-custom" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-label="Abrir menu">
                     <i class="bi bi-list"></i>
                 </button>
             </div>
