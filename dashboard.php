@@ -498,10 +498,32 @@ if ($saldoMes > 0) {
     document.addEventListener('DOMContentLoaded', function() {
         // --- LÓGICA PARA OCULTAR/MOSTRAR SALDO ---
         const btnToggleSaldo = document.getElementById('btn-toggle-saldo');
+        const iconeSaldo = btnToggleSaldo ? btnToggleSaldo.querySelector('i') : null;
         const body = document.body;
         const LS_KEY = 'saldoVisivel';
-        function atualizarVisibilidade() { const isVisible = localStorage.getItem(LS_KEY) !== 'false'; if (isVisible) { body.classList.remove('saldo-oculto'); btnToggleSaldo.classList.remove('bi-eye-slash-fill'); btnToggleSaldo.classList.add('bi-eye-fill'); } else { body.classList.add('saldo-oculto'); btnToggleSaldo.classList.remove('bi-eye-fill'); btnToggleSaldo.classList.add('bi-eye-slash-fill'); } }
-        if (btnToggleSaldo) { btnToggleSaldo.addEventListener('click', () => { const isCurrentlyVisible = localStorage.getItem(LS_KEY) !== 'false'; localStorage.setItem(LS_KEY, !isCurrentlyVisible); atualizarVisibilidade(); }); atualizarVisibilidade(); }
+        
+        function atualizarVisibilidade() {
+            if (!btnToggleSaldo || !iconeSaldo) return;
+            const isVisible = localStorage.getItem(LS_KEY) !== 'false';
+            if (isVisible) {
+                body.classList.remove('saldo-oculto');
+                iconeSaldo.classList.remove('bi-eye-slash-fill');
+                iconeSaldo.classList.add('bi-eye-fill');
+            } else {
+                body.classList.add('saldo-oculto');
+                iconeSaldo.classList.remove('bi-eye-fill');
+                iconeSaldo.classList.add('bi-eye-slash-fill');
+            }
+        }
+        
+        if (btnToggleSaldo) {
+            btnToggleSaldo.addEventListener('click', () => {
+                const isCurrentlyVisible = localStorage.getItem(LS_KEY) !== 'false';
+                localStorage.setItem(LS_KEY, !isCurrentlyVisible);
+                atualizarVisibilidade();
+            });
+            atualizarVisibilidade();
+        }
         
         // --- LÓGICA DO FILTRO DE DATA ---
         const selectMes = document.getElementById('selectMes');
