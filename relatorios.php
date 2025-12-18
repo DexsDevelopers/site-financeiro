@@ -127,73 +127,86 @@ try {
         </div>
         
         <style>
-        /* Garantir que a tabela seja sempre visível */
-        .table-responsive {
-            width: 100%;
-            display: block;
+        /* =========================================== */
+        /* SOBRESCREVER CSS GLOBAL - TABELA RELATÓRIOS */
+        /* =========================================== */
+        
+        /* Forçar largura máxima e sem overflow no container específico */
+        #tabela-transacoes-relatorio {
+            width: 100% !important;
+            max-width: 100% !important;
+            display: block !important;
+            overflow-x: hidden !important;
+            overflow-y: visible !important;
+            box-sizing: border-box !important;
         }
         
         /* Desktop: permite scroll horizontal se necessário */
         @media (min-width: 768px) {
-            .table-responsive {
+            #tabela-transacoes-relatorio {
                 overflow-x: auto;
                 -webkit-overflow-scrolling: touch;
             }
         }
         
-        .table {
-            width: 100%;
+        /* Sobrescrever min-width global que força 600px */
+        #tabela-transacoes-relatorio .table {
+            width: 100% !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
             margin-bottom: 0;
             color: var(--text-primary);
             border-collapse: collapse;
         }
         
-        .table thead th {
+        #tabela-transacoes-relatorio .table thead th {
             border-bottom: 2px solid var(--border-color);
             color: var(--text-primary);
             font-weight: 600;
             padding: 1rem;
         }
         
-        .table tbody {
+        #tabela-transacoes-relatorio .table tbody {
             display: table-row-group;
         }
         
-        .table tbody tr {
+        #tabela-transacoes-relatorio .table tbody tr {
             display: table-row;
         }
         
-        .table tbody td {
+        #tabela-transacoes-relatorio .table tbody td {
             padding: 0.75rem 1rem;
             border-bottom: 1px solid var(--border-color);
             vertical-align: middle;
             display: table-cell;
         }
         
-        .table tbody tr:hover {
+        #tabela-transacoes-relatorio .table tbody tr:hover {
             background-color: rgba(255, 255, 255, 0.05);
         }
         
         /* Responsividade específica para tabela de relatórios - MOBILE */
         @media (max-width: 767.98px) {
-            /* FORÇAR largura máxima em todos os elementos pais */
-            .main-content {
-                overflow-x: hidden !important;
-                width: 100% !important;
-                max-width: 100vw !important;
-                box-sizing: border-box !important;
-            }
-            
+            /* SOBRESCREVER TODOS OS CSS GLOBAIS */
             /* Container principal - SEM SCROLL HORIZONTAL */
             #tabela-transacoes-relatorio {
                 display: block !important;
                 width: 100% !important;
                 max-width: 100% !important;
+                min-width: 0 !important;
                 overflow-x: hidden !important;
                 overflow-y: visible !important;
                 margin: 0 !important;
                 padding: 0 !important;
                 box-sizing: border-box !important;
+                -webkit-overflow-scrolling: auto !important;
+            }
+            
+            /* SOBRESCREVER min-width: 600px dos CSS globais */
+            #tabela-transacoes-relatorio .table {
+                min-width: 0 !important;
+                width: 100% !important;
+                max-width: 100% !important;
             }
             
             /* Tabela como container */
@@ -403,24 +416,49 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Garantir que a tabela seja visível no mobile
-    function garantirVisibilidadeTabela() {
+    // SOBRESCREVER CSS GLOBAL - Forçar estilos corretos
+    function corrigirTabelaMobile() {
         const tabela = document.getElementById('tabela-transacoes-relatorio');
-        if (tabela) {
-            const linhas = tabela.querySelectorAll('tbody tr');
-            linhas.forEach(linha => {
-                linha.style.display = 'block';
-                linha.style.visibility = 'visible';
-                linha.style.opacity = '1';
+        if (tabela && window.innerWidth <= 767.98) {
+            // Forçar estilos no container
+            tabela.style.overflowX = 'hidden';
+            tabela.style.overflowY = 'visible';
+            tabela.style.width = '100%';
+            tabela.style.maxWidth = '100%';
+            tabela.style.minWidth = '0';
+            
+            // Forçar estilos na tabela
+            const tableEl = tabela.querySelector('.table');
+            if (tableEl) {
+                tableEl.style.minWidth = '0';
+                tableEl.style.width = '100%';
+                tableEl.style.maxWidth = '100%';
+            }
+            
+            // Forçar estilos nas células
+            const cells = tabela.querySelectorAll('tbody td');
+            cells.forEach(cell => {
+                cell.style.maxWidth = '100%';
+                cell.style.wordWrap = 'break-word';
+                cell.style.overflowWrap = 'break-word';
+                cell.style.wordBreak = 'break-word';
+                cell.style.overflow = 'hidden';
             });
         }
     }
     
-    // Executar após o carregamento
-    garantirVisibilidadeTabela();
+    // Executar imediatamente
+    corrigirTabelaMobile();
     
-    // Executar também após um pequeno delay para garantir
-    setTimeout(garantirVisibilidadeTabela, 100);
+    // Executar após carregamento completo
+    window.addEventListener('load', corrigirTabelaMobile);
+    
+    // Executar quando a tela redimensionar
+    window.addEventListener('resize', corrigirTabelaMobile);
+    
+    // Executar após um delay para garantir
+    setTimeout(corrigirTabelaMobile, 100);
+    setTimeout(corrigirTabelaMobile, 500);
 });
 </script>
 
