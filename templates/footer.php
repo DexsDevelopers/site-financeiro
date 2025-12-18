@@ -51,84 +51,124 @@
         return p.innerHTML;
     }
     
-    // CORREÇÃO GLOBAL: Remover overlays quando qualquer modal abrir
-    // Guarda referência ao tour ativo para poder pará-lo
+    // CORREÇÃO GLOBAL DEFINITIVA: Modais Bootstrap
     window._activeTourInstance = null;
     
-    // Função para remover TODOS os overlays que podem bloquear modais
-    function removeAllBlockingOverlays() {
+    // Função para remover TODOS os elementos que podem bloquear modais
+    function removeAllBlockingElements() {
         // Parar o tour se estiver ativo
         if (window._activeTourInstance && window._activeTourInstance.active) {
             try { window._activeTourInstance.stop(); } catch(e) {}
         }
         
-        // Remover elementos do TourLite do DOM
-        document.querySelectorAll('.tourlite-overlay, .tourlite-hole, .tourlite-tooltip').forEach(el => {
-            el.remove();
+        // Lista de seletores de elementos que podem bloquear
+        const blockingSelectors = [
+            '.tourlite-overlay',
+            '.tourlite-hole', 
+            '.tourlite-tooltip',
+            '.modal-overlay:not(.modal)',
+            '.pwa-modal-overlay',
+            '#onboarding-help-fab'
+        ];
+        
+        // Remover ou esconder todos os elementos bloqueantes
+        blockingSelectors.forEach(selector => {
+            document.querySelectorAll(selector).forEach(el => {
+                el.style.display = 'none';
+                el.style.visibility = 'hidden';
+                el.style.pointerEvents = 'none';
+                el.style.zIndex = '-9999';
+            });
         });
         
-        // Remover qualquer overlay com z-index alto que possa bloquear
-        document.querySelectorAll('[style*="z-index: 10000"], [style*="z-index:10000"]').forEach(el => {
-            if (!el.classList.contains('modal') && !el.classList.contains('modal-backdrop')) {
-                el.remove();
+        // Remover qualquer elemento com z-index maior que 1060 que não seja modal
+        document.querySelectorAll('*').forEach(el => {
+            const style = window.getComputedStyle(el);
+            const zIndex = parseInt(style.zIndex);
+            if (zIndex > 1060 && 
+                !el.classList.contains('modal') && 
+                !el.classList.contains('modal-backdrop') &&
+                !el.classList.contains('modal-dialog') &&
+                !el.classList.contains('modal-content') &&
+                !el.closest('.modal')) {
+                el.style.zIndex = '0';
+                el.style.pointerEvents = 'none';
             }
         });
-        
-        // Garantir que o body não tem nada bloqueando
-        document.body.style.overflow = '';
     }
     
-    // Quando qualquer modal for abrir, limpar overlays
+    // Quando qualquer modal Bootstrap for abrir
     document.addEventListener('show.bs.modal', function(event) {
-        removeAllBlockingOverlays();
-        
-        // Garantir que o modal tem z-index correto (padrão Bootstrap)
         const modal = event.target;
-        modal.style.zIndex = '1050';
         
-        // Garantir que o backdrop também (deve ficar ATRÁS do modal)
-        setTimeout(() => {
-            const backdrop = document.querySelector('.modal-backdrop');
-            if (backdrop) {
-                backdrop.style.zIndex = '1040';
-            }
-        }, 10);
+        // Remover elementos bloqueantes
+        removeAllBlockingElements();
+        
+        // Mover modal para o final do body para garantir que está no topo
+        document.body.appendChild(modal);
+        
+        // Forçar z-index correto
+        modal.style.zIndex = '1050';
+        modal.style.position = 'fixed';
+        
+        // Garantir pointer-events no modal-content
+        const modalContent = modal.querySelector('.modal-content');
+        if (modalContent) {
+            modalContent.style.pointerEvents = 'auto';
+            modalContent.style.position = 'relative';
+            modalContent.style.zIndex = '1052';
+        }
+        
+        // Garantir que dialog permite cliques no content
+        const modalDialog = modal.querySelector('.modal-dialog');
+        if (modalDialog) {
+            modalDialog.style.pointerEvents = 'none';
+            modalDialog.style.zIndex = '1051';
+        }
     });
     
-    // Garantir foco no modal quando abrir
+    // Após modal abrir completamente
     document.addEventListener('shown.bs.modal', function(event) {
         const modal = event.target;
         
-        // Remover overlays novamente após animação
-        removeAllBlockingOverlays();
+        // Remover elementos bloqueantes novamente
+        removeAllBlockingElements();
+        
+        // Garantir backdrop atrás do modal
+        const backdrop = document.querySelector('.modal-backdrop');
+        if (backdrop) {
+            backdrop.style.zIndex = '1040';
+            // Mover backdrop para antes do modal no DOM
+            modal.parentNode.insertBefore(backdrop, modal);
+        }
+        
+        // Garantir todos os inputs são clicáveis
+        modal.querySelectorAll('input, select, textarea, button, .btn, .form-control, .form-select').forEach(el => {
+            el.style.pointerEvents = 'auto';
+            el.style.position = 'relative';
+            el.style.zIndex = '10';
+        });
         
         // Foco no primeiro input
         const firstInput = modal.querySelector('input:not([type="hidden"]), select, textarea');
         if (firstInput) {
-            setTimeout(() => firstInput.focus(), 100);
+            setTimeout(() => {
+                firstInput.style.pointerEvents = 'auto';
+                firstInput.focus();
+            }, 100);
         }
     });
     
-    // MutationObserver para remover overlays criados depois do modal abrir
-    const overlayObserver = new MutationObserver(function(mutations) {
-        if (document.body.classList.contains('modal-open')) {
-            mutations.forEach(function(mutation) {
-                mutation.addedNodes.forEach(function(node) {
-                    if (node.nodeType === 1) { // Element node
-                        if (node.classList && (
-                            node.classList.contains('tourlite-overlay') ||
-                            node.classList.contains('tourlite-hole') ||
-                            node.classList.contains('tourlite-tooltip')
-                        )) {
-                            node.remove();
-                        }
-                    }
-                });
-            });
-        }
+    // Esconder FAB de ajuda quando modal está aberto
+    document.addEventListener('show.bs.modal', function() {
+        const fab = document.getElementById('onboarding-help-fab');
+        if (fab) fab.style.display = 'none';
     });
     
-    overlayObserver.observe(document.body, { childList: true, subtree: true });
+    document.addEventListener('hidden.bs.modal', function() {
+        const fab = document.getElementById('onboarding-help-fab');
+        if (fab) fab.style.display = 'flex';
+    });
 </script>
 
 <?php

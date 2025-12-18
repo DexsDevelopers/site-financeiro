@@ -111,7 +111,7 @@
         btn.style.position = 'fixed';
         btn.style.bottom = '20px';
         btn.style.right = '20px';
-        btn.style.zIndex = '2000';
+        btn.style.zIndex = '1020'; // Menor que modais Bootstrap (1040+)
         btn.style.border = 'none';
         btn.style.borderRadius = '50%';
         btn.style.width = '46px';

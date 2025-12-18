@@ -360,7 +360,7 @@ function deletarSubtarefaRapido(id) {
     // Criar modal de confirmação customizado e moderno
     const modal = document.createElement('div');
     modal.className = 'modal-overlay active';
-    modal.style.zIndex = '10000';
+    modal.style.zIndex = '1055'; // Compatível com Bootstrap
     modal.innerHTML = `
         <div class="modal-box modal-confirm" style="max-width: 420px; animation: bounceIn 0.3s ease;">
             <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
