@@ -262,41 +262,68 @@ if (!isset($_SESSION['dias_uso_cache_time']) ||
         .topbar-glass {
             background: transparent !important;
             border: none;
-            position: sticky;
+            position: fixed;
             top: 0;
+            left: 0;
             z-index: 1030;
             display: flex;
             justify-content: flex-start;
             align-items: flex-start;
             padding: 0 !important;
+            width: auto;
+            height: auto;
         }
         
-        /* Botão hamburguer minimalista colado no canto esquerdo */
+        /* Botão hamburguer melhorado no canto superior esquerdo */
         .navbar-toggler-custom {
             border: none;
-            background: transparent;
-            padding: 0.5rem;
-            border-radius: 8px;
-            transition: all 0.2s ease;
+            background: var(--card-background);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 0.75rem;
+            border-radius: 0 0 12px 0;
+            transition: all 0.3s ease;
             color: var(--text-primary);
-            font-size: 1.75rem;
+            font-size: 1.5rem;
             display: flex;
             align-items: center;
             justify-content: center;
             margin: 0 !important;
+            width: 56px;
+            height: 56px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+            border-right: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
         }
         
         .navbar-toggler-custom:hover {
-            background: rgba(255, 255, 255, 0.08);
+            background: rgba(229, 9, 20, 0.15);
+            border-right-color: var(--accent-red);
+            border-bottom-color: var(--accent-red);
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(229, 9, 20, 0.3);
         }
         
         .navbar-toggler-custom:active {
-            transform: scale(0.92);
-            background: rgba(255, 255, 255, 0.12);
+            transform: scale(0.95);
+            background: rgba(229, 9, 20, 0.25);
         }
         
         .navbar-toggler-custom i {
             color: var(--text-primary);
+            transition: transform 0.3s ease;
+        }
+        
+        .navbar-toggler-custom:hover i {
+            transform: rotate(90deg);
+        }
+        
+        /* Ajuste do conteúdo principal para não ficar atrás do botão */
+        @media (max-width: 991.98px) {
+            .main-content {
+                padding-top: 4rem;
+            }
         }
         
         /* Cabeçalho do menu lateral com vidro e borda */
@@ -367,9 +394,14 @@ if (!isset($_SESSION['dias_uso_cache_time']) ||
                 left: 0; 
                 height: 100vh; 
             } 
+            /* Botão de menu oculto em desktop (sidebar sempre visível) */
             .navbar-toggler-custom { 
                 display: none; 
-            } 
+            }
+            /* Remove padding extra em desktop */
+            .main-content {
+                padding-top: 1.5rem;
+            }
         }
         
         .sidebar-nav .accordion-button { 
@@ -782,8 +814,8 @@ if (!isset($_SESSION['dias_uso_cache_time']) ||
     </div>
 
     <div class="main-content">
-        <nav class="navbar d-lg-none navbar-dark topbar-glass mb-3" style="padding: 0;">
-            <button class="btn navbar-toggler-custom" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-label="Abrir menu" style="margin: 0.5rem 0 0.5rem 0.75rem;">
+        <nav class="navbar d-lg-none navbar-dark topbar-glass" style="padding: 0;">
+            <button class="btn navbar-toggler-custom" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-label="Abrir menu">
                 <i class="bi bi-list"></i>
             </button>
         </nav>
