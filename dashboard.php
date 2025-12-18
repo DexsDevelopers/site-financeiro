@@ -1579,21 +1579,69 @@ body.saldo-oculto .valor-sensivel {
 /* MODAL */
 /* ================================================== */
 
+/* ================================================== */
+/* MODAL - CORRIGIDO */
+/* ================================================== */
+
+.modal {
+    z-index: 1060 !important;
+}
+
+.modal-backdrop {
+    z-index: 1050 !important;
+}
+
+.modal-dialog {
+    z-index: 1070 !important;
+    pointer-events: auto !important;
+}
+
 .modal-content {
-    background: rgba(20, 20, 25, 0.95);
+    background: rgba(20, 20, 25, 0.98) !important;
     backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
+    pointer-events: auto !important;
+    position: relative;
+    z-index: 1080 !important;
 }
 
 .modal-header {
     border-bottom-color: var(--border);
     padding: 1.25rem 1.5rem;
+    position: relative;
+    z-index: 1;
+}
+
+.modal-body {
+    position: relative;
+    z-index: 1;
+    pointer-events: auto !important;
+}
+
+.modal-body input,
+.modal-body select,
+.modal-body textarea {
+    pointer-events: auto !important;
+    position: relative;
+    z-index: 10 !important;
 }
 
 .modal-footer {
     border-top-color: var(--border);
     padding: 1rem 1.5rem;
+    position: relative;
+    z-index: 1;
+}
+
+.modal .btn-close {
+    filter: invert(1);
+    opacity: 0.8;
+}
+
+.modal .btn-close:hover {
+    opacity: 1;
 }
 
 .form-control, .form-select {
