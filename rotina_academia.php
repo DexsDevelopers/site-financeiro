@@ -1016,9 +1016,53 @@ document.addEventListener('DOMContentLoaded', function() {
                     showToast('Sucesso!', data.message);
                     const row = document.getElementById(`rot-ex-row-${id}`);
                     if (row) {
+                        row.style.transition = 'all 0.3s ease';
                         row.style.opacity = '0';
                         row.style.transform = 'translateX(-20px)';
-                        setTimeout(() => row.remove(), 300);
+                        setTimeout(() => {
+                            row.remove();
+                            
+                            // Atualizar contador no título do modal
+                            const lista = document.querySelector('.modal-exercise-list');
+                            const count = lista ? lista.querySelectorAll('.modal-exercise-item').length : 0;
+                            const titulo = document.getElementById('modalGerenciarTitle');
+                            if (titulo) {
+                                const textoAtual = titulo.innerHTML;
+                                titulo.innerHTML = textoAtual.replace(/\(\d+\)/, `(${count})`);
+                            }
+                            
+                            // Se lista vazia, mostrar mensagem
+                            if (count === 0 && lista) {
+                                lista.innerHTML = `
+                                    <div class="text-center py-4" style="color: var(--gym-text-muted);">
+                                        <i class="bi bi-dumbbell" style="font-size: 3rem; opacity: 0.3;"></i>
+                                        <p class="mt-2 mb-0">Nenhum exercício adicionado</p>
+                                    </div>
+                                `;
+                            }
+                            
+                            // Remover também do card principal na página
+                            const itemPagina = document.querySelector(`[data-exercise-id="${id}"]`);
+                            if (itemPagina) {
+                                const parentList = itemPagina.closest('.gym-exercises-list');
+                                const parentCard = itemPagina.closest('.gym-day-card');
+                                itemPagina.remove();
+                                
+                                if (parentList && parentList.querySelectorAll('.gym-exercise-item').length === 0) {
+                                    parentList.innerHTML = `
+                                        <div class="gym-empty-state">
+                                            <div class="gym-empty-icon">💪</div>
+                                            <div>Nenhum exercício</div>
+                                        </div>
+                                    `;
+                                    const btnIniciar = parentCard.querySelector('.btn-iniciar-treino');
+                                    if (btnIniciar) btnIniciar.remove();
+                                    parentCard.classList.remove('active');
+                                }
+                                
+                                atualizarEstatisticas();
+                            }
+                        }, 300);
                     }
                 } else {
                     showToast('Erro!', data.message, true);
@@ -1150,12 +1194,32 @@ function excluirExercicio(id, nome) {
             showToast('Sucesso!', data.message);
             const item = document.querySelector(`[data-exercise-id="${id}"]`);
             if (item) {
+                // Animar e remover o item
+                item.style.transition = 'all 0.3s ease';
                 item.style.opacity = '0';
                 item.style.transform = 'translateX(-20px)';
                 setTimeout(() => {
+                    const parentList = item.closest('.gym-exercises-list');
+                    const parentCard = item.closest('.gym-day-card');
                     item.remove();
-                    // Reload para atualizar estatísticas
-                    setTimeout(() => window.location.reload(), 500);
+                    
+                    // Verificar se a lista ficou vazia
+                    if (parentList && parentList.children.length === 0) {
+                        parentList.innerHTML = `
+                            <div class="gym-empty-state">
+                                <div class="gym-empty-icon">💪</div>
+                                <div>Nenhum exercício</div>
+                            </div>
+                        `;
+                        // Remover botão "Iniciar" se existir
+                        const btnIniciar = parentCard.querySelector('.btn-iniciar-treino');
+                        if (btnIniciar) btnIniciar.remove();
+                        // Remover classe active do card
+                        parentCard.classList.remove('active');
+                    }
+                    
+                    // Atualizar estatísticas na página
+                    atualizarEstatisticas();
                 }, 300);
             }
         } else {
@@ -1163,6 +1227,20 @@ function excluirExercicio(id, nome) {
         }
     })
     .catch(err => showToast('Erro!', 'Erro de conexão.', true));
+}
+
+// Função para atualizar estatísticas sem recarregar
+function atualizarEstatisticas() {
+    // Contar dias ativos (cards com exercícios)
+    const diasAtivos = document.querySelectorAll('.gym-day-card.active').length;
+    
+    // Contar total de exercícios
+    const exercicios = document.querySelectorAll('.gym-exercise-item').length;
+    
+    // Atualizar valores na página
+    const statCards = document.querySelectorAll('.gym-stat-value');
+    if (statCards[0]) statCards[0].textContent = diasAtivos;
+    if (statCards[1]) statCards[1].textContent = exercicios;
 }
 </script>
 
