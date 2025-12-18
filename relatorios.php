@@ -149,6 +149,10 @@ try {
             }
         }
         
+        /* =========================================== */
+        /* ESTILOS DESKTOP - TABELA MODERNA */
+        /* =========================================== */
+        
         /* Sobrescrever min-width global que força 600px */
         #tabela-transacoes-relatorio .table {
             width: 100% !important;
@@ -156,33 +160,92 @@ try {
             min-width: 0 !important;
             margin-bottom: 0;
             color: var(--text-primary);
-            border-collapse: collapse;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: transparent;
+        }
+        
+        /* Cabeçalho moderno */
+        #tabela-transacoes-relatorio .table thead {
+            background: linear-gradient(135deg, rgba(229, 9, 20, 0.1) 0%, rgba(48, 43, 99, 0.1) 100%);
+            backdrop-filter: blur(10px);
         }
         
         #tabela-transacoes-relatorio .table thead th {
-            border-bottom: 2px solid var(--border-color);
+            border: none;
+            border-bottom: 2px solid var(--accent-red);
             color: var(--text-primary);
-            font-weight: 600;
-            padding: 1rem;
+            font-weight: 700;
+            padding: 1.25rem 1rem;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+            background: transparent;
         }
         
+        #tabela-transacoes-relatorio .table thead th:first-child {
+            border-top-left-radius: 12px;
+        }
+        
+        #tabela-transacoes-relatorio .table thead th:last-child {
+            border-top-right-radius: 12px;
+        }
+        
+        /* Linhas da tabela com estilo moderno */
         #tabela-transacoes-relatorio .table tbody {
             display: table-row-group;
         }
         
         #tabela-transacoes-relatorio .table tbody tr {
             display: table-row;
+            transition: all 0.3s ease;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
         
-        #tabela-transacoes-relatorio .table tbody td {
-            padding: 0.75rem 1rem;
-            border-bottom: 1px solid var(--border-color);
-            vertical-align: middle;
-            display: table-cell;
+        #tabela-transacoes-relatorio .table tbody tr:last-child {
+            border-bottom: none;
         }
         
         #tabela-transacoes-relatorio .table tbody tr:hover {
-            background-color: rgba(255, 255, 255, 0.05);
+            background: linear-gradient(90deg, rgba(229, 9, 20, 0.08) 0%, rgba(229, 9, 20, 0.03) 100%);
+            transform: translateX(4px);
+            box-shadow: -4px 0 0 var(--accent-red);
+        }
+        
+        /* Células modernas */
+        #tabela-transacoes-relatorio .table tbody td {
+            padding: 1.125rem 1rem;
+            border: none;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            vertical-align: middle;
+            display: table-cell;
+            font-size: 0.95rem;
+        }
+        
+        /* Badge de categoria melhorado */
+        #tabela-transacoes-relatorio .table tbody td .badge {
+            padding: 0.4rem 0.75rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        
+        /* Valores monetários destacados */
+        #tabela-transacoes-relatorio .table tbody td.font-monospace {
+            font-size: 1.05rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+        
+        /* Alternância de cores suave */
+        #tabela-transacoes-relatorio .table tbody tr:nth-child(even) {
+            background: rgba(255, 255, 255, 0.02);
+        }
+        
+        #tabela-transacoes-relatorio .table tbody tr:nth-child(even):hover {
+            background: linear-gradient(90deg, rgba(229, 9, 20, 0.1) 0%, rgba(229, 9, 20, 0.05) 100%);
         }
         
         /* Responsividade específica para tabela de relatórios - MOBILE */
@@ -231,30 +294,37 @@ try {
                 max-width: 100% !important;
             }
             
-            /* Cada linha vira um card */
+            /* Cada linha vira um card moderno */
             #tabela-transacoes-relatorio .table tbody tr {
                 display: block !important;
                 width: 100% !important;
                 max-width: 100% !important;
-                margin-bottom: 1rem !important;
+                margin-bottom: 1.25rem !important;
                 border: 1px solid rgba(255, 255, 255, 0.1) !important;
+                border-left: 4px solid var(--accent-red) !important;
                 border-radius: 12px !important;
-                padding: 1rem !important;
-                background: rgba(255, 255, 255, 0.03) !important;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+                padding: 1.25rem !important;
+                background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%) !important;
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(229, 9, 20, 0.1) !important;
                 box-sizing: border-box !important;
                 overflow: visible !important;
+                transition: all 0.3s ease !important;
             }
             
-            /* Cada célula vira campo vertical */
+            #tabela-transacoes-relatorio .table tbody tr:active {
+                transform: scale(0.98) !important;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+            }
+            
+            /* Cada célula vira campo vertical moderno */
             #tabela-transacoes-relatorio .table tbody td {
                 display: block !important;
                 width: 100% !important;
                 max-width: 100% !important;
                 min-width: 0 !important;
-                padding: 0.625rem 0 !important;
+                padding: 0.875rem 0 !important;
                 border: none !important;
-                border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
                 box-sizing: border-box !important;
                 word-wrap: break-word !important;
                 overflow-wrap: break-word !important;
@@ -265,6 +335,7 @@ try {
             
             #tabela-transacoes-relatorio .table tbody tr td:first-child {
                 padding-top: 0 !important;
+                border-top: none !important;
             }
             
             #tabela-transacoes-relatorio .table tbody td:last-child {
@@ -272,14 +343,17 @@ try {
                 padding-bottom: 0 !important;
             }
             
-            /* Label acima */
+            /* Label moderno acima */
             #tabela-transacoes-relatorio .table tbody td::before {
-                content: attr(data-label) ": ";
+                content: attr(data-label);
                 display: block !important;
-                font-weight: 600 !important;
-                font-size: 0.8rem !important;
-                margin-bottom: 0.375rem !important;
-                color: rgba(255, 255, 255, 0.7) !important;
+                font-weight: 700 !important;
+                font-size: 0.75rem !important;
+                margin-bottom: 0.5rem !important;
+                color: var(--accent-red) !important;
+                text-transform: uppercase !important;
+                letter-spacing: 0.5px !important;
+                opacity: 0.9 !important;
             }
             
             /* Conteúdo abaixo */
@@ -304,23 +378,36 @@ try {
                 overflow-wrap: anywhere !important;
             }
             
-            /* Badges */
+            /* Badges modernos */
             #tabela-transacoes-relatorio .table tbody td .badge {
                 display: inline-block !important;
-                font-size: 0.75rem !important;
-                padding: 0.25rem 0.5rem !important;
+                font-size: 0.7rem !important;
+                padding: 0.35rem 0.75rem !important;
                 white-space: normal !important;
                 word-break: break-word !important;
                 max-width: 100% !important;
+                border-radius: 20px !important;
+                font-weight: 600 !important;
+                text-transform: uppercase !important;
+                letter-spacing: 0.3px !important;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
             }
             
-            /* Valores */
+            /* Valores monetários destacados */
             #tabela-transacoes-relatorio .table tbody td.font-monospace {
                 display: block !important;
-                font-size: 1rem !important;
-                font-weight: 700 !important;
+                font-size: 1.15rem !important;
+                font-weight: 800 !important;
                 white-space: normal !important;
                 word-break: break-word !important;
+                letter-spacing: 0.5px !important;
+                margin-top: 0.25rem !important;
+            }
+            
+            /* Descrições com melhor espaçamento */
+            #tabela-transacoes-relatorio .table tbody td[data-label="Descrição"] {
+                font-size: 1rem !important;
+                line-height: 1.5 !important;
             }
             
             /* Card body sem overflow */
