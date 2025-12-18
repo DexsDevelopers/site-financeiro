@@ -224,11 +224,71 @@ if (!isset($_SESSION['dias_uso_cache_time']) ||
             opacity: 1; 
         }
         
-        /* Garantir que modal funcione corretamente */
+        /* ================================================== */
+        /* CORREÇÃO GLOBAL DE MODAIS */
+        /* ================================================== */
+        
+        /* Remove pseudo-elementos do modal */
         .modal-content::before,
         .modal-content::after {
             display: none !important;
             content: none !important;
+        }
+        
+        /* Z-index alto para modais */
+        .modal {
+            z-index: 10050 !important;
+        }
+        
+        .modal-backdrop {
+            z-index: 10040 !important;
+            background-color: #000 !important;
+        }
+        
+        .modal-backdrop.show {
+            opacity: 0.85 !important;
+        }
+        
+        .modal-dialog {
+            z-index: 10060 !important;
+            pointer-events: none;
+        }
+        
+        .modal-content {
+            background: #1a1a1e !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            pointer-events: auto !important;
+            position: relative !important;
+            z-index: 10070 !important;
+        }
+        
+        .modal-header,
+        .modal-body,
+        .modal-footer {
+            background: transparent !important;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .modal .btn-close {
+            filter: invert(1) grayscale(100%) brightness(200%);
+            opacity: 0.7;
+            z-index: 10;
+        }
+        
+        .modal .btn-close:hover {
+            opacity: 1;
+        }
+        
+        /* Esconder overlays de tour quando modal está aberto */
+        body.modal-open .tourlite-overlay,
+        body.modal-open .tourlite-hole,
+        body.modal-open .tourlite-tooltip {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+            z-index: 0 !important;
         }
         
         /* NOVA: Animação sutil apenas para cards importantes */

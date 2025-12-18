@@ -50,6 +50,26 @@
         p.appendChild(document.createTextNode(str));
         return p.innerHTML;
     }
+    
+    // CORREÇÃO GLOBAL: Remover overlays quando qualquer modal abrir
+    document.addEventListener('show.bs.modal', function(event) {
+        // Remover overlays de tour que podem bloquear modais
+        document.querySelectorAll('.tourlite-overlay, .tourlite-hole, .tourlite-tooltip').forEach(el => {
+            el.style.display = 'none';
+            el.style.visibility = 'hidden';
+            el.style.pointerEvents = 'none';
+            el.style.zIndex = '0';
+        });
+    });
+    
+    // Garantir foco no modal quando abrir
+    document.addEventListener('shown.bs.modal', function(event) {
+        const modal = event.target;
+        const firstInput = modal.querySelector('input:not([type="hidden"]), select, textarea');
+        if (firstInput) {
+            setTimeout(() => firstInput.focus(), 100);
+        }
+    });
 </script>
 
 <?php
