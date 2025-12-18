@@ -103,431 +103,283 @@ try {
     </div>
 </div>
 
-        <div class="card card-custom" style="overflow-x: hidden; width: 100%; max-width: 100%; box-sizing: border-box;">
-    <div class="card-body" style="overflow-x: hidden !important; width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; padding: 1rem !important;">
-        <h4 class="card-title p-4" style="word-wrap: break-word; overflow-wrap: break-word;">Transações no Período</h4>
-        <div class="table-responsive" id="tabela-transacoes-relatorio" style="overflow-x: hidden !important; width: 100% !important; max-width: 100% !important; box-sizing: border-box !important;">
-            <table class="table table-hover align-middle">
-                <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th class="text-end">Valor (R$)</th></tr></thead>
-                <tbody>
-                    <?php if (empty($transacoes_filtradas)): ?>
-                        <tr><td colspan="4" class="text-center text-muted py-4">Nenhuma transação encontrada para o período selecionado.</td></tr>
-                    <?php else: foreach ($transacoes_filtradas as $t): ?>
-                        <tr>
-                            <td data-label="Data"><?php echo date('d/m/Y', strtotime($t['data_transacao'])); ?></td>
-                            <td data-label="Descrição"><?php echo htmlspecialchars($t['descricao']); ?></td>
-                            <td data-label="Categoria"><span class="badge bg-secondary"><?php echo htmlspecialchars($t['nome_categoria'] ?? 'Sem Categoria'); ?></span></td>
-                            <td data-label="Valor" class="text-end fw-bold font-monospace <?php echo ($t['tipo'] == 'receita') ? 'text-success' : 'text-danger'; ?>">
-                                <?php echo ($t['tipo'] == 'receita' ? '+' : '-'); ?> R$ <?php echo number_format($t['valor'], 2, ',', '.'); ?>
-                            </td>
-                        </tr>
-                    <?php endforeach; endif; ?>
-                </tbody>
-            </table>
+        <div class="card card-custom transacoes-card">
+    <div class="card-header transacoes-header">
+        <h4 class="transacoes-titulo"><i class="bi bi-receipt me-2"></i>Transações no Período</h4>
+        <span class="transacoes-contador"><?php echo count($transacoes_filtradas); ?> itens</span>
+    </div>
+    <div class="card-body transacoes-body">
+        <div id="tabela-transacoes-relatorio" class="transacoes-lista">
+            <?php if (empty($transacoes_filtradas)): ?>
+                <div class="transacao-vazia">
+                    <i class="bi bi-inbox"></i>
+                    <p>Nenhuma transação encontrada</p>
+                    <span>Tente ajustar o período selecionado</span>
+                </div>
+            <?php else: ?>
+                <?php foreach ($transacoes_filtradas as $t): ?>
+                    <div class="transacao-item <?php echo $t['tipo']; ?>">
+                        <div class="transacao-indicador"></div>
+                        <div class="transacao-conteudo">
+                            <div class="transacao-principal">
+                                <span class="transacao-descricao"><?php echo htmlspecialchars($t['descricao']); ?></span>
+                                <span class="transacao-valor <?php echo ($t['tipo'] == 'receita') ? 'receita' : 'despesa'; ?>">
+                                    <?php echo ($t['tipo'] == 'receita' ? '+' : '-'); ?> R$ <?php echo number_format($t['valor'], 2, ',', '.'); ?>
+                                </span>
+                            </div>
+                            <div class="transacao-detalhes">
+                                <span class="transacao-data"><i class="bi bi-calendar3"></i> <?php echo date('d/m/Y', strtotime($t['data_transacao'])); ?></span>
+                                <span class="transacao-categoria"><?php echo htmlspecialchars($t['nome_categoria'] ?? 'Sem Categoria'); ?></span>
+                            </div>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            <?php endif; ?>
         </div>
+    </div>
         
         <style>
         /* =========================================== */
-        /* SOBRESCREVER CSS GLOBAL - TABELA RELATÓRIOS */
+        /* DESIGN MODERNO - LISTA DE TRANSAÇÕES */
         /* =========================================== */
         
-        /* Forçar largura máxima e sem overflow no container específico */
-        #tabela-transacoes-relatorio {
+        .transacoes-card {
+            border-radius: 20px !important;
+            overflow: hidden !important;
+            border: none !important;
+            background: rgba(20, 20, 25, 0.9) !important;
+            backdrop-filter: blur(20px) !important;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4) !important;
+        }
+        
+        .transacoes-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem 2rem;
+            background: linear-gradient(135deg, rgba(229, 9, 20, 0.1) 0%, rgba(48, 43, 99, 0.1) 100%);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .transacoes-titulo {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #fff;
+            display: flex;
+            align-items: center;
+        }
+        
+        .transacoes-titulo i {
+            color: var(--accent-red);
+        }
+        
+        .transacoes-contador {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 500;
+        }
+        
+        .transacoes-body {
+            padding: 1rem !important;
+            overflow-x: hidden !important;
             width: 100% !important;
             max-width: 100% !important;
-            display: block !important;
-            overflow-x: hidden !important;
-            overflow-y: visible !important;
             box-sizing: border-box !important;
         }
         
-        /* Desktop: permite scroll horizontal se necessário */
-        @media (min-width: 768px) {
-            #tabela-transacoes-relatorio {
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
-            }
-        }
-        
-        /* =========================================== */
-        /* ESTILOS DESKTOP - TABELA ULTRA MODERNA */
-        /* =========================================== */
-        
-        /* Tabela base com design premium */
-        #tabela-transacoes-relatorio .table {
+        .transacoes-lista {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
             width: 100% !important;
             max-width: 100% !important;
-            min-width: 0 !important;
-            margin-bottom: 0;
-            color: var(--text-primary);
-            border-collapse: separate;
-            border-spacing: 0 0.5rem;
-            background: transparent;
-            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            overflow-x: hidden !important;
+            box-sizing: border-box !important;
         }
         
-        /* Cabeçalho premium com design elegante */
-        #tabela-transacoes-relatorio .table thead {
-            background: linear-gradient(135deg, rgba(229, 9, 20, 0.15) 0%, rgba(48, 43, 99, 0.15) 100%);
-            backdrop-filter: blur(20px) saturate(180%);
-            -webkit-backdrop-filter: blur(20px) saturate(180%);
-            border-radius: 16px 16px 0 0;
+        /* Item de transação */
+        .transacao-item {
+            display: flex;
+            align-items: stretch;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+        }
+        
+        .transacao-item:hover {
+            background: rgba(255, 255, 255, 0.06);
+            transform: translateX(4px);
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
         }
         
-        #tabela-transacoes-relatorio .table thead th {
-            border: none;
-            border-bottom: 3px solid var(--accent-red);
-            color: #ffffff;
-            font-weight: 700;
-            padding: 1.5rem 1.25rem;
-            text-transform: uppercase;
-            font-size: 0.8rem;
-            letter-spacing: 1.2px;
-            background: transparent;
-            font-family: 'Poppins', sans-serif;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        /* Indicador lateral colorido */
+        .transacao-indicador {
+            width: 4px;
+            flex-shrink: 0;
         }
         
-        #tabela-transacoes-relatorio .table thead th:first-child {
-            border-top-left-radius: 16px;
-            padding-left: 1.5rem;
+        .transacao-item.receita .transacao-indicador {
+            background: linear-gradient(180deg, #00b894 0%, #00a885 100%);
         }
         
-        #tabela-transacoes-relatorio .table thead th:last-child {
-            border-top-right-radius: 16px;
-            padding-right: 1.5rem;
+        .transacao-item.despesa .transacao-indicador {
+            background: linear-gradient(180deg, #e50914 0%, #c4080f 100%);
         }
         
-        /* Linhas da tabela com design premium */
-        #tabela-transacoes-relatorio .table tbody {
-            display: table-row-group;
+        /* Conteúdo da transação */
+        .transacao-conteudo {
+            flex: 1;
+            padding: 1rem 1.25rem;
+            min-width: 0;
+            width: 100%;
+            box-sizing: border-box;
         }
         
-        #tabela-transacoes-relatorio .table tbody tr {
-            display: table-row;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 12px;
+        .transacao-principal {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
             margin-bottom: 0.5rem;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            gap: 1rem;
+            flex-wrap: wrap;
         }
         
-        #tabela-transacoes-relatorio .table tbody tr:last-child td:first-child {
-            border-bottom-left-radius: 12px;
-        }
-        
-        #tabela-transacoes-relatorio .table tbody tr:last-child td:last-child {
-            border-bottom-right-radius: 12px;
-        }
-        
-        #tabela-transacoes-relatorio .table tbody tr:hover {
-            background: linear-gradient(135deg, rgba(229, 9, 20, 0.12) 0%, rgba(229, 9, 20, 0.06) 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(229, 9, 20, 0.3), 0 4px 12px rgba(0, 0, 0, 0.2);
-            border-left: 4px solid var(--accent-red);
-        }
-        
-        /* Células premium com tipografia melhorada */
-        #tabela-transacoes-relatorio .table tbody td {
-            padding: 1.5rem 1.25rem;
-            border: none;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-            vertical-align: middle;
-            display: table-cell;
+        .transacao-descricao {
             font-size: 1rem;
-            font-weight: 400;
-            line-height: 1.6;
-            color: rgba(255, 255, 255, 0.95);
-            font-family: 'Poppins', sans-serif;
-        }
-        
-        #tabela-transacoes-relatorio .table tbody td:first-child {
-            padding-left: 1.5rem;
             font-weight: 500;
-            color: rgba(255, 255, 255, 0.85);
+            color: #fff;
+            flex: 1;
+            min-width: 0;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
         
-        #tabela-transacoes-relatorio .table tbody td:last-child {
-            padding-right: 1.5rem;
+        .transacao-valor {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 1.1rem;
+            font-weight: 700;
+            white-space: nowrap;
+            flex-shrink: 0;
         }
         
-        /* Badge de categoria premium */
-        #tabela-transacoes-relatorio .table tbody td .badge {
-            padding: 0.5rem 1rem;
-            border-radius: 25px;
-            font-weight: 600;
+        .transacao-valor.receita {
+            color: #00b894;
+        }
+        
+        .transacao-valor.despesa {
+            color: #e50914;
+        }
+        
+        .transacao-detalhes {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .transacao-data {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.5);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .transacao-data i {
             font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            font-family: 'Poppins', sans-serif;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-            transition: all 0.3s ease;
         }
         
-        #tabela-transacoes-relatorio .table tbody td .badge:hover {
-            transform: scale(1.05);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        }
-        
-        /* Valores monetários premium */
-        #tabela-transacoes-relatorio .table tbody td.font-monospace {
-            font-size: 1.2rem;
-            font-weight: 800;
-            letter-spacing: 0.8px;
-            font-family: 'Roboto Mono', 'Courier New', monospace;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-        
-        /* Alternância de cores elegante */
-        #tabela-transacoes-relatorio .table tbody tr:nth-child(even) {
-            background: rgba(255, 255, 255, 0.04);
-        }
-        
-        #tabela-transacoes-relatorio .table tbody tr:nth-child(even):hover {
-            background: linear-gradient(135deg, rgba(229, 9, 20, 0.15) 0%, rgba(229, 9, 20, 0.08) 100%);
-        }
-        
-        /* Descrições com melhor tipografia */
-        #tabela-transacoes-relatorio .table tbody td[data-label="Descrição"],
-        #tabela-transacoes-relatorio .table tbody td:nth-child(2) {
+        .transacao-categoria {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.75rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            color: rgba(255, 255, 255, 0.7);
             font-weight: 500;
-            color: rgba(255, 255, 255, 0.9);
-            font-size: 1.05rem;
         }
         
-        /* Responsividade específica para tabela de relatórios - MOBILE */
+        /* Estado vazio */
+        .transacao-vazia {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: rgba(255, 255, 255, 0.4);
+        }
+        
+        .transacao-vazia i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+        
+        .transacao-vazia p {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        .transacao-vazia span {
+            font-size: 0.9rem;
+        }
+        
+        /* =========================================== */
+        /* RESPONSIVO - MOBILE */
+        /* =========================================== */
         @media (max-width: 767.98px) {
-            /* SOBRESCREVER TODOS OS CSS GLOBAIS */
-            /* Container principal - SEM SCROLL HORIZONTAL */
-            #tabela-transacoes-relatorio {
-                display: block !important;
-                width: 100% !important;
-                max-width: 100% !important;
-                min-width: 0 !important;
-                overflow-x: hidden !important;
-                overflow-y: visible !important;
-                margin: 0 !important;
-                padding: 0 !important;
-                box-sizing: border-box !important;
-                -webkit-overflow-scrolling: auto !important;
+            .transacoes-header {
+                flex-direction: column;
+                gap: 1rem;
+                padding: 1.25rem;
+                text-align: center;
             }
             
-            /* SOBRESCREVER min-width: 600px dos CSS globais */
-            #tabela-transacoes-relatorio .table {
-                min-width: 0 !important;
-                width: 100% !important;
-                max-width: 100% !important;
+            .transacoes-titulo {
+                font-size: 1.1rem;
             }
             
-            /* Tabela como container */
-            #tabela-transacoes-relatorio .table {
-                display: block !important;
-                width: 100% !important;
-                max-width: 100% !important;
-                border-collapse: separate !important;
-                border-spacing: 0 !important;
-                overflow: visible !important;
+            .transacoes-body {
+                padding: 0.75rem !important;
             }
             
-            /* Esconder cabeçalho */
-            #tabela-transacoes-relatorio .table thead {
-                display: none !important;
+            .transacao-item {
+                flex-direction: column;
             }
             
-            /* Body como container */
-            #tabela-transacoes-relatorio .table tbody {
-                display: block !important;
-                width: 100% !important;
-                max-width: 100% !important;
+            .transacao-indicador {
+                width: 100%;
+                height: 4px;
             }
             
-            /* Cards premium no mobile */
-            #tabela-transacoes-relatorio .table tbody tr {
-                display: block !important;
-                width: 100% !important;
-                max-width: 100% !important;
-                margin-bottom: 1.5rem !important;
-                border: 1px solid rgba(255, 255, 255, 0.12) !important;
-                border-left: 5px solid var(--accent-red) !important;
-                border-radius: 16px !important;
-                padding: 1.5rem !important;
-                background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.04) 100%) !important;
-                backdrop-filter: blur(10px) !important;
-                -webkit-backdrop-filter: blur(10px) !important;
-                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(229, 9, 20, 0.15) !important;
-                box-sizing: border-box !important;
-                overflow: visible !important;
-                transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            .transacao-conteudo {
+                padding: 1rem;
             }
             
-            #tabela-transacoes-relatorio .table tbody tr:active {
-                transform: scale(0.97) !important;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+            .transacao-principal {
+                flex-direction: column;
+                gap: 0.5rem;
             }
             
-            /* Células premium no mobile */
-            #tabela-transacoes-relatorio .table tbody td {
-                display: block !important;
-                width: 100% !important;
-                max-width: 100% !important;
-                min-width: 0 !important;
-                padding: 1rem 0 !important;
-                border: none !important;
-                border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
-                box-sizing: border-box !important;
-                word-wrap: break-word !important;
-                overflow-wrap: break-word !important;
-                word-break: break-word !important;
-                overflow: hidden !important;
-                hyphens: auto !important;
-                font-family: 'Poppins', sans-serif !important;
+            .transacao-descricao {
+                font-size: 0.95rem;
             }
             
-            #tabela-transacoes-relatorio .table tbody tr td:first-child {
-                padding-top: 0 !important;
-                border-top: none !important;
+            .transacao-valor {
+                font-size: 1.25rem;
             }
             
-            #tabela-transacoes-relatorio .table tbody td:last-child {
-                border-bottom: none !important;
-                padding-bottom: 0 !important;
-            }
-            
-            /* Labels premium */
-            #tabela-transacoes-relatorio .table tbody td::before {
-                content: attr(data-label);
-                display: block !important;
-                font-weight: 700 !important;
-                font-size: 0.7rem !important;
-                margin-bottom: 0.75rem !important;
-                color: var(--accent-red) !important;
-                text-transform: uppercase !important;
-                letter-spacing: 1.2px !important;
-                opacity: 1 !important;
-                font-family: 'Poppins', sans-serif !important;
-                text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
-            }
-            
-            /* Conteúdo abaixo */
-            #tabela-transacoes-relatorio .table tbody td > * {
-                display: block !important;
-                width: 100% !important;
-                max-width: 100% !important;
-                min-width: 0 !important;
-                text-align: left !important;
-                word-wrap: break-word !important;
-                overflow-wrap: break-word !important;
-                word-break: break-word !important;
-                box-sizing: border-box !important;
-                overflow: hidden !important;
-                hyphens: auto !important;
-            }
-            
-            /* Forçar quebra em textos longos */
-            #tabela-transacoes-relatorio .table tbody td,
-            #tabela-transacoes-relatorio .table tbody td * {
-                white-space: normal !important;
-                overflow-wrap: anywhere !important;
-            }
-            
-            /* Badges premium */
-            #tabela-transacoes-relatorio .table tbody td .badge {
-                display: inline-block !important;
-                font-size: 0.7rem !important;
-                padding: 0.5rem 1rem !important;
-                white-space: normal !important;
-                word-break: break-word !important;
-                max-width: 100% !important;
-                border-radius: 25px !important;
-                font-weight: 700 !important;
-                text-transform: uppercase !important;
-                letter-spacing: 0.8px !important;
-                box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25) !important;
-                font-family: 'Poppins', sans-serif !important;
-                transition: all 0.3s ease !important;
-            }
-            
-            /* Valores monetários premium */
-            #tabela-transacoes-relatorio .table tbody td.font-monospace {
-                display: block !important;
-                font-size: 1.3rem !important;
-                font-weight: 800 !important;
-                white-space: normal !important;
-                word-break: break-word !important;
-                letter-spacing: 0.8px !important;
-                margin-top: 0.5rem !important;
-                font-family: 'Roboto Mono', 'Courier New', monospace !important;
-                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
-            }
-            
-            /* Descrições premium */
-            #tabela-transacoes-relatorio .table tbody td[data-label="Descrição"],
-            #tabela-transacoes-relatorio .table tbody td:nth-child(2) {
-                font-size: 1.1rem !important;
-                line-height: 1.6 !important;
-                font-weight: 500 !important;
-                color: rgba(255, 255, 255, 0.95) !important;
-                margin-top: 0.5rem !important;
-            }
-            
-            /* Data com estilo premium */
-            #tabela-transacoes-relatorio .table tbody td[data-label="Data"] {
-                font-weight: 500 !important;
-                color: rgba(255, 255, 255, 0.8) !important;
-                font-size: 0.95rem !important;
-            }
-            
-            /* Card body sem overflow */
-            .card-body {
-                overflow-x: hidden !important;
-                width: 100% !important;
-                max-width: 100% !important;
-                box-sizing: border-box !important;
-            }
-            
-            /* Forçar que todos os elementos respeitem a largura */
-            #tabela-transacoes-relatorio * {
-                max-width: 100% !important;
-                box-sizing: border-box !important;
-            }
-            
-            /* Valores monetários com quebra forçada */
-            #tabela-transacoes-relatorio .table tbody td.font-monospace {
-                white-space: normal !important;
-                overflow-wrap: anywhere !important;
-                word-break: break-all !important;
-            }
-            
-            /* Descrições longas */
-            #tabela-transacoes-relatorio .table tbody td[data-label="Descrição"] {
-                overflow-wrap: anywhere !important;
-                word-break: break-word !important;
+            .transacao-detalhes {
+                gap: 0.75rem;
             }
         }
         
-        /* Garantir visibilidade em desktop */
-        @media (min-width: 768px) {
-            .table {
-                display: table;
-            }
-            
-            .table tbody {
-                display: table-row-group;
-            }
-            
-            .table tbody tr {
-                display: table-row;
-            }
-            
-            .table tbody td {
-                display: table-cell !important;
-            }
-            
-            .table thead {
-                display: table-header-group !important;
-            }
-        }
         </style>
     </div>
 </div>
