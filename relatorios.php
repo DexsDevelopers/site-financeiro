@@ -103,10 +103,10 @@ try {
     </div>
 </div>
 
-<div class="card card-custom">
-    <div class="card-body">
-        <h4 class="card-title p-4">Transações no Período</h4>
-        <div class="table-responsive" id="tabela-transacoes-relatorio">
+        <div class="card card-custom" style="overflow-x: hidden; width: 100%; max-width: 100%; box-sizing: border-box;">
+    <div class="card-body" style="overflow-x: hidden !important; width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; padding: 1rem !important;">
+        <h4 class="card-title p-4" style="word-wrap: break-word; overflow-wrap: break-word;">Transações no Período</h4>
+        <div class="table-responsive" id="tabela-transacoes-relatorio" style="overflow-x: hidden !important; width: 100% !important; max-width: 100% !important; box-sizing: border-box !important;">
             <table class="table table-hover align-middle">
                 <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th class="text-end">Valor (R$)</th></tr></thead>
                 <tbody>
@@ -176,6 +176,14 @@ try {
         
         /* Responsividade específica para tabela de relatórios - MOBILE */
         @media (max-width: 767.98px) {
+            /* FORÇAR largura máxima em todos os elementos pais */
+            .main-content {
+                overflow-x: hidden !important;
+                width: 100% !important;
+                max-width: 100vw !important;
+                box-sizing: border-box !important;
+            }
+            
             /* Container principal - SEM SCROLL HORIZONTAL */
             #tabela-transacoes-relatorio {
                 display: block !important;
@@ -230,6 +238,7 @@ try {
                 display: block !important;
                 width: 100% !important;
                 max-width: 100% !important;
+                min-width: 0 !important;
                 padding: 0.625rem 0 !important;
                 border: none !important;
                 border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
@@ -237,7 +246,8 @@ try {
                 word-wrap: break-word !important;
                 overflow-wrap: break-word !important;
                 word-break: break-word !important;
-                overflow: visible !important;
+                overflow: hidden !important;
+                hyphens: auto !important;
             }
             
             #tabela-transacoes-relatorio .table tbody tr td:first-child {
@@ -264,11 +274,21 @@ try {
                 display: block !important;
                 width: 100% !important;
                 max-width: 100% !important;
+                min-width: 0 !important;
                 text-align: left !important;
                 word-wrap: break-word !important;
                 overflow-wrap: break-word !important;
                 word-break: break-word !important;
                 box-sizing: border-box !important;
+                overflow: hidden !important;
+                hyphens: auto !important;
+            }
+            
+            /* Forçar quebra em textos longos */
+            #tabela-transacoes-relatorio .table tbody td,
+            #tabela-transacoes-relatorio .table tbody td * {
+                white-space: normal !important;
+                overflow-wrap: anywhere !important;
             }
             
             /* Badges */
@@ -296,6 +316,25 @@ try {
                 width: 100% !important;
                 max-width: 100% !important;
                 box-sizing: border-box !important;
+            }
+            
+            /* Forçar que todos os elementos respeitem a largura */
+            #tabela-transacoes-relatorio * {
+                max-width: 100% !important;
+                box-sizing: border-box !important;
+            }
+            
+            /* Valores monetários com quebra forçada */
+            #tabela-transacoes-relatorio .table tbody td.font-monospace {
+                white-space: normal !important;
+                overflow-wrap: anywhere !important;
+                word-break: break-all !important;
+            }
+            
+            /* Descrições longas */
+            #tabela-transacoes-relatorio .table tbody td[data-label="Descrição"] {
+                overflow-wrap: anywhere !important;
+                word-break: break-word !important;
             }
         }
         
