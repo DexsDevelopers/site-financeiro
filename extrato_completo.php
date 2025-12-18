@@ -40,9 +40,9 @@ try {
     </div>
 </div>
 
-<div class="card card-custom" data-aos="fade-up">
-    <div class="card-body">
-        <div class="table-responsive">
+<div class="card card-custom" data-aos="fade-up" style="overflow-x: hidden; width: 100%; max-width: 100%; box-sizing: border-box;">
+    <div class="card-body" style="overflow-x: hidden !important; width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; padding: 1rem !important;">
+        <div class="table-responsive" id="tabela-extrato-completo" style="overflow-x: hidden !important; width: 100% !important; max-width: 100% !important; box-sizing: border-box !important;">
             <table class="table table-hover align-middle">
                 <thead>
                     <tr>
@@ -59,13 +59,13 @@ try {
                     <?php else: ?>
                         <?php foreach ($transacoes as $t): ?>
                             <tr id="transacao-row-<?php echo $t['id']; ?>">
-                                <td><?php echo date('d/m/Y', strtotime($t['data_transacao'])); ?></td>
-                                <td><?php echo htmlspecialchars($t['descricao']); ?></td>
-                                <td><span class="badge bg-secondary"><?php echo htmlspecialchars($t['nome_categoria'] ?? 'Sem Categoria'); ?></span></td>
-                                <td class="text-end fw-bold font-monospace <?php echo ($t['tipo'] == 'receita') ? 'text-success' : 'text-danger'; ?>">
+                                <td data-label="Data"><?php echo date('d/m/Y', strtotime($t['data_transacao'])); ?></td>
+                                <td data-label="Descrição"><?php echo htmlspecialchars($t['descricao']); ?></td>
+                                <td data-label="Categoria"><span class="badge bg-secondary"><?php echo htmlspecialchars($t['nome_categoria'] ?? 'Sem Categoria'); ?></span></td>
+                                <td data-label="Valor" class="text-end fw-bold font-monospace <?php echo ($t['tipo'] == 'receita') ? 'text-success' : 'text-danger'; ?>">
                                     <?php echo ($t['tipo'] == 'receita' ? '+' : '-'); ?> R$ <?php echo number_format($t['valor'], 2, ',', '.'); ?>
                                 </td>
-                                <td class="text-center">
+                                <td data-label="Ações" class="text-center">
                                     <button class="btn btn-sm btn-outline-primary btn-editar-transacao" data-id="<?php echo $t['id']; ?>" data-bs-toggle="modal" data-bs-target="#modalEditarTransacao" title="Editar">
                                         <i class="bi bi-pencil-fill"></i>
                                     </button>
@@ -79,6 +79,388 @@ try {
                 </tbody>
             </table>
         </div>
+        
+        <style>
+        /* =========================================== */
+        /* SOBRESCREVER CSS GLOBAL - TABELA EXTRATO */
+        /* =========================================== */
+        
+        /* Forçar largura máxima e sem overflow no container específico */
+        #tabela-extrato-completo {
+            width: 100% !important;
+            max-width: 100% !important;
+            display: block !important;
+            overflow-x: hidden !important;
+            overflow-y: visible !important;
+            box-sizing: border-box !important;
+        }
+        
+        /* Desktop: permite scroll horizontal se necessário */
+        @media (min-width: 768px) {
+            #tabela-extrato-completo {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+        }
+        
+        /* =========================================== */
+        /* ESTILOS DESKTOP - TABELA ULTRA MODERNA */
+        /* =========================================== */
+        
+        /* Sobrescrever min-width global que força 600px */
+        #tabela-extrato-completo .table {
+            width: 100% !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
+            margin-bottom: 0;
+            color: var(--text-primary);
+            border-collapse: separate;
+            border-spacing: 0 0.5rem;
+            background: transparent;
+            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        
+        /* Cabeçalho premium com design elegante */
+        #tabela-extrato-completo .table thead {
+            background: linear-gradient(135deg, rgba(229, 9, 20, 0.15) 0%, rgba(48, 43, 99, 0.15) 100%);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border-radius: 16px 16px 0 0;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+        
+        #tabela-extrato-completo .table thead th {
+            border: none;
+            border-bottom: 3px solid var(--accent-red);
+            color: #ffffff;
+            font-weight: 700;
+            padding: 1.5rem 1.25rem;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 1.2px;
+            background: transparent;
+            font-family: 'Poppins', sans-serif;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        #tabela-extrato-completo .table thead th:first-child {
+            border-top-left-radius: 16px;
+            padding-left: 1.5rem;
+        }
+        
+        #tabela-extrato-completo .table thead th:last-child {
+            border-top-right-radius: 16px;
+            padding-right: 1.5rem;
+        }
+        
+        /* Linhas da tabela com design premium */
+        #tabela-extrato-completo .table tbody {
+            display: table-row-group;
+        }
+        
+        #tabela-extrato-completo .table tbody tr {
+            display: table-row;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            margin-bottom: 0.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        #tabela-extrato-completo .table tbody tr:last-child td:first-child {
+            border-bottom-left-radius: 12px;
+        }
+        
+        #tabela-extrato-completo .table tbody tr:last-child td:last-child {
+            border-bottom-right-radius: 12px;
+        }
+        
+        #tabela-extrato-completo .table tbody tr:hover {
+            background: linear-gradient(135deg, rgba(229, 9, 20, 0.12) 0%, rgba(229, 9, 20, 0.06) 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(229, 9, 20, 0.3), 0 4px 12px rgba(0, 0, 0, 0.2);
+            border-left: 4px solid var(--accent-red);
+        }
+        
+        /* Células premium com tipografia melhorada */
+        #tabela-extrato-completo .table tbody td {
+            padding: 1.5rem 1.25rem;
+            border: none;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            vertical-align: middle;
+            display: table-cell;
+            font-size: 1rem;
+            font-weight: 400;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.95);
+            font-family: 'Poppins', sans-serif;
+        }
+        
+        #tabela-extrato-completo .table tbody td:first-child {
+            padding-left: 1.5rem;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.85);
+        }
+        
+        #tabela-extrato-completo .table tbody td:last-child {
+            padding-right: 1.5rem;
+        }
+        
+        /* Badge de categoria premium */
+        #tabela-extrato-completo .table tbody td .badge {
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            font-family: 'Poppins', sans-serif;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        #tabela-extrato-completo .table tbody td .badge:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* Valores monetários premium */
+        #tabela-extrato-completo .table tbody td.font-monospace {
+            font-size: 1.2rem;
+            font-weight: 800;
+            letter-spacing: 0.8px;
+            font-family: 'Roboto Mono', 'Courier New', monospace;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* Botões de ação */
+        #tabela-extrato-completo .table tbody td .btn {
+            margin: 0 0.25rem;
+            transition: all 0.3s ease;
+        }
+        
+        #tabela-extrato-completo .table tbody td .btn:hover {
+            transform: scale(1.1);
+        }
+        
+        /* Alternância de cores elegante */
+        #tabela-extrato-completo .table tbody tr:nth-child(even) {
+            background: rgba(255, 255, 255, 0.04);
+        }
+        
+        #tabela-extrato-completo .table tbody tr:nth-child(even):hover {
+            background: linear-gradient(135deg, rgba(229, 9, 20, 0.15) 0%, rgba(229, 9, 20, 0.08) 100%);
+        }
+        
+        /* Descrições com melhor tipografia */
+        #tabela-extrato-completo .table tbody td[data-label="Descrição"],
+        #tabela-extrato-completo .table tbody td:nth-child(2) {
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 1.05rem;
+        }
+        
+        /* =========================================== */
+        /* MOBILE - CARDS PREMIUM */
+        /* =========================================== */
+        @media (max-width: 767.98px) {
+            /* SOBRESCREVER TODOS OS CSS GLOBAIS */
+            #tabela-extrato-completo {
+                display: block !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                min-width: 0 !important;
+                overflow-x: hidden !important;
+                overflow-y: visible !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                box-sizing: border-box !important;
+                -webkit-overflow-scrolling: auto !important;
+            }
+            
+            /* SOBRESCREVER min-width: 600px dos CSS globais */
+            #tabela-extrato-completo .table {
+                min-width: 0 !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                display: block !important;
+                border-collapse: separate !important;
+                border-spacing: 0 !important;
+                overflow: visible !important;
+            }
+            
+            /* Esconder cabeçalho */
+            #tabela-extrato-completo .table thead {
+                display: none !important;
+            }
+            
+            /* Body como container */
+            #tabela-extrato-completo .table tbody {
+                display: block !important;
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+            
+            /* Cards premium no mobile */
+            #tabela-extrato-completo .table tbody tr {
+                display: block !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                margin-bottom: 1.5rem !important;
+                border: 1px solid rgba(255, 255, 255, 0.12) !important;
+                border-left: 5px solid var(--accent-red) !important;
+                border-radius: 16px !important;
+                padding: 1.5rem !important;
+                background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.04) 100%) !important;
+                backdrop-filter: blur(10px) !important;
+                -webkit-backdrop-filter: blur(10px) !important;
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(229, 9, 20, 0.15) !important;
+                box-sizing: border-box !important;
+                overflow: visible !important;
+                transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            }
+            
+            #tabela-extrato-completo .table tbody tr:active {
+                transform: scale(0.97) !important;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+            }
+            
+            /* Células premium no mobile */
+            #tabela-extrato-completo .table tbody td {
+                display: block !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                min-width: 0 !important;
+                padding: 1rem 0 !important;
+                border: none !important;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+                box-sizing: border-box !important;
+                word-wrap: break-word !important;
+                overflow-wrap: break-word !important;
+                word-break: break-word !important;
+                overflow: hidden !important;
+                hyphens: auto !important;
+                font-family: 'Poppins', sans-serif !important;
+            }
+            
+            #tabela-extrato-completo .table tbody tr td:first-child {
+                padding-top: 0 !important;
+                border-top: none !important;
+            }
+            
+            #tabela-extrato-completo .table tbody td:last-child {
+                border-bottom: none !important;
+                padding-bottom: 0 !important;
+            }
+            
+            /* Labels premium */
+            #tabela-extrato-completo .table tbody td::before {
+                content: attr(data-label);
+                display: block !important;
+                font-weight: 700 !important;
+                font-size: 0.7rem !important;
+                margin-bottom: 0.75rem !important;
+                color: var(--accent-red) !important;
+                text-transform: uppercase !important;
+                letter-spacing: 1.2px !important;
+                opacity: 1 !important;
+                font-family: 'Poppins', sans-serif !important;
+                text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+            }
+            
+            /* Conteúdo abaixo */
+            #tabela-extrato-completo .table tbody td > * {
+                display: block !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                min-width: 0 !important;
+                text-align: left !important;
+                word-wrap: break-word !important;
+                overflow-wrap: break-word !important;
+                word-break: break-word !important;
+                box-sizing: border-box !important;
+                overflow: hidden !important;
+                hyphens: auto !important;
+            }
+            
+            /* Botões de ação no mobile */
+            #tabela-extrato-completo .table tbody td[data-label="Ações"] {
+                display: flex !important;
+                gap: 0.5rem !important;
+                justify-content: flex-start !important;
+            }
+            
+            #tabela-extrato-completo .table tbody td[data-label="Ações"]::before {
+                width: 100% !important;
+                margin-bottom: 0.75rem !important;
+            }
+            
+            #tabela-extrato-completo .table tbody td[data-label="Ações"] .btn {
+                flex: 1 !important;
+                max-width: 48% !important;
+            }
+            
+            /* Badges premium */
+            #tabela-extrato-completo .table tbody td .badge {
+                display: inline-block !important;
+                font-size: 0.7rem !important;
+                padding: 0.5rem 1rem !important;
+                white-space: normal !important;
+                word-break: break-word !important;
+                max-width: 100% !important;
+                border-radius: 25px !important;
+                font-weight: 700 !important;
+                text-transform: uppercase !important;
+                letter-spacing: 0.8px !important;
+                box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25) !important;
+                font-family: 'Poppins', sans-serif !important;
+                transition: all 0.3s ease !important;
+            }
+            
+            /* Valores monetários premium */
+            #tabela-extrato-completo .table tbody td.font-monospace {
+                display: block !important;
+                font-size: 1.3rem !important;
+                font-weight: 800 !important;
+                white-space: normal !important;
+                word-break: break-word !important;
+                letter-spacing: 0.8px !important;
+                margin-top: 0.5rem !important;
+                font-family: 'Roboto Mono', 'Courier New', monospace !important;
+                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+            }
+            
+            /* Descrições premium */
+            #tabela-extrato-completo .table tbody td[data-label="Descrição"],
+            #tabela-extrato-completo .table tbody td:nth-child(2) {
+                font-size: 1.1rem !important;
+                line-height: 1.6 !important;
+                font-weight: 500 !important;
+                color: rgba(255, 255, 255, 0.95) !important;
+                margin-top: 0.5rem !important;
+            }
+            
+            /* Data com estilo premium */
+            #tabela-extrato-completo .table tbody td[data-label="Data"] {
+                font-weight: 500 !important;
+                color: rgba(255, 255, 255, 0.8) !important;
+                font-size: 0.95rem !important;
+            }
+            
+            /* Forçar quebra em textos longos */
+            #tabela-extrato-completo .table tbody td,
+            #tabela-extrato-completo .table tbody td * {
+                white-space: normal !important;
+                overflow-wrap: anywhere !important;
+            }
+            
+            /* Garantir que todos os elementos respeitem a largura */
+            #tabela-extrato-completo * {
+                max-width: 100% !important;
+                box-sizing: border-box !important;
+            }
+        }
+        </style>
     </div>
 </div>
 
@@ -102,6 +484,50 @@ try {
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     AOS.init({ duration: 800, once: true });
+    
+    // SOBRESCREVER CSS GLOBAL - Forçar estilos corretos
+    function corrigirTabelaMobile() {
+        const tabela = document.getElementById('tabela-extrato-completo');
+        if (tabela && window.innerWidth <= 767.98) {
+            // Forçar estilos no container
+            tabela.style.overflowX = 'hidden';
+            tabela.style.overflowY = 'visible';
+            tabela.style.width = '100%';
+            tabela.style.maxWidth = '100%';
+            tabela.style.minWidth = '0';
+            
+            // Forçar estilos na tabela
+            const tableEl = tabela.querySelector('.table');
+            if (tableEl) {
+                tableEl.style.minWidth = '0';
+                tableEl.style.width = '100%';
+                tableEl.style.maxWidth = '100%';
+            }
+            
+            // Forçar estilos nas células
+            const cells = tabela.querySelectorAll('tbody td');
+            cells.forEach(cell => {
+                cell.style.maxWidth = '100%';
+                cell.style.wordWrap = 'break-word';
+                cell.style.overflowWrap = 'break-word';
+                cell.style.wordBreak = 'break-word';
+                cell.style.overflow = 'hidden';
+            });
+        }
+    }
+    
+    // Executar imediatamente
+    corrigirTabelaMobile();
+    
+    // Executar após carregamento completo
+    window.addEventListener('load', corrigirTabelaMobile);
+    
+    // Executar quando a tela redimensionar
+    window.addEventListener('resize', corrigirTabelaMobile);
+    
+    // Executar após delays para garantir
+    setTimeout(corrigirTabelaMobile, 100);
+    setTimeout(corrigirTabelaMobile, 500);
 
     const tabelaCorpo = document.getElementById('tabela-extrato-corpo');
     const modalEditarTransacaoEl = document.getElementById('modalEditarTransacao');
