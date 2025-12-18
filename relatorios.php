@@ -108,16 +108,16 @@ try {
         <h4 class="card-title p-4">Transações no Período</h4>
         <div class="table-responsive">
             <table class="table table-hover align-middle">
-                <thead class="d-none d-md-table-header-group"><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th class="text-end">Valor (R$)</th></tr></thead>
+                <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th class="text-end">Valor (R$)</th></tr></thead>
                 <tbody>
                     <?php if (empty($transacoes_filtradas)): ?>
                         <tr><td colspan="4" class="text-center text-muted py-4">Nenhuma transação encontrada para o período selecionado.</td></tr>
                     <?php else: foreach ($transacoes_filtradas as $t): ?>
                         <tr>
-                            <td data-label="Data" class="d-md-table-cell"><?php echo date('d/m/Y', strtotime($t['data_transacao'])); ?></td>
-                            <td data-label="Descrição" class="d-md-table-cell"><?php echo htmlspecialchars($t['descricao']); ?></td>
-                            <td data-label="Categoria" class="d-md-table-cell"><span class="badge bg-secondary"><?php echo htmlspecialchars($t['nome_categoria'] ?? 'Sem Categoria'); ?></span></td>
-                            <td data-label="Valor" class="text-end fw-bold font-monospace <?php echo ($t['tipo'] == 'receita') ? 'text-success' : 'text-danger'; ?> d-md-table-cell">
+                            <td data-label="Data"><?php echo date('d/m/Y', strtotime($t['data_transacao'])); ?></td>
+                            <td data-label="Descrição"><?php echo htmlspecialchars($t['descricao']); ?></td>
+                            <td data-label="Categoria"><span class="badge bg-secondary"><?php echo htmlspecialchars($t['nome_categoria'] ?? 'Sem Categoria'); ?></span></td>
+                            <td data-label="Valor" class="text-end fw-bold font-monospace <?php echo ($t['tipo'] == 'receita') ? 'text-success' : 'text-danger'; ?>">
                                 <?php echo ($t['tipo'] == 'receita' ? '+' : '-'); ?> R$ <?php echo number_format($t['valor'], 2, ',', '.'); ?>
                             </td>
                         </tr>
@@ -127,8 +127,41 @@ try {
         </div>
         
         <style>
+        /* Garantir que a tabela seja sempre visível */
+        .table-responsive {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .table {
+            width: 100%;
+            margin-bottom: 0;
+            color: var(--text-primary);
+        }
+        
+        .table thead th {
+            border-bottom: 2px solid var(--border-color);
+            color: var(--text-primary);
+            font-weight: 600;
+            padding: 1rem;
+        }
+        
+        .table tbody td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: middle;
+        }
+        
+        .table tbody tr:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+        
         /* Responsividade específica para tabela de relatórios */
         @media (max-width: 767.98px) {
+            .table thead {
+                display: none;
+            }
+            
             .table tbody tr {
                 display: block;
                 margin-bottom: 1rem;
@@ -139,7 +172,7 @@ try {
             }
             
             .table tbody td {
-                display: flex;
+                display: flex !important;
                 justify-content: space-between;
                 align-items: center;
                 padding: 0.5rem 0;
@@ -153,6 +186,17 @@ try {
                 text-align: left;
                 margin-right: 1rem;
                 color: rgba(255, 255, 255, 0.7);
+            }
+        }
+        
+        /* Garantir visibilidade em desktop */
+        @media (min-width: 768px) {
+            .table tbody td {
+                display: table-cell !important;
+            }
+            
+            .table thead {
+                display: table-header-group !important;
             }
         }
         </style>
