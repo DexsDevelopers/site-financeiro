@@ -174,9 +174,12 @@ if (!isset($_SESSION['dias_uso_cache_time']) ||
             min-height: 100vh; 
         }
         
-        .main-content { 
-            width: 100%; 
-            padding: 1.5rem; 
+        .main-content {
+            width: 100%;
+            padding: 1.5rem;
+            position: relative;
+            z-index: 1;
+            min-height: 100vh;
         }
         
         .card { 
@@ -838,6 +841,22 @@ if (!isset($_SESSION['dias_uso_cache_time']) ||
     document.addEventListener('DOMContentLoaded', () => {
         const heavyElements = document.querySelectorAll('.card, .accordion-item');
         heavyElements.forEach(el => observer.observe(el));
+        
+        // Garantir que conteúdo não está oculto
+        const mainContent = document.querySelector('.main-content');
+        if (mainContent) {
+            mainContent.style.display = 'block';
+            mainContent.style.visibility = 'visible';
+            mainContent.style.opacity = '1';
+        }
+        
+        // Remover overlays que possam estar bloqueando
+        const overlays = document.querySelectorAll('.tourlite-overlay, .pwa-modal-overlay');
+        overlays.forEach(overlay => {
+            if (!overlay.classList.contains('active') && !overlay.classList.contains('show')) {
+                overlay.style.display = 'none';
+            }
+        });
     });
 })();
 </script>

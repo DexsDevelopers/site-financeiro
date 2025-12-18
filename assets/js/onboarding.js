@@ -141,13 +141,25 @@
     window.startOnboardingTour = () => startTour(true);
 
     document.addEventListener('DOMContentLoaded', function () {
-        setTimeout(() => startTour(false), 800);
+        // Desabilitar tour automático para não bloquear conteúdo
+        // setTimeout(() => startTour(false), 800);
         createHelpFab();
         // Reforço pós-load
         window.addEventListener('load', function(){ setTimeout(ensureHelpFab, 300); });
         // Observa remoções acidentais
         const observer = new MutationObserver(() => ensureHelpFab());
         observer.observe(document.body, { childList: true });
+        
+        // Garantir que nenhum overlay está bloqueando o conteúdo
+        setTimeout(() => {
+            const overlays = document.querySelectorAll('.tourlite-overlay, .pwa-modal-overlay');
+            overlays.forEach(overlay => {
+                if (!overlay.classList.contains('active') && !overlay.classList.contains('show')) {
+                    overlay.style.display = 'none';
+                    overlay.remove();
+                }
+            });
+        }, 1000);
     });
 })();
 
