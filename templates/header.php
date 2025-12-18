@@ -258,7 +258,7 @@ if (!isset($_SESSION['dias_uso_cache_time']) ||
             -webkit-backdrop-filter: blur(10px); 
         }
         
-        /* Topbar minimalista - apenas botão hamburguer */
+        /* Topbar com botão de menu destacado */
         .topbar-glass {
             background: transparent !important;
             border: none;
@@ -274,55 +274,94 @@ if (!isset($_SESSION['dias_uso_cache_time']) ||
             height: auto;
         }
         
-        /* Botão hamburguer melhorado no canto superior esquerdo */
+        /* Botão de menu grande e visível no canto superior esquerdo */
         .navbar-toggler-custom {
             border: none;
-            background: var(--card-background);
+            background: linear-gradient(135deg, var(--accent-red) 0%, #c4080f 100%);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
-            padding: 0.75rem;
-            border-radius: 0 0 12px 0;
-            transition: all 0.3s ease;
-            color: var(--text-primary);
-            font-size: 1.5rem;
+            padding: 1rem 1.5rem;
+            border-radius: 0 0 16px 0;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 600;
             display: flex;
             align-items: center;
             justify-content: center;
+            gap: 0.75rem;
             margin: 0 !important;
-            width: 56px;
-            height: 56px;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-            border-right: 1px solid var(--border-color);
-            border-bottom: 1px solid var(--border-color);
+            min-width: 140px;
+            height: 70px;
+            box-shadow: 0 8px 24px rgba(229, 9, 20, 0.4), 0 4px 8px rgba(0, 0, 0, 0.3);
             cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* Efeito de brilho no hover */
+        .navbar-toggler-custom::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s ease;
+        }
+        
+        .navbar-toggler-custom:hover::before {
+            left: 100%;
         }
         
         .navbar-toggler-custom:hover {
-            background: rgba(229, 9, 20, 0.15);
-            border-right-color: var(--accent-red);
-            border-bottom-color: var(--accent-red);
-            transform: scale(1.05);
-            box-shadow: 0 6px 20px rgba(229, 9, 20, 0.3);
+            background: linear-gradient(135deg, #ff0a1a 0%, var(--accent-red) 100%);
+            transform: translateY(2px);
+            box-shadow: 0 12px 32px rgba(229, 9, 20, 0.5), 0 6px 12px rgba(0, 0, 0, 0.4);
         }
         
         .navbar-toggler-custom:active {
-            transform: scale(0.95);
-            background: rgba(229, 9, 20, 0.25);
+            transform: translateY(4px);
+            box-shadow: 0 4px 16px rgba(229, 9, 20, 0.4), 0 2px 4px rgba(0, 0, 0, 0.3);
         }
         
         .navbar-toggler-custom i {
-            color: var(--text-primary);
+            color: white;
+            font-size: 1.75rem;
             transition: transform 0.3s ease;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
         }
         
         .navbar-toggler-custom:hover i {
-            transform: rotate(90deg);
+            transform: rotate(180deg) scale(1.1);
+        }
+        
+        .navbar-toggler-custom .menu-text {
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
         }
         
         /* Ajuste do conteúdo principal para não ficar atrás do botão */
         @media (max-width: 991.98px) {
             .main-content {
-                padding-top: 4rem;
+                padding-top: 5rem;
+            }
+        }
+        
+        /* Responsividade para telas muito pequenas */
+        @media (max-width: 576px) {
+            .navbar-toggler-custom {
+                min-width: 120px;
+                height: 60px;
+                padding: 0.875rem 1.25rem;
+                font-size: 1rem;
+            }
+            
+            .navbar-toggler-custom i {
+                font-size: 1.5rem;
             }
         }
         
@@ -817,6 +856,7 @@ if (!isset($_SESSION['dias_uso_cache_time']) ||
         <nav class="navbar d-lg-none navbar-dark topbar-glass" style="padding: 0;">
             <button class="btn navbar-toggler-custom" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-label="Abrir menu">
                 <i class="bi bi-list"></i>
+                <span class="menu-text">Menu</span>
             </button>
         </nav>
 
