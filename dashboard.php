@@ -179,175 +179,315 @@ if ($saldoMes > 0) {
 
 
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="h2 mb-0">Dashboard</h1>
-    <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#modalNovoLancamento"><i class="bi bi-plus-lg me-2"></i>Novo Lançamento</button>
+<!-- ========================================= -->
+<!-- DASHBOARD MODERNO - HEADER + FILTROS -->
+<!-- ========================================= -->
+<div class="dashboard-header">
+    <div class="dashboard-header-content">
+        <div class="dashboard-title-section">
+            <h1 class="dashboard-title">Dashboard</h1>
+            <p class="dashboard-subtitle"><?php echo $nome_mes_ano; ?></p>
+        </div>
+        <div class="dashboard-actions">
+            <button class="btn-toggle-saldo" id="btn-toggle-saldo" title="Mostrar/Ocultar valores">
+                <i class="bi bi-eye-fill"></i>
+            </button>
+            <button class="btn-novo-lancamento" data-bs-toggle="modal" data-bs-target="#modalNovoLancamento">
+                <i class="bi bi-plus-lg"></i>
+                <span>Novo</span>
+            </button>
+        </div>
+    </div>
+    
+    <form id="filtroMesAno" class="dashboard-filtros">
+        <div class="filtro-group">
+            <select name="mes" id="selectMes" class="filtro-select">
+                <?php for ($m = 1; $m <= 12; $m++): ?>
+                    <option value="<?php echo $m; ?>" <?php echo ($m == $mes_selecionado) ? 'selected' : ''; ?>>
+                        <?php echo ucfirst(strftime('%B', mktime(0, 0, 0, $m, 1))); ?>
+                    </option>
+                <?php endfor; ?>
+            </select>
+        </div>
+        <div class="filtro-group">
+            <select name="ano" id="selectAno" class="filtro-select">
+                <?php for ($a = date('Y'); $a >= date('Y') - 5; $a--): ?>
+                    <option value="<?php echo $a; ?>" <?php echo ($a == $ano_selecionado) ? 'selected' : ''; ?>><?php echo $a; ?></option>
+                <?php endfor; ?>
+            </select>
+        </div>
+        <div class="filtro-group filtro-conta">
+            <select name="conta" id="selectConta" class="filtro-select">
+                <option value="all" <?php echo ($conta_id === 0) ? 'selected' : ''; ?>>Todas as contas</option>
+                <?php foreach($lista_contas as $conta): ?>
+                    <option value="<?php echo (int)$conta['id']; ?>" <?php echo ($conta_id === (int)$conta['id']) ? 'selected' : ''; ?>>
+                        <?php echo htmlspecialchars($conta['nome']); ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+    </form>
 </div>
 
-<main class="container-fluid p-0">
-    <div class="row g-4">
+<main class="dashboard-main">
+    <!-- ========================================= -->
+    <!-- CARDS KPI - RESUMO FINANCEIRO -->
+    <!-- ========================================= -->
+    <div class="kpi-grid">
+        <div class="kpi-card kpi-receitas">
+            <div class="kpi-icon">
+                <i class="bi bi-arrow-up-circle-fill"></i>
+            </div>
+            <div class="kpi-content">
+                <span class="kpi-label">Receitas</span>
+                <span class="kpi-value valor-sensivel">R$ <?php echo number_format($totalReceitas, 2, ',', '.'); ?></span>
+            </div>
+            <div class="kpi-indicator"></div>
+        </div>
+        
+        <div class="kpi-card kpi-despesas">
+            <div class="kpi-icon">
+                <i class="bi bi-arrow-down-circle-fill"></i>
+            </div>
+            <div class="kpi-content">
+                <span class="kpi-label">Despesas</span>
+                <span class="kpi-value valor-sensivel">R$ <?php echo number_format($totalDespesas, 2, ',', '.'); ?></span>
+            </div>
+            <div class="kpi-indicator"></div>
+        </div>
+        
+        <div class="kpi-card kpi-saldo <?php echo ($saldoMes >= 0) ? 'positivo' : 'negativo'; ?>">
+            <div class="kpi-icon">
+                <i class="bi bi-wallet2"></i>
+            </div>
+            <div class="kpi-content">
+                <span class="kpi-label">Saldo</span>
+                <span class="kpi-value valor-sensivel">R$ <?php echo number_format($saldoMes, 2, ',', '.'); ?></span>
+            </div>
+            <div class="kpi-indicator"></div>
+        </div>
+    </div>
 
-        <div class="col-12">
-            <div class="card card-glass">
-                <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-                    <h4 class="card-title mb-0">Resumo de <?php echo $nome_mes_ano; ?></h4>
-                    <div class="d-flex align-items-center gap-3">
-                        <i id="btn-toggle-saldo" class="bi bi-eye-fill fs-5 text-muted" title="Mostrar/Ocultar valores"></i>
-                        <form id="filtroMesAno" class="d-flex gap-2">
-                            <select name="mes" id="selectMes" class="form-select form-select-sm" style="width: 130px;"><?php for ($m = 1; $m <= 12; $m++): ?><option value="<?php echo $m; ?>" <?php echo ($m == $mes_selecionado) ? 'selected' : ''; ?>><?php echo ucfirst(strftime('%B', mktime(0, 0, 0, $m, 1))); ?></option><?php endfor; ?></select>
-                            <select name="ano" id="selectAno" class="form-select form-select-sm" style="width: 90px;"><?php for ($a = date('Y'); $a >= date('Y') - 5; $a--): ?><option value="<?php echo $a; ?>" <?php echo ($a == $ano_selecionado) ? 'selected' : ''; ?>><?php echo $a; ?></option><?php endfor; ?></select>
-                            <select name="conta" id="selectConta" class="form-select form-select-sm" style="width: 180px;">
-                                <option value="all" <?php echo ($conta_id === 0) ? 'selected' : ''; ?>>Todas as contas</option>
-                                <?php foreach($lista_contas as $conta): ?>
-                                    <option value="<?php echo (int)$conta['id']; ?>" <?php echo ($conta_id === (int)$conta['id']) ? 'selected' : ''; ?>><?php echo htmlspecialchars($conta['nome']); ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </form>
-                    </div>
-                </div>
-                <div class="card-body p-4">
-                    <div class="row text-center gy-3">
-                        <div class="col-sm-4"><h6 class="text-white-50"><i class="bi bi-graph-up-arrow"></i> Receitas</h6><p class="display-6 fw-bold valor-sensivel">R$ <?php echo number_format($totalReceitas, 2, ',', '.'); ?></p></div>
-                        <div class="col-sm-4"><h6 class="text-white-50"><i class="bi bi-graph-down-arrow"></i> Despesas</h6><p class="display-6 fw-bold valor-sensivel">R$ <?php echo number_format($totalDespesas, 2, ',', '.'); ?></p></div>
-                        <div class="col-sm-4"><h6 class="text-white-50"><i class="bi bi-wallet2"></i> Saldo</h6><p class="display-6 fw-bold valor-sensivel">R$ <?php echo number_format($saldoMes, 2, ',', '.'); ?></p></div>
-                    </div>
-                </div>
+    <!-- ========================================= -->
+    <!-- LANÇAMENTO RÁPIDO COM IA -->
+    <!-- ========================================= -->
+    <div class="ia-card">
+        <div class="ia-header">
+            <div class="ia-icon">
+                <i class="bi bi-magic"></i>
+            </div>
+            <div class="ia-title">
+                <h3>Lançamento Inteligente</h3>
+                <p>Digite naturalmente e a IA categoriza automaticamente</p>
             </div>
         </div>
-
-        <div class="col-12"><div class="card card-glass"><div class="card-body p-4"><form id="formIaRapida"><label for="inputIa" class="form-label h5">Lançamento Rápido com IA</label><div class="input-group"><span class="input-group-text"><i class="bi bi-magic"></i></span><input type="text" id="inputIa" class="form-control" placeholder="Ex: Comprei pizza por R$ 25 hoje" required><button class="btn btn-danger" type="submit" id="btnIaSubmit">Lançar</button></div><div class="form-text">Digite naturalmente: o que foi, quanto custou e quando. A IA vai entender e categorizar automaticamente!</div></form></div></div></div>
+        <form id="formIaRapida" class="ia-form">
+            <div class="ia-input-wrapper">
+                <input type="text" id="inputIa" class="ia-input" placeholder="Ex: Comprei pizza por R$ 25 hoje" required>
+                <button class="ia-submit" type="submit" id="btnIaSubmit">
+                    <i class="bi bi-send-fill"></i>
+                    <span>Lançar</span>
+                </button>
+            </div>
+        </form>
+    </div>
         
-        <!-- Seção de Tarefas no Dashboard -->
-        <div class="col-lg-8">
-            <div class="card card-glass h-100">
-                <div class="card-body p-4">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h4 class="card-title mb-0">
-                            <i class="bi bi-list-task me-2"></i>Tarefas de Hoje
-                        </h4>
-                        <a href="tarefas.php" class="btn btn-outline-light btn-sm">
-                            <i class="bi bi-plus-lg me-1"></i>Ver Todas
+    <!-- ========================================= -->
+    <!-- GRID PRINCIPAL - TAREFAS + PRODUTIVIDADE -->
+    <!-- ========================================= -->
+    <div class="dashboard-grid">
+        <!-- TAREFAS DE HOJE -->
+        <div class="dashboard-card tarefas-card">
+            <div class="card-header-modern">
+                <div class="card-header-left">
+                    <div class="card-icon tarefas-icon">
+                        <i class="bi bi-check2-square"></i>
+                    </div>
+                    <div>
+                        <h3 class="card-title-modern">Tarefas de Hoje</h3>
+                        <p class="card-subtitle-modern"><?php echo count($tarefas_hoje); ?> pendentes</p>
+                    </div>
+                </div>
+                <a href="tarefas.php" class="btn-ver-mais">
+                    Ver todas <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+            
+            <div class="card-body-modern">
+                <?php if(empty($tarefas_hoje)): ?>
+                    <div class="empty-state">
+                        <i class="bi bi-check-circle-fill"></i>
+                        <p>Nenhuma tarefa para hoje!</p>
+                        <a href="tarefas.php" class="btn-add-tarefa">
+                            <i class="bi bi-plus"></i> Adicionar
                         </a>
                     </div>
-                    
-                    <?php if(empty($tarefas_hoje)): ?>
-                        <div class="text-center py-4">
-                            <i class="bi bi-check-circle" style="font-size: 3rem; color: #28a745; opacity: 0.7;"></i>
-                            <p class="text-muted mt-2">Nenhuma tarefa para hoje!</p>
-                            <a href="tarefas.php" class="btn btn-outline-secondary btn-sm">Adicionar Tarefa</a>
-                        </div>
-                    <?php else: ?>
-                        <div class="task-list">
-                            <?php foreach($tarefas_hoje as $tarefa): ?>
-                                <div class="task-item d-flex align-items-center p-3 mb-2 rounded" style="background: rgba(255,255,255,0.05); border-left: 4px solid <?php echo $tarefa['prioridade'] == 'Alta' ? '#dc3545' : ($tarefa['prioridade'] == 'Média' ? '#ffc107' : '#28a745'); ?>;">
-                                    <div class="form-check me-3">
-                                        <input class="form-check-input task-checkbox" type="checkbox" data-id="<?php echo $tarefa['id']; ?>" style="transform: scale(1.2);">
-                                    </div>
-                                    <div class="flex-grow-1">
-                                        <div class="task-title fw-semibold"><?php echo htmlspecialchars($tarefa['descricao']); ?></div>
-                                        <div class="task-meta d-flex align-items-center gap-3 mt-1">
-                                            <span class="badge <?php echo getPrioridadeBadge($tarefa['prioridade']); ?> badge-sm">
-                                                <?php echo $tarefa['prioridade']; ?>
+                <?php else: ?>
+                    <div class="tarefas-lista">
+                        <?php foreach($tarefas_hoje as $tarefa): ?>
+                            <div class="tarefa-item" data-prioridade="<?php echo strtolower($tarefa['prioridade']); ?>">
+                                <div class="tarefa-check">
+                                    <input type="checkbox" class="task-checkbox" data-id="<?php echo $tarefa['id']; ?>">
+                                </div>
+                                <div class="tarefa-content">
+                                    <span class="tarefa-titulo"><?php echo htmlspecialchars($tarefa['descricao']); ?></span>
+                                    <div class="tarefa-meta">
+                                        <span class="tarefa-prioridade <?php echo strtolower($tarefa['prioridade']); ?>">
+                                            <?php echo $tarefa['prioridade']; ?>
+                                        </span>
+                                        <?php if($tarefa['data_limite']): ?>
+                                            <span class="tarefa-data">
+                                                <i class="bi bi-calendar3"></i>
+                                                <?php echo date('d/m', strtotime($tarefa['data_limite'])); ?>
                                             </span>
-                                            <?php if($tarefa['data_limite']): ?>
-                                                <small class="text-muted">
-                                                    <i class="bi bi-calendar-event me-1"></i>
-                                                    <?php echo date('d/m', strtotime($tarefa['data_limite'])); ?>
-                                                </small>
-                                            <?php endif; ?>
-                                            <?php if($tarefa['tempo_estimado'] > 0): ?>
-                                                <small class="text-muted">
-                                                    <i class="bi bi-clock me-1"></i>
-                                                    <?php 
-                                                        $h = floor($tarefa['tempo_estimado'] / 60);
-                                                        $m = $tarefa['tempo_estimado'] % 60;
-                                                        echo ($h > 0 ? $h.'h ' : '') . ($m > 0 ? $m.'min' : '');
-                                                    ?>
-                                                </small>
-                                            <?php endif; ?>
-                                        </div>
-                                    </div>
-                                    <div class="task-actions">
-                                        <button class="btn btn-outline-light btn-sm btn-start-timer" data-id="<?php echo $tarefa['id']; ?>" title="Iniciar Timer">
-                                            <i class="bi bi-play-fill"></i>
-                                        </button>
+                                        <?php endif; ?>
+                                        <?php if($tarefa['tempo_estimado'] > 0): ?>
+                                            <span class="tarefa-tempo">
+                                                <i class="bi bi-clock"></i>
+                                                <?php 
+                                                    $h = floor($tarefa['tempo_estimado'] / 60);
+                                                    $m = $tarefa['tempo_estimado'] % 60;
+                                                    echo ($h > 0 ? $h.'h ' : '') . ($m > 0 ? $m.'min' : '');
+                                                ?>
+                                            </span>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
-                            <?php endforeach; ?>
+                                <button class="btn-timer btn-start-timer" data-id="<?php echo $tarefa['id']; ?>" title="Iniciar Timer">
+                                    <i class="bi bi-play-fill"></i>
+                                </button>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+        
+        <!-- SIDEBAR DIREITA -->
+        <div class="dashboard-sidebar">
+            <!-- PRODUTIVIDADE -->
+            <div class="dashboard-card produtividade-card">
+                <div class="card-header-compact">
+                    <i class="bi bi-lightning-charge-fill"></i>
+                    <span>Produtividade</span>
+                </div>
+                <div class="produtividade-stats">
+                    <div class="prod-stat">
+                        <span class="prod-value verde"><?php echo $stats_tarefas['hoje']['concluidas']; ?></span>
+                        <span class="prod-label">Hoje</span>
+                    </div>
+                    <div class="prod-stat">
+                        <span class="prod-value azul"><?php echo $stats_tarefas['semana']['concluidas']; ?></span>
+                        <span class="prod-label">Semana</span>
+                    </div>
+                    <div class="prod-stat">
+                        <span class="prod-value amarelo"><?php echo $stats_tarefas['pendentes']; ?></span>
+                        <span class="prod-label">Pendentes</span>
+                    </div>
+                </div>
+                <?php 
+                    $progresso_hoje = $stats_tarefas['hoje']['total'] > 0 ? 
+                        ($stats_tarefas['hoje']['concluidas'] / $stats_tarefas['hoje']['total']) * 100 : 0;
+                ?>
+                <div class="progresso-wrapper">
+                    <div class="progresso-bar">
+                        <div class="progresso-fill" style="width: <?php echo $progresso_hoje; ?>%"></div>
+                    </div>
+                    <span class="progresso-text"><?php echo round($progresso_hoje); ?>% hoje</span>
+                </div>
+            </div>
+            
+            <!-- GRÁFICO PIZZA -->
+            <div class="dashboard-card grafico-card">
+                <div class="card-header-compact">
+                    <i class="bi bi-pie-chart-fill"></i>
+                    <span>Despesas por Categoria</span>
+                </div>
+                <div class="grafico-wrapper">
+                    <?php if(empty($pieChartData)): ?>
+                        <div class="empty-state small">
+                            <i class="bi bi-pie-chart"></i>
+                            <p>Sem despesas este mês</p>
                         </div>
-                        
-                        <div class="text-center mt-3">
-                            <a href="tarefas.php" class="btn btn-outline-secondary btn-sm">
-                                <i class="bi bi-arrow-right me-1"></i>Ver Todas as Tarefas
-                            </a>
-                        </div>
+                    <?php else: ?>
+                        <canvas id="pieChart"></canvas>
                     <?php endif; ?>
                 </div>
             </div>
         </div>
+    </div>
         
-        <div class="col-lg-4">
-            <!-- Stats de Tarefas -->
-            <div class="card card-glass mb-3">
-                <div class="card-body p-3">
-                    <h6 class="card-title mb-3">
-                        <i class="bi bi-graph-up me-2"></i>Produtividade
-                    </h6>
-                    <div class="row text-center">
-                        <div class="col-4">
-                            <div class="stat-number h5 mb-1 text-success">
-                                <?php echo $stats_tarefas['hoje']['concluidas']; ?>
-                                <?php if($stats_tarefas['hoje']['total'] > 0): ?>
-                                    <small class="d-block" style="font-size: 0.7rem;">/<?php echo $stats_tarefas['hoje']['total']; ?></small>
-                                <?php endif; ?>
-                            </div>
-                            <small class="text-muted">Hoje</small>
-                        </div>
-                        <div class="col-4">
-                            <div class="stat-number h5 mb-1 text-info">
-                                <?php echo $stats_tarefas['semana']['concluidas']; ?>
-                                <?php if($stats_tarefas['semana']['total'] > 0): ?>
-                                    <small class="d-block" style="font-size: 0.7rem;">/<?php echo $stats_tarefas['semana']['total']; ?></small>
-                                <?php endif; ?>
-                            </div>
-                            <small class="text-muted">Semana</small>
-                        </div>
-                        <div class="col-4">
-                            <div class="stat-number h5 mb-1 text-warning"><?php echo $stats_tarefas['pendentes']; ?></div>
-                            <small class="text-muted">Pendentes</small>
-                        </div>
-                    </div>
-                    
-                    <!-- Barra de Progresso -->
-                    <?php 
-                        $progresso_hoje = $stats_tarefas['hoje']['total'] > 0 ? 
-                            ($stats_tarefas['hoje']['concluidas'] / $stats_tarefas['hoje']['total']) * 100 : 0;
-                    ?>
-                    <div class="progress mt-3" style="height: 6px;">
-                        <div class="progress-bar bg-success" style="width: <?php echo $progresso_hoje; ?>%"></div>
-                    </div>
-                    <small class="text-muted">Progresso de hoje: <?php echo round($progresso_hoje); ?>%</small>
+    <!-- ========================================= -->
+    <!-- GRÁFICO DE BARRAS - DESPESAS DIÁRIAS -->
+    <!-- ========================================= -->
+    <div class="dashboard-card grafico-barras-card">
+        <div class="card-header-modern">
+            <div class="card-header-left">
+                <div class="card-icon barras-icon">
+                    <i class="bi bi-bar-chart-fill"></i>
                 </div>
-            </div>
-            
-            <!-- Gráfico de Despesas por Categoria -->
-            <div class="card card-glass">
-                <div class="card-body p-4 d-flex flex-column">
-                    <h4 class="card-title mb-3">Despesas por Categoria</h4>
-                    <div class="flex-grow-1 d-flex align-items-center justify-content-center">
-                        <?php if(empty($pieChartData)): ?>
-                            <p class="text-muted">Nenhuma despesa em <?php echo ucfirst(strftime('%B', $data_base->getTimestamp())); ?>.</p>
-                        <?php else: ?>
-                            <div class="chart-container"><canvas id="pieChart"></canvas></div>
-                        <?php endif; ?>
-                    </div>
+                <div>
+                    <h3 class="card-title-modern">Despesas Diárias</h3>
+                    <p class="card-subtitle-modern"><?php echo ucfirst(strftime('%B', $data_base->getTimestamp())); ?></p>
                 </div>
             </div>
         </div>
-        
-        <div class="col-12"><div class="card card-glass"><div class="card-body p-4"><h4 class="card-title mb-3">Despesas Diárias em <?php echo ucfirst(strftime('%B', $data_base->getTimestamp())); ?></h4><div class="chart-container"><canvas id="barChart"></canvas></div></div></div></div>
-        
-        <div class="col-12"><div class="card card-glass"><div class="card-body p-4"><h4 class="card-title mb-3">Últimos Lançamentos (Geral)</h4><ul class="list-group list-group-flush"><?php if(empty($ultimos_lancamentos)): ?><li class="list-group-item text-center text-muted" style="background: transparent; border-color: var(--border-color);">Nenhum lançamento ainda.</li><?php else: foreach ($ultimos_lancamentos as $lancamento): ?><li class="list-group-item d-flex justify-content-between align-items-center" style="background: transparent; border-color: var(--border-color);"><div><span class="fw-bold"><?php echo htmlspecialchars($lancamento['descricao']); ?></span><small class="d-block text-muted"><?php echo htmlspecialchars($lancamento['nome_categoria'] ?? 'Sem Categoria'); ?> - <?php echo date('d/m/Y', strtotime($lancamento['data_transacao'])); ?></small></div><span class="fw-bold valor-sensivel" style="font-family: 'Roboto Mono', monospace;"><?php echo ($lancamento['tipo'] == 'receita' ? '+' : '-'); ?> R$ <?php echo number_format($lancamento['valor'], 2, ',', '.'); ?></span></li><?php endforeach; endif; ?></ul><div class="d-grid mt-3"><a href="extrato_completo.php" class="btn btn-outline-secondary">Ver Extrato Completo</a></div></div></div></div>
+        <div class="card-body-modern">
+            <div class="chart-container-modern">
+                <canvas id="barChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ========================================= -->
+    <!-- ÚLTIMOS LANÇAMENTOS -->
+    <!-- ========================================= -->
+    <div class="dashboard-card lancamentos-card">
+        <div class="card-header-modern">
+            <div class="card-header-left">
+                <div class="card-icon lancamentos-icon">
+                    <i class="bi bi-receipt"></i>
+                </div>
+                <div>
+                    <h3 class="card-title-modern">Últimos Lançamentos</h3>
+                    <p class="card-subtitle-modern"><?php echo count($ultimos_lancamentos); ?> mais recentes</p>
+                </div>
+            </div>
+            <a href="extrato_completo.php" class="btn-ver-mais">
+                Ver extrato <i class="bi bi-arrow-right"></i>
+            </a>
+        </div>
+        <div class="card-body-modern">
+            <?php if(empty($ultimos_lancamentos)): ?>
+                <div class="empty-state">
+                    <i class="bi bi-inbox"></i>
+                    <p>Nenhum lançamento ainda</p>
+                </div>
+            <?php else: ?>
+                <div class="lancamentos-lista">
+                    <?php foreach ($ultimos_lancamentos as $lancamento): ?>
+                        <div class="lancamento-item <?php echo $lancamento['tipo']; ?>">
+                            <div class="lancamento-indicador"></div>
+                            <div class="lancamento-content">
+                                <div class="lancamento-principal">
+                                    <span class="lancamento-descricao"><?php echo htmlspecialchars($lancamento['descricao']); ?></span>
+                                    <span class="lancamento-valor valor-sensivel <?php echo $lancamento['tipo']; ?>">
+                                        <?php echo ($lancamento['tipo'] == 'receita' ? '+' : '-'); ?> R$ <?php echo number_format($lancamento['valor'], 2, ',', '.'); ?>
+                                    </span>
+                                </div>
+                                <div class="lancamento-detalhes">
+                                    <span class="lancamento-categoria"><?php echo htmlspecialchars($lancamento['nome_categoria'] ?? 'Sem Categoria'); ?></span>
+                                    <span class="lancamento-data">
+                                        <i class="bi bi-calendar3"></i>
+                                        <?php echo date('d/m/Y', strtotime($lancamento['data_transacao'])); ?>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </div>
     </div>
 </main>
 
@@ -657,400 +797,978 @@ if ($saldoMes > 0) {
 </script>
 
 <style>
+/* ================================================== */
+/* DASHBOARD MODERNO - DESIGN SYSTEM */
+/* ================================================== */
+
 :root {
-    --primary-red: #e50914;
-    --dark-bg: #111;
-    --card-bg-light: rgba(30, 30, 30, 0.5); /* Fundo semi-transparente */
-    --text-light: #f5f5f1;
-    --border-color: rgba(255, 255, 255, 0.1);
-    --placeholder-color: #777;
-    --success-color: #00b894;
-    --danger-color: #e50914;
-    --info-color: #0984e3;
-    --border-radius: 12px;
+    --primary: #e50914;
+    --primary-light: #ff3d47;
+    --primary-dark: #b3070f;
+    --success: #00d68f;
+    --danger: #ff6b6b;
+    --warning: #ffc107;
+    --info: #4da6ff;
+    --dark: #0d0d0f;
+    --card-bg: rgba(20, 20, 25, 0.8);
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255, 255, 255, 0.6);
+    --text-muted: rgba(255, 255, 255, 0.4);
+    --border: rgba(255, 255, 255, 0.08);
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
 }
 
-body {
-    background-color: var(--dark-bg);
-    color: var(--text-light);
-    font-family: 'Poppins', sans-serif;
-    min-height: 100vh;
+/* ================================================== */
+/* HEADER DO DASHBOARD */
+/* ================================================== */
+
+.dashboard-header {
+    margin-bottom: 2rem;
+}
+
+.dashboard-header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.dashboard-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.dashboard-subtitle {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    margin: 0.25rem 0 0 0;
+}
+
+.dashboard-actions {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.btn-toggle-saldo {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-md);
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-toggle-saldo:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+
+.btn-novo-lancamento {
+    height: 44px;
+    padding: 0 1.25rem;
+    border-radius: var(--radius-md);
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    border: none;
+    color: white;
+    font-weight: 600;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(229, 9, 20, 0.3);
+}
+
+.btn-novo-lancamento:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(229, 9, 20, 0.4);
+}
+
+/* FILTROS */
+.dashboard-filtros {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.filtro-group {
+    position: relative;
+}
+
+.filtro-select {
+    height: 42px;
+    padding: 0 2.5rem 0 1rem;
+    border-radius: var(--radius-md);
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='white' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    transition: all 0.3s ease;
+    min-width: 140px;
+}
+
+.filtro-select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.2);
+}
+
+.filtro-conta .filtro-select {
+    min-width: 180px;
+}
+
+/* ================================================== */
+/* CARDS KPI */
+/* ================================================== */
+
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.kpi-card {
+    background: var(--card-bg);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    transition: all 0.3s ease;
+}
+
+.kpi-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+}
+
+.kpi-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.kpi-receitas .kpi-icon {
+    background: rgba(0, 214, 143, 0.15);
+    color: var(--success);
+}
+
+.kpi-despesas .kpi-icon {
+    background: rgba(255, 107, 107, 0.15);
+    color: var(--danger);
+}
+
+.kpi-saldo .kpi-icon {
+    background: rgba(77, 166, 255, 0.15);
+    color: var(--info);
+}
+
+.kpi-saldo.positivo .kpi-icon {
+    background: rgba(0, 214, 143, 0.15);
+    color: var(--success);
+}
+
+.kpi-saldo.negativo .kpi-icon {
+    background: rgba(255, 107, 107, 0.15);
+    color: var(--danger);
+}
+
+.kpi-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.kpi-label {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.25rem;
+}
+
+.kpi-value {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 700;
+    font-family: 'Roboto Mono', monospace;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.kpi-receitas .kpi-value { color: var(--success); }
+.kpi-despesas .kpi-value { color: var(--danger); }
+.kpi-saldo.positivo .kpi-value { color: var(--success); }
+.kpi-saldo.negativo .kpi-value { color: var(--danger); }
+
+.kpi-indicator {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+}
+
+.kpi-receitas .kpi-indicator { background: linear-gradient(90deg, var(--success), transparent); }
+.kpi-despesas .kpi-indicator { background: linear-gradient(90deg, var(--danger), transparent); }
+.kpi-saldo .kpi-indicator { background: linear-gradient(90deg, var(--info), transparent); }
+
+/* ================================================== */
+/* CARD DE IA */
+/* ================================================== */
+
+.ia-card {
+    background: linear-gradient(135deg, rgba(229, 9, 20, 0.1) 0%, rgba(20, 20, 25, 0.9) 100%);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid rgba(229, 9, 20, 0.2);
+}
+
+.ia-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.ia-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-md);
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    color: white;
+}
+
+.ia-title h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.ia-title p {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin: 0.25rem 0 0 0;
+}
+
+.ia-input-wrapper {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.ia-input {
+    flex: 1;
+    height: 50px;
+    padding: 0 1.25rem;
+    border-radius: var(--radius-md);
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+}
+
+.ia-input::placeholder {
+    color: var(--text-muted);
+}
+
+.ia-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.2);
+}
+
+.ia-submit {
+    height: 50px;
+    padding: 0 1.5rem;
+    border-radius: var(--radius-md);
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    border: none;
+    color: white;
+    font-weight: 600;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.ia-submit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(229, 9, 20, 0.4);
+}
+
+/* ================================================== */
+/* GRID PRINCIPAL */
+/* ================================================== */
+
+.dashboard-main {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 1.5rem;
+}
+
+.dashboard-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* ================================================== */
+/* CARDS MODERNOS */
+/* ================================================== */
+
+.dashboard-card {
+    background: var(--card-bg);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    overflow: hidden;
+}
+
+.card-header-modern {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.card-header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.card-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+
+.tarefas-icon { background: rgba(77, 166, 255, 0.15); color: var(--info); }
+.barras-icon { background: rgba(255, 107, 107, 0.15); color: var(--danger); }
+.lancamentos-icon { background: rgba(0, 214, 143, 0.15); color: var(--success); }
+
+.card-title-modern {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.card-subtitle-modern {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin: 0.15rem 0 0 0;
+}
+
+.btn-ver-mais {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.btn-ver-mais:hover {
+    color: var(--primary);
+}
+
+.card-body-modern {
+    padding: 1rem 1.5rem 1.5rem;
+}
+
+.card-header-compact {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.card-header-compact i {
+    color: var(--primary);
+}
+
+/* ================================================== */
+/* TAREFAS */
+/* ================================================== */
+
+.tarefas-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.tarefa-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--radius-md);
+    border-left: 3px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.tarefa-item[data-prioridade="alta"] { border-left-color: var(--danger); }
+.tarefa-item[data-prioridade="média"] { border-left-color: var(--warning); }
+.tarefa-item[data-prioridade="baixa"] { border-left-color: var(--success); }
+
+.tarefa-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+    transform: translateX(4px);
+}
+
+.tarefa-check input {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--primary);
+    cursor: pointer;
+}
+
+.tarefa-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.tarefa-titulo {
+    display: block;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.tarefa-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.tarefa-prioridade {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.2rem 0.6rem;
+    border-radius: 20px;
+    text-transform: uppercase;
+}
+
+.tarefa-prioridade.alta { background: rgba(255, 107, 107, 0.2); color: var(--danger); }
+.tarefa-prioridade.média { background: rgba(255, 193, 7, 0.2); color: var(--warning); }
+.tarefa-prioridade.baixa { background: rgba(0, 214, 143, 0.2); color: var(--success); }
+
+.tarefa-data, .tarefa-tempo {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.btn-timer {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-timer:hover {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+}
+
+/* ================================================== */
+/* PRODUTIVIDADE */
+/* ================================================== */
+
+.produtividade-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    padding: 1rem 1.25rem;
+    text-align: center;
+}
+
+.prod-stat {
     display: flex;
     flex-direction: column;
 }
 
-/* ---------------------------------- */
-/* Estilos do Dashboard      */
-/* ---------------------------------- */
-
-.container-fluid {
-    max-width: 1400px;
-}
-
-h1, h2, h3, h4, h5, h6 {
-    color: var(--text-light);
-}
-
-.d-flex.justify-content-between.mb-4 h1 {
-    font-weight: 600;
-}
-
-/* Botão Principal */
-.btn-danger {
-    background-color: var(--primary-red);
-    border-color: var(--primary-red);
-    font-weight: 600;
-    transition: all 0.3s ease;
-}
-
-.btn-danger:hover {
-    background-color: #c00711;
-    border-color: #c00711;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(229, 9, 20, 0.3);
-}
-
-/* Estilo para os cards */
-.card-glass {
-    background: var(--card-bg-light);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
-    backdrop-filter: blur(15px);
-    -webkit-backdrop-filter: blur(15px);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.card-glass:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.3);
-}
-
-.card-header {
-    background: transparent;
-    border-bottom: 1px solid var(--border-color);
-    padding: 1.5rem;
-}
-
-.card-title {
-    font-weight: 600;
-}
-
-/* Estilo para o Resumo do Mês */
-.resumo-card .display-6 {
-    font-size: 2.5rem;
-    font-weight: 700;
-    margin-top: 0.5rem;
-    position: relative;
-    color: var(--text-light);
-}
-
-.resumo-card .col-sm-4:nth-child(1) p { color: var(--success-color); }
-.resumo-card .col-sm-4:nth-child(2) p { color: var(--danger-color); }
-.resumo-card .col-sm-4:nth-child(3) p {
-    color: #ffd700; /* Dourado para o saldo */
-}
-
-/* ===== SEÇÃO DE TAREFAS NO DASHBOARD ===== */
-.task-item {
-    transition: all 0.3s ease;
-    border-radius: 8px;
-}
-
-.task-item:hover {
-    background: rgba(255,255,255,0.08) !important;
-    transform: translateY(-1px);
-}
-
-.task-checkbox {
-    accent-color: var(--primary-red);
-}
-
-.task-title {
-    color: var(--text-light);
-    font-size: 1rem;
-}
-
-.task-meta .badge {
-    font-size: 0.7rem;
-    padding: 0.25em 0.5em;
-}
-
-.btn-start-timer {
-    transition: all 0.3s ease;
-}
-
-.btn-start-timer:hover {
-    transform: scale(1.1);
-}
-
-.stat-number {
+.prod-value {
+    font-size: 1.5rem;
     font-weight: 700;
     font-family: 'Roboto Mono', monospace;
 }
 
-.progress {
-    background-color: rgba(255,255,255,0.1);
+.prod-value.verde { color: var(--success); }
+.prod-value.azul { color: var(--info); }
+.prod-value.amarelo { color: var(--warning); }
+
+.prod-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 0.25rem;
 }
 
-.progress-bar {
+.progresso-wrapper {
+    padding: 0 1.25rem 1.25rem;
+}
+
+.progresso-bar {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+}
+
+.progresso-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--success), var(--primary));
+    border-radius: 3px;
     transition: width 0.5s ease;
 }
 
-/* Animações para tarefas concluídas */
-.task-completed {
-    opacity: 0.6;
-    transform: scale(0.98);
+.progresso-text {
+    font-size: 0.75rem;
+    color: var(--text-muted);
 }
 
-.task-completed .task-title {
-    text-decoration: line-through;
-    color: var(--text-secondary);
+/* ================================================== */
+/* GRÁFICOS */
+/* ================================================== */
+
+.grafico-wrapper {
+    padding: 1rem 1.25rem 1.25rem;
+    height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-/* Responsividade para mobile */
-@media (max-width: 768px) {
-    .task-item {
-        padding: 1rem !important;
-    }
-    
-    .task-meta {
-        flex-direction: column;
-        align-items: flex-start !important;
-        gap: 0.5rem !important;
-    }
-    
-    .task-actions {
-        margin-top: 0.5rem;
-    }
-    
-    .btn-start-timer {
-        width: 100%;
-        justify-content: center;
-    }
-}
-
-/* Input de Lançamento Rápido com IA */
-#formIaRapida .input-group-text {
-    background: var(--primary-red);
-    color: white;
-    border: none;
-    border-radius: var(--border-radius) 0 0 var(--border-radius);
-}
-
-#formIaRapida .form-control {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid var(--border-color);
-    color: var(--text-light);
-}
-
-#formIaRapida .form-control:focus {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: var(--primary-red);
-    box-shadow: 0 0 0 0.25rem rgba(229, 9, 20, 0.2);
-}
-
-#formIaRapida .form-control::placeholder {
-    color: var(--placeholder-color);
-}
-
-#formIaRapida .btn {
-    background-color: var(--primary-red);
-    border-color: var(--primary-red);
-    font-weight: 600;
-}
-
-.form-text {
-    color: var(--placeholder-color) !important;
-    font-size: 0.85rem;
-    margin-top: 0.5rem;
-}
-
-/* Gráficos */
-.chart-container {
-    height: 350px;
+.chart-container-modern {
+    height: 300px;
     width: 100%;
 }
 
-.card.h-100 {
-    height: 100% !important;
+/* ================================================== */
+/* LANÇAMENTOS */
+/* ================================================== */
+
+.lancamentos-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 }
 
-/* Lista de Últimos Lançamentos */
-.list-group-item {
-    background: transparent !important;
-    border-color: var(--border-color) !important;
-    padding: 1rem 1.25rem;
+.lancamento-item {
+    display: flex;
+    align-items: stretch;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    transition: all 0.3s ease;
 }
 
-.list-group-item:hover {
-    background-color: rgba(255, 255, 255, 0.05) !important;
+.lancamento-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+    transform: translateX(4px);
 }
 
-.list-group-item small {
-    color: #999 !important;
+.lancamento-indicador {
+    width: 3px;
+    flex-shrink: 0;
 }
 
-.list-group-item .valor-sensivel {
-    font-weight: 700;
+.lancamento-item.receita .lancamento-indicador { background: var(--success); }
+.lancamento-item.despesa .lancamento-indicador { background: var(--danger); }
+
+.lancamento-content {
+    flex: 1;
+    padding: 0.875rem 1rem;
+    min-width: 0;
 }
 
-.list-group-item .valor-sensivel:first-of-type {
-    color: var(--success-color);
+.lancamento-principal {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 0.35rem;
 }
 
-.list-group-item .valor-sensivel:last-of-type {
-    color: var(--danger-color);
+.lancamento-descricao {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-/* Modal */
+.lancamento-valor {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 0.95rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.lancamento-valor.receita { color: var(--success); }
+.lancamento-valor.despesa { color: var(--danger); }
+
+.lancamento-detalhes {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.lancamento-categoria {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    background: rgba(255, 255, 255, 0.05);
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+}
+
+.lancamento-data {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+/* ================================================== */
+/* ESTADOS VAZIOS */
+/* ================================================== */
+
+.empty-state {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: var(--text-muted);
+}
+
+.empty-state i {
+    font-size: 2.5rem;
+    margin-bottom: 0.75rem;
+    display: block;
+    opacity: 0.5;
+}
+
+.empty-state p {
+    margin-bottom: 1rem;
+}
+
+.empty-state.small {
+    padding: 1rem;
+}
+
+.empty-state.small i {
+    font-size: 1.5rem;
+}
+
+.btn-add-tarefa {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.btn-add-tarefa:hover {
+    background: var(--primary);
+    color: white;
+}
+
+/* ================================================== */
+/* OCULTAR SALDO */
+/* ================================================== */
+
+body.saldo-oculto .valor-sensivel {
+    filter: blur(8px);
+    user-select: none;
+}
+
+/* ================================================== */
+/* MODAL */
+/* ================================================== */
+
 .modal-content {
-    background: #1e1e1e;
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    background: rgba(20, 20, 25, 0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
 }
 
 .modal-header {
-    border-bottom-color: var(--border-color);
+    border-bottom-color: var(--border);
+    padding: 1.25rem 1.5rem;
 }
 
 .modal-footer {
-    border-top-color: var(--border-color);
+    border-top-color: var(--border);
+    padding: 1rem 1.5rem;
 }
 
 .form-control, .form-select {
-    background-color: rgba(255, 255, 255, 0.05);
-    border: 1px solid var(--border-color);
-    color: var(--text-light);
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    border-radius: var(--radius-sm);
+    padding: 0.75rem 1rem;
 }
 
 .form-control:focus, .form-select:focus {
-    background-color: rgba(255, 255, 255, 0.1);
-    border-color: var(--primary-red);
-    box-shadow: 0 0 0 0.25rem rgba(229, 9, 20, 0.25);
+    background: rgba(0, 0, 0, 0.4);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.2);
+    color: var(--text-primary);
 }
 
 .form-control::placeholder {
-    color: var(--placeholder-color);
+    color: var(--text-muted);
 }
 
 .btn-custom-red {
-    background-color: var(--primary-red);
-    border-color: var(--primary-red);
-    color: var(--text-light);
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    border: none;
+    color: white;
+    font-weight: 600;
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--radius-sm);
 }
 
 .btn-custom-red:hover {
-    background-color: #c00711;
-    border-color: #c00711;
-}
-
-/* Ocultar Saldo */
-body.saldo-oculto .valor-sensivel::after {
-    content: '•••••';
-    background-color: #333;
-    color: transparent;
-    border-radius: 4px;
-    display: inline-block;
-    padding: 0 8px;
-    letter-spacing: 2px;
-}
-body.saldo-oculto .valor-sensivel {
-    font-size: 0; /* Oculta o texto real */
-}
-
-/* Botão de Notificações */
-.onesignal-customlink-container {
-    background: linear-gradient(145deg, #1a1a1a, #111111);
-    border: none;
-    padding: 2rem;
-    border-radius: 16px;
-    max-width: 450px;
-    margin: 2rem auto;
-    text-align: center;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    position: relative;
-    overflow: hidden;
-    transition: transform 0.3s ease;
-}
-
-.onesignal-customlink-container::before {
-    content: '';
-    position: absolute;
-    top: -50px;
-    left: -50px;
-    width: 200px;
-    height: 200px;
-    background: radial-gradient(circle, rgba(229, 9, 20, 0.4), transparent 70%);
-    border-radius: 50%;
-    transition: all 0.5s ease-out;
-    opacity: 0.8;
-}
-
-.onesignal-customlink-container:hover {
-    transform: translateY(-5px);
-}
-
-.onesignal-customlink-container:hover::before {
-    transform: scale(1.5);
-}
-
-.notify-button {
-    background: linear-gradient(45deg, #e50914, #ff4d4d);
-    color: white;
-    border: none;
-    padding: 1rem 2rem;
-    font-size: 1.1rem;
-    font-weight: 700;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: background 0.3s ease, transform 0.2s;
+    transform: translateY(-2px);
     box-shadow: 0 4px 15px rgba(229, 9, 20, 0.4);
 }
 
+/* ================================================== */
+/* NOTIFICAÇÕES */
+/* ================================================== */
+
+.onesignal-customlink-container {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    max-width: 450px;
+    margin: 2rem auto;
+    text-align: center;
+}
+
+.notify-button {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    border: none;
+    color: white;
+    padding: 1rem 2rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
 .notify-button:hover {
-    background: linear-gradient(45deg, #ff4d4d, #e50914);
-    transform: translateY(-3px);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(229, 9, 20, 0.4);
 }
 
 .notify-text {
-    color: #bbb;
-    font-size: 1rem;
-    margin-top: 1.5rem;
-    line-height: 1.5;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-top: 1.25rem;
+    line-height: 1.6;
 }
 
-/* Rodapé */
-footer {
-    padding: 2rem 0;
-    text-align: center;
-    color: #888;
-    margin-top: auto; /* Empurra o rodapé para baixo */
-}
+/* ================================================== */
+/* RESPONSIVIDADE */
+/* ================================================== */
 
-/* Responsividade */
-@media (max-width: 768px) {
-    .container-fluid {
-        padding: 0 1rem;
-    }
-    .resumo-card .display-6 {
-        font-size: 2rem;
-    }
-    .chart-container {
-        height: 300px;
+@media (max-width: 1200px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr 320px;
     }
 }
 
-/* Responsividade do filtro de contas (evita overflow no mobile) */
-@media (max-width: 576px) {
-    #filtroMesAno {
+@media (max-width: 991px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .dashboard-sidebar {
+        flex-direction: row;
         flex-wrap: wrap;
-        width: 100%;
     }
-    #selectConta {
-        width: 100% !important;
-        max-width: 100%;
+    
+    .dashboard-sidebar > * {
+        flex: 1;
+        min-width: 280px;
+    }
+}
+
+@media (max-width: 767px) {
+    .kpi-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .kpi-card {
+        padding: 1.25rem;
+    }
+    
+    .kpi-value {
+        font-size: 1.25rem;
+    }
+    
+    .dashboard-header-content {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .dashboard-title-section {
+        text-align: center;
+    }
+    
+    .dashboard-actions {
+        justify-content: center;
+    }
+    
+    .dashboard-filtros {
+        justify-content: center;
+    }
+    
+    .filtro-select {
+        min-width: 0;
+        flex: 1;
+    }
+    
+    .ia-input-wrapper {
+        flex-direction: column;
+    }
+    
+    .ia-submit {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .dashboard-sidebar {
+        flex-direction: column;
+    }
+    
+    .dashboard-sidebar > * {
+        min-width: 100%;
+    }
+    
+    .tarefa-item {
+        flex-wrap: wrap;
+    }
+    
+    .btn-timer {
+        margin-left: auto;
+    }
+    
+    .card-header-modern {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: flex-start;
+    }
+    
+    .lancamento-principal {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .lancamento-valor {
+        font-size: 1.1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .dashboard-title {
+        font-size: 1.5rem;
+    }
+    
+    .btn-novo-lancamento span {
+        display: none;
+    }
+    
+    .btn-novo-lancamento {
+        padding: 0;
+        width: 44px;
+    }
+    
+    .produtividade-stats {
+        padding: 0.75rem;
+    }
+    
+    .prod-value {
+        font-size: 1.25rem;
     }
 }
 </style>
