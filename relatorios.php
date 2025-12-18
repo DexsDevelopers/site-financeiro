@@ -174,177 +174,128 @@ try {
             background-color: rgba(255, 255, 255, 0.05);
         }
         
-        /* Responsividade específica para tabela de relatórios */
+        /* Responsividade específica para tabela de relatórios - MOBILE */
         @media (max-width: 767.98px) {
-            /* Garantir que o card não cause overflow */
-            .card-body {
-                padding: 1rem !important;
-                overflow-x: hidden !important;
-                width: 100%;
-                max-width: 100%;
-                box-sizing: border-box;
-            }
-            
-            .table-responsive {
+            /* Container principal - SEM SCROLL HORIZONTAL */
+            #tabela-transacoes-relatorio {
                 display: block !important;
                 width: 100% !important;
                 max-width: 100% !important;
                 overflow-x: hidden !important;
                 overflow-y: visible !important;
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
+                margin: 0 !important;
+                padding: 0 !important;
+                box-sizing: border-box !important;
             }
             
-            .table {
-                display: block !important;
-                width: 100% !important;
-                border-collapse: separate;
-                border-spacing: 0;
-                table-layout: fixed;
-            }
-            
-            .table thead {
-                display: none !important;
-            }
-            
-            .table tbody {
-                display: block !important;
-                width: 100% !important;
-            }
-            
-            .table tbody tr {
-                display: block !important;
-                width: 100% !important;
-                max-width: 100% !important;
-                margin-bottom: 1rem;
-                border: 1px solid rgba(255, 255, 255, 0.1);
-                border-radius: 12px;
-                padding: 0.875rem;
-                background: rgba(255, 255, 255, 0.03);
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-                box-sizing: border-box;
-                overflow: hidden;
-            }
-            
-            .table tbody td {
-                display: block !important;
-                width: 100% !important;
-                max-width: 100% !important;
-                padding: 0.5rem 0 !important;
-                border: none !important;
-                border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
-                box-sizing: border-box;
-                word-wrap: break-word;
-                overflow-wrap: break-word;
-                word-break: break-word;
-            }
-            
-            .table tbody td:last-child {
-                border-bottom: none !important;
-                padding-bottom: 0 !important;
-            }
-            
-            .table tbody td:first-child {
-                padding-top: 0 !important;
-            }
-            
-            .table tbody td::before {
-                content: attr(data-label) ": ";
-                display: block;
-                font-weight: 600;
-                font-size: 0.85rem;
-                margin-bottom: 0.375rem;
-                color: rgba(255, 255, 255, 0.7);
-            }
-            
-            /* Conteúdo sempre abaixo do label */
-            .table tbody td > *:not(::before) {
-                display: block;
-                width: 100%;
-                text-align: left;
-                word-wrap: break-word;
-                overflow-wrap: break-word;
-            }
-            
-            /* Badges e outros elementos dentro das células */
-            .table tbody td .badge {
-                font-size: 0.75rem;
-                padding: 0.25rem 0.5rem;
-                white-space: normal;
-                word-break: break-word;
-                display: inline-block;
-                max-width: 100%;
-                margin-top: 0.25rem;
-            }
-            
-            /* Valores monetários */
-            .table tbody td.font-monospace {
-                font-size: 1rem;
-                font-weight: 700;
-                white-space: normal;
-                word-break: break-word;
-                text-align: left;
-                display: block;
-                margin-top: 0.25rem;
-            }
-            
-            /* Garantir que valores fiquem alinhados à direita quando apropriado */
-            .table tbody td[data-label="Valor"] {
-                text-align: left;
-            }
-            
-            .table tbody td[data-label="Valor"] .font-monospace {
-                text-align: left;
-            }
-            
-            /* Remover padding extra da última célula */
-            .table tbody td:last-child {
-                padding-bottom: 0 !important;
-                border-bottom: none !important;
-            }
-            
-            /* Primeira célula sem padding extra no topo */
-            .table tbody tr td:first-child {
-                padding-top: 0 !important;
-            }
-            
-            /* Garantir que nada ultrapasse */
-            .table tbody td * {
-                max-width: 100%;
-                box-sizing: border-box;
-            }
-            
-            /* Garantir que células vazias também apareçam */
-            .table tbody tr:empty {
-                display: none !important;
-            }
-            
-            /* Forçar visibilidade da tabela de transações */
-            #tabela-transacoes-relatorio {
-                display: block !important;
-                visibility: visible !important;
-                opacity: 1 !important;
-                overflow: visible !important;
-            }
-            
+            /* Tabela como container */
             #tabela-transacoes-relatorio .table {
                 display: block !important;
-                visibility: visible !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                border-collapse: separate !important;
+                border-spacing: 0 !important;
                 overflow: visible !important;
             }
             
+            /* Esconder cabeçalho */
+            #tabela-transacoes-relatorio .table thead {
+                display: none !important;
+            }
+            
+            /* Body como container */
             #tabela-transacoes-relatorio .table tbody {
                 display: block !important;
-                visibility: visible !important;
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+            
+            /* Cada linha vira um card */
+            #tabela-transacoes-relatorio .table tbody tr {
+                display: block !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                margin-bottom: 1rem !important;
+                border: 1px solid rgba(255, 255, 255, 0.1) !important;
+                border-radius: 12px !important;
+                padding: 1rem !important;
+                background: rgba(255, 255, 255, 0.03) !important;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+                box-sizing: border-box !important;
                 overflow: visible !important;
             }
             
-            #tabela-transacoes-relatorio .table tbody tr {
+            /* Cada célula vira campo vertical */
+            #tabela-transacoes-relatorio .table tbody td {
                 display: block !important;
-                visibility: visible !important;
-                opacity: 1 !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                padding: 0.625rem 0 !important;
+                border: none !important;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+                box-sizing: border-box !important;
+                word-wrap: break-word !important;
+                overflow-wrap: break-word !important;
+                word-break: break-word !important;
                 overflow: visible !important;
+            }
+            
+            #tabela-transacoes-relatorio .table tbody tr td:first-child {
+                padding-top: 0 !important;
+            }
+            
+            #tabela-transacoes-relatorio .table tbody td:last-child {
+                border-bottom: none !important;
+                padding-bottom: 0 !important;
+            }
+            
+            /* Label acima */
+            #tabela-transacoes-relatorio .table tbody td::before {
+                content: attr(data-label) ": ";
+                display: block !important;
+                font-weight: 600 !important;
+                font-size: 0.8rem !important;
+                margin-bottom: 0.375rem !important;
+                color: rgba(255, 255, 255, 0.7) !important;
+            }
+            
+            /* Conteúdo abaixo */
+            #tabela-transacoes-relatorio .table tbody td > * {
+                display: block !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                text-align: left !important;
+                word-wrap: break-word !important;
+                overflow-wrap: break-word !important;
+                word-break: break-word !important;
+                box-sizing: border-box !important;
+            }
+            
+            /* Badges */
+            #tabela-transacoes-relatorio .table tbody td .badge {
+                display: inline-block !important;
+                font-size: 0.75rem !important;
+                padding: 0.25rem 0.5rem !important;
+                white-space: normal !important;
+                word-break: break-word !important;
+                max-width: 100% !important;
+            }
+            
+            /* Valores */
+            #tabela-transacoes-relatorio .table tbody td.font-monospace {
+                display: block !important;
+                font-size: 1rem !important;
+                font-weight: 700 !important;
+                white-space: normal !important;
+                word-break: break-word !important;
+            }
+            
+            /* Card body sem overflow */
+            .card-body {
+                overflow-x: hidden !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                box-sizing: border-box !important;
             }
         }
         
