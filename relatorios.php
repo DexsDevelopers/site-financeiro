@@ -179,7 +179,10 @@ try {
             /* Garantir que o card não cause overflow */
             .card-body {
                 padding: 1rem !important;
-                overflow-x: hidden;
+                overflow-x: hidden !important;
+                width: 100%;
+                max-width: 100%;
+                box-sizing: border-box;
             }
             
             .table-responsive {
@@ -190,6 +193,7 @@ try {
                 overflow-y: visible !important;
                 margin: 0;
                 padding: 0;
+                box-sizing: border-box;
             }
             
             .table {
@@ -216,25 +220,24 @@ try {
                 margin-bottom: 1rem;
                 border: 1px solid rgba(255, 255, 255, 0.1);
                 border-radius: 12px;
-                padding: 1rem;
+                padding: 0.875rem;
                 background: rgba(255, 255, 255, 0.03);
                 box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
                 box-sizing: border-box;
+                overflow: hidden;
             }
             
             .table tbody td {
-                display: flex !important;
+                display: block !important;
                 width: 100% !important;
                 max-width: 100% !important;
-                justify-content: space-between;
-                align-items: center;
-                padding: 0.75rem 0 !important;
+                padding: 0.5rem 0 !important;
                 border: none !important;
                 border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
-                text-align: right;
                 box-sizing: border-box;
                 word-wrap: break-word;
                 overflow-wrap: break-word;
+                word-break: break-word;
             }
             
             .table tbody td:last-child {
@@ -248,26 +251,20 @@ try {
             
             .table tbody td::before {
                 content: attr(data-label) ": ";
+                display: block;
                 font-weight: 600;
-                text-align: left;
-                margin-right: 0.75rem;
+                font-size: 0.85rem;
+                margin-bottom: 0.375rem;
                 color: rgba(255, 255, 255, 0.7);
-                flex-shrink: 0;
-                min-width: 85px;
-                max-width: 40%;
             }
             
-            /* Garantir que o conteúdo não ultrapasse */
-            .table tbody td > * {
-                max-width: 100%;
+            /* Conteúdo sempre abaixo do label */
+            .table tbody td > *:not(::before) {
+                display: block;
+                width: 100%;
+                text-align: left;
                 word-wrap: break-word;
                 overflow-wrap: break-word;
-            }
-            
-            /* Garantir que textos longos quebrem corretamente */
-            .table tbody td {
-                word-break: break-word;
-                hyphens: auto;
             }
             
             /* Badges e outros elementos dentro das células */
@@ -276,21 +273,46 @@ try {
                 padding: 0.25rem 0.5rem;
                 white-space: normal;
                 word-break: break-word;
+                display: inline-block;
                 max-width: 100%;
+                margin-top: 0.25rem;
             }
             
             /* Valores monetários */
             .table tbody td.font-monospace {
-                font-size: 0.9rem;
+                font-size: 1rem;
+                font-weight: 700;
                 white-space: normal;
                 word-break: break-word;
-                text-align: right;
+                text-align: left;
+                display: block;
+                margin-top: 0.25rem;
             }
             
-            /* Garantir que o card não ultrapasse a largura */
-            .table tbody tr {
+            /* Garantir que valores fiquem alinhados à direita quando apropriado */
+            .table tbody td[data-label="Valor"] {
+                text-align: left;
+            }
+            
+            .table tbody td[data-label="Valor"] .font-monospace {
+                text-align: left;
+            }
+            
+            /* Remover padding extra da última célula */
+            .table tbody td:last-child {
+                padding-bottom: 0 !important;
+                border-bottom: none !important;
+            }
+            
+            /* Primeira célula sem padding extra no topo */
+            .table tbody tr td:first-child {
+                padding-top: 0 !important;
+            }
+            
+            /* Garantir que nada ultrapasse */
+            .table tbody td * {
+                max-width: 100%;
                 box-sizing: border-box;
-                overflow: hidden;
             }
             
             /* Garantir que células vazias também apareçam */
