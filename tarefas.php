@@ -693,12 +693,15 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Sortable
+    // Sortable - apenas no desktop (tela > 768px)
     const lista = document.getElementById('lista-tarefas-pendentes');
-    if (lista?.querySelector('.task-card')) {
+    if (lista?.querySelector('.task-card') && window.innerWidth > 768) {
         new Sortable(lista, {
             animation: 150,
             ghostClass: 'opacity-50',
+            delay: 150, // Delay para evitar arrastar acidental
+            delayOnTouchOnly: true,
+            touchStartThreshold: 5,
             onEnd: () => {
                 const ordem = [...lista.querySelectorAll('.task-card')].map(c => c.dataset.id);
                 fetch('atualizar_ordem_tarefas.php', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ordem}) });
