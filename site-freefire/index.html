@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/logo-thunder.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Thunder Store | Loja de Free Fire</title>
+    <meta name="description" content="Sua loja confiável para produtos de Free Fire. Diamantes, contas e muito mais com entrega imediata." />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://thunderstore.com.br/" />
+    <meta property="og:title" content="Thunder Store | Loja de Free Fire" />
+    <meta property="og:description" content="Sua loja confiável para produtos de Free Fire. Diamantes, contas e muito mais com entrega imediata." />
+    <meta property="og:image" content="/logo-thunder.png" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://thunderstore.com.br/" />
+    <meta property="twitter:title" content="Thunder Store | Loja de Free Fire" />
+    <meta property="twitter:description" content="Sua loja confiável para produtos de Free Fire. Diamantes, contas e muito mais com entrega imediata." />
+    <meta property="twitter:image" content="/logo-thunder.png" />
+    <script type="module" crossorigin src="/assets/index-DLDbrYGF.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-R2RkWoEQ.css">
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      (function () {
+        function handleClick(event) {
+          var target = event.target;
+          if (!target) return;
+          var button = target.closest("button");
+          if (!button) return;
+          if (button.textContent.trim().toUpperCase() !== "VER PLANOS") return;
+          var card = button.closest("div");
+          if (!card) return;
+          var content = card.textContent.toUpperCase();
+          
+          var slug = '';
+          if (content.includes("FREE FIRE")) slug = 'freefire';
+          else if (content.includes("VALORANT")) slug = 'valorant';
+          else if (content.includes("COUNTER STRIKE 2") || content.includes("CS2")) slug = 'cs2';
+          else if (content.includes("FORTNITE")) slug = 'fortnite';
+          else if (content.includes("CALL OF DUTY")) slug = 'cod';
+          else if (content.includes("GTA V") || content.includes("FIVEM")) slug = 'fivem';
+          else if (content.includes("MARVEL RIVALS")) slug = 'marvel';
+          
+          if (slug) {
+            window.location.href = "/comprar.php?game=" + slug;
+          }
+        }
+        document.addEventListener("click", handleClick);
+      })();
+    </script>
+  </body>
+</html>
