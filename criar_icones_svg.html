@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Ícones PWA - SVG</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .icon-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .icon-item {
+            text-align: center;
+            padding: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .icon-item:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+        
+        .icon-svg {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .download-all {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            width: 100%;
+            font-size: 18px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            text-align: center;
+            font-weight: 600;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.loading {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Gerador de Ícones PWA - SVG</h1>
+        <p style="text-align: center; color: #666; margin-bottom: 30px;">
+            Gere todos os ícones necessários para seu Progressive Web App usando SVG
+        </p>
+        
+        <div id="status"></div>
+        
+        <div class="icon-grid" id="iconGrid">
+            <!-- Ícones serão gerados aqui -->
+        </div>
+        
+        <div style="text-align: center;">
+            <button class="btn" onclick="generateIcons()">🔄 Gerar Ícones</button>
+            <button class="btn download-all" onclick="downloadAllIcons()">📥 Baixar Todos os Ícones</button>
+        </div>
+        
+        <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 10px;">
+            <h3>📋 Tamanhos Necessários:</h3>
+            <ul>
+                <li><strong>72x72</strong> - Ícone pequeno</li>
+                <li><strong>96x96</strong> - Ícone médio</li>
+                <li><strong>128x128</strong> - Ícone padrão</li>
+                <li><strong>144x144</strong> - Windows tiles</li>
+                <li><strong>152x152</strong> - iOS Safari</li>
+                <li><strong>192x192</strong> - Android Chrome</li>
+                <li><strong>384x384</strong> - Android Chrome grande</li>
+                <li><strong>512x512</strong> - Splash screen</li>
+                <li><strong>Maskable</strong> - Ícones adaptativos</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const iconSizes = [
+            { size: 72, name: 'icon-72x72.png' },
+            { size: 96, name: 'icon-96x96.png' },
+            { size: 128, name: 'icon-128x128.png' },
+            { size: 144, name: 'icon-144x144.png' },
+            { size: 152, name: 'icon-152x152.png' },
+            { size: 192, name: 'icon-192x192.png' },
+            { size: 384, name: 'icon-384x384.png' },
+            { size: 512, name: 'icon-512x512.png' }
+        ];
+        
+        const maskableSizes = [
+            { size: 192, name: 'icon-maskable-192x192.png' },
+            { size: 512, name: 'icon-maskable-512x512.png' }
+        ];
+        
+        function showStatus(message, type = 'success') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+            setTimeout(() => {
+                statusDiv.innerHTML = '';
+            }, 3000);
+        }
+        
+        function createIconSVG(size, isMaskable = false) {
+            const padding = isMaskable ? size * 0.1 : 0;
+            const iconSize = size - (padding * 2);
+            const centerX = size / 2;
+            const centerY = size / 2;
+            const radius = iconSize * 0.3;
+            
+            const svg = `
+                <svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+                        </linearGradient>
+                    </defs>
+                    <rect width="${size}" height="${size}" fill="url(#bg)" rx="8"/>
+                    <circle cx="${centerX}" cy="${centerY}" r="${radius}" fill="white" stroke="#764ba2" stroke-width="2"/>
+                    <text x="${centerX}" y="${centerY + 5}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${radius * 0.8}" font-weight="bold" fill="#764ba2">$</text>
+                </svg>
+            `;
+            
+            return svg;
+        }
+        
+        function svgToCanvas(svgString, size) {
+            return new Promise((resolve) => {
+                const canvas = document.createElement('canvas');
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext('2d');
+                
+                const img = new Image();
+                img.onload = () => {
+                    ctx.drawImage(img, 0, 0, size, size);
+                    resolve(canvas);
+                };
+                
+                const svgBlob = new Blob([svgString], { type: 'image/svg+xml' });
+                const url = URL.createObjectURL(svgBlob);
+                img.src = url;
+            });
+        }
+        
+        function downloadIcon(canvas, filename) {
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+        
+        function generateIcons() {
+            showStatus('Gerando ícones...', 'loading');
+            const grid = document.getElementById('iconGrid');
+            grid.innerHTML = '';
+            
+            // Gerar ícones normais
+            iconSizes.forEach(async (icon, index) => {
+                const svg = createIconSVG(icon.size);
+                const canvas = await svgToCanvas(svg, icon.size);
+                
+                const item = document.createElement('div');
+                item.className = 'icon-item';
+                
+                const title = document.createElement('h4');
+                title.textContent = icon.name;
+                title.style.margin = '0 0 10px 0';
+                
+                const canvasClone = canvas.cloneNode();
+                canvasClone.style.width = '100px';
+                canvasClone.style.height = '100px';
+                
+                const downloadBtn = document.createElement('button');
+                downloadBtn.className = 'btn';
+                downloadBtn.textContent = '📥 Baixar';
+                downloadBtn.onclick = () => downloadIcon(canvas, icon.name);
+                
+                item.appendChild(title);
+                item.appendChild(canvasClone);
+                item.appendChild(downloadBtn);
+                grid.appendChild(item);
+            });
+            
+            // Gerar ícones maskable
+            maskableSizes.forEach(async (icon, index) => {
+                const svg = createIconSVG(icon.size, true);
+                const canvas = await svgToCanvas(svg, icon.size);
+                
+                const item = document.createElement('div');
+                item.className = 'icon-item';
+                
+                const title = document.createElement('h4');
+                title.textContent = icon.name + ' (Maskable)';
+                title.style.margin = '0 0 10px 0';
+                
+                const canvasClone = canvas.cloneNode();
+                canvasClone.style.width = '100px';
+                canvasClone.style.height = '100px';
+                
+                const downloadBtn = document.createElement('button');
+                downloadBtn.className = 'btn';
+                downloadBtn.textContent = '📥 Baixar';
+                downloadBtn.onclick = () => downloadIcon(canvas, icon.name);
+                
+                item.appendChild(title);
+                item.appendChild(canvasClone);
+                item.appendChild(downloadBtn);
+                grid.appendChild(item);
+            });
+            
+            setTimeout(() => {
+                showStatus('Ícones gerados com sucesso!', 'success');
+            }, 1000);
+        }
+        
+        async function downloadAllIcons() {
+            showStatus('Baixando todos os ícones...', 'loading');
+            
+            // Baixar ícones normais
+            for (let i = 0; i < iconSizes.length; i++) {
+                const icon = iconSizes[i];
+                const svg = createIconSVG(icon.size);
+                const canvas = await svgToCanvas(svg, icon.size);
+                
+                setTimeout(() => {
+                    downloadIcon(canvas, icon.name);
+                }, i * 200);
+            }
+            
+            // Baixar ícones maskable
+            for (let i = 0; i < maskableSizes.length; i++) {
+                const icon = maskableSizes[i];
+                const svg = createIconSVG(icon.size, true);
+                const canvas = await svgToCanvas(svg, icon.size);
+                
+                setTimeout(() => {
+                    downloadIcon(canvas, icon.name);
+                }, (iconSizes.length + i) * 200);
+            }
+            
+            setTimeout(() => {
+                showStatus('Todos os ícones foram baixados!', 'success');
+            }, (iconSizes.length + maskableSizes.length) * 200 + 1000);
+        }
+        
+        // Gerar ícones automaticamente ao carregar
+        window.onload = () => {
+            generateIcons();
+        };
+    </script>
+</body>
+</html>

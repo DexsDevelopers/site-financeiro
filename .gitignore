@@ -1,0 +1,25 @@
+# Dependências
+node_modules/
+package-lock.json
+
+# Arquivos de configuração sensíveis
+.env
+config.php
+includes/google_oauth_config.php
+
+# Cache e logs
+cache/
+*.log
+
+# Arquivos temporários
+*.tmp
+*.temp
+
+# Arquivos do sistema
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+.agent/skills/

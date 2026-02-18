@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Finalize sua compra - Acesso VIP Exclusivo">
+  <title>Finalizar Compra | Grupo Exclusivo</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Poppins:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+  <style>
+    :root {
+      --primary-glow: #ff1744;
+      --secondary-glow: #d32f2f;
+      --accent-gold: #ffc107;
+      --accent-gold-dark: #ff8f00;
+      --gradient-primary: linear-gradient(135deg, var(--primary-glow) 0%, var(--secondary-glow) 100%);
+      --gradient-gold: linear-gradient(135deg, var(--accent-gold) 0%, var(--accent-gold-dark) 100%);
+
+      --bg-color: #000000;
+      --bg-glass: rgba(15, 15, 15, 0.75);
+      --bg-glass-hover: rgba(20, 20, 20, 0.85);
+      --glass-border: rgba(255, 255, 255, 0.1);
+      --glass-border-hover: rgba(255, 23, 68, 0.5);
+
+      --text-primary: #ffffff;
+      --text-secondary: #b0b0b0;
+      --text-muted: #707070;
+
+      --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.5);
+      --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.7);
+      --shadow-glow: 0 0 30px rgba(255, 23, 68, 0.4);
+
+      --border-radius: 20px;
+      --font-heading: 'Orbitron', sans-serif;
+      --font-body: 'Poppins', sans-serif;
+
+      --transition-normal: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--bg-color);
+      color: var(--text-primary);
+      overflow-x: hidden;
+      position: relative;
+      min-height: 100vh;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: url('foto.jpg') no-repeat center center fixed;
+      background-size: cover;
+      filter: blur(8px) brightness(0.25) saturate(1.3);
+      z-index: -2;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      background: 
+        radial-gradient(circle at 20% 30%, rgba(255, 23, 68, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 80% 70%, rgba(255, 193, 7, 0.1) 0%, transparent 40%);
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    .header {
+      text-align: center;
+      padding: 60px 30px 40px;
+      position: relative;
+    }
+
+    .header h1 {
+      font-family: var(--font-heading);
+      font-size: clamp(2rem, 6vw, 3.5rem);
+      font-weight: 900;
+      background: var(--gradient-primary);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 15px;
+    }
+
+    .header p {
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 40px 30px;
+    }
+
+    .checkout-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 40px;
+    }
+
+    @media (min-width: 968px) {
+      .checkout-grid {
+        grid-template-columns: 1.3fr 1fr;
+      }
+    }
+
+    .checkout-card {
+      background: var(--bg-glass);
+      backdrop-filter: blur(20px);
+      border: 2px solid var(--glass-border);
+      border-radius: var(--border-radius);
+      padding: 40px;
+      position: relative;
+      transition: all var(--transition-normal);
+    }
+
+    .checkout-card:hover {
+      border-color: var(--glass-border-hover);
+      box-shadow: var(--shadow-glow);
+    }
+
+    .checkout-card h2 {
+      font-family: var(--font-heading);
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid var(--glass-border);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .checkout-card h3 {
+      font-size: 1.5rem;
+      color: var(--accent-gold);
+      margin-bottom: 10px;
+      font-weight: 700;
+    }
+
+    .plan-benefits {
+      list-style: none;
+      margin: 25px 0;
+      padding: 0;
+    }
+
+    .plan-benefits li {
+      color: var(--text-secondary);
+      padding: 12px 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .plan-benefits li:last-child {
+      border-bottom: none;
+    }
+
+    .plan-benefits li::before {
+      content: '✓';
+      width: 24px;
+      height: 24px;
+      background: var(--gradient-primary);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+    }
+
+    .order-total {
+      margin-top: 35px;
+      padding-top: 25px;
+      border-top: 2px solid var(--glass-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .order-total .label {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .order-total .total-price {
+      font-family: var(--font-heading);
+      font-size: 2.8rem;
+      font-weight: 900;
+      background: var(--gradient-gold);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .payment-method {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 30px;
+      border: 1px solid var(--glass-border);
+    }
+
+    .payment-method span {
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .payment-method img {
+      height: 30px;
+      filter: brightness(1.1);
+    }
+
+    .final-cta {
+      text-align: center;
+    }
+
+    .final-cta p {
+      color: var(--text-secondary);
+      margin-bottom: 25px;
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    .btn {
+      width: 100%;
+      display: inline-block;
+      padding: 20px 40px;
+      background: var(--gradient-primary);
+      color: white;
+      font-family: var(--font-body);
+      text-decoration: none;
+      border-radius: 50px;
+      font-size: 1.2rem;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      transition: all var(--transition-normal);
+      box-shadow: 0 4px 20px rgba(255, 23, 68, 0.3);
+    }
+
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      transform: translate(-50%, -50%);
+      transition: width 0.6s, height 0.6s;
+    }
+
+    .btn:hover::before {
+      width: 400px;
+      height: 400px;
+    }
+
+    .btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 30px rgba(255, 23, 68, 0.5);
+    }
+
+    .btn span {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .trust-seals {
+      display: flex;
+      gap: 30px;
+      margin-top: 30px;
+      flex-wrap: wrap;
+    }
+
+    .trust-seals div {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+    }
+
+    .trust-seals i {
+      font-size: 1.2rem;
+      color: var(--accent-gold);
+    }
+
+    footer {
+      text-align: center;
+      padding: 50px 30px;
+      border-top: 1px solid var(--glass-border);
+      margin-top: 60px;
+    }
+
+    .footer-content p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 15px;
+    }
+
+    .reveal-on-scroll {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .reveal-on-scroll.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 768px) {
+      .checkout-card {
+        padding: 30px 25px;
+      }
+
+      .order-total .total-price {
+        font-size: 2.2rem;
+      }
+
+      .trust-seals {
+        flex-direction: column;
+        gap: 15px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="header">
+    <h1>🔥 Você está a um passo do paraíso...</h1>
+    <p>Finalize sua compra e libere seu acesso VIP imediato</p>
+  </div>
+
+  <main class="container">
+    <div class="checkout-grid">
+
+      <div class="order-summary-column">
+        <div class="checkout-card reveal-on-scroll">
+          <h2>Resumo da sua Compra</h2>
+          <h3 id="plan-name-display">Plano Mensal</h3>
+          <p style="color: var(--text-secondary); margin-bottom: 20px;">Seu acesso exclusivo inclui:</p>
+          
+          <ul class="plan-benefits">
+            <li>Liberdade total por 30 dias</li>
+            <li>Novos conteúdos toda semana</li>
+            <li>Qualidade Full HD</li>
+            <li>Acesso ilimitado 24/7</li>
+            <li>Bônus secretos e exclusivos</li>
+            <li>Cancele quando quiser</li>
+          </ul>
+
+          <div class="order-total">
+            <span class="label">TOTAL</span>
+            <span class="total-price" id="plan-price-display">R$19,90</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="payment-column">
+        <div class="checkout-card reveal-on-scroll">
+          <h2>Forma de Pagamento</h2>
+          
+          <div class="payment-method">
+            <span>Pague com segurança via</span>
+            <img
+              src="https://http2.mlstatic.com/storage/pog-cm-admin/calm-assets/3_C_fondoC--320x208--fe0ebeee--rebrand-mp.webp?refresh=1"
+              alt="Mercado Pago">
+          </div>
+
+          <div class="final-cta">
+            <p>
+              Clique abaixo para ser redirecionado ao ambiente 100% seguro do Mercado Pago.
+              Seu pagamento é processado de forma totalmente criptografada e protegida.
+            </p>
+
+            <a href="SEU_LINK_DO_MERCADO_PAGO_AQUI" class="btn">
+              <span>
+                <i class="bi bi-lock-fill"></i>
+                PAGAR COM SEGURANÇA
+              </span>
+            </a>
+          </div>
+
+          <div class="trust-seals">
+            <div>
+              <i class="bi bi-shield-check"></i>
+              <span>Compra Criptografada</span>
+            </div>
+            <div>
+              <i class="bi bi-lock-fill"></i>
+              <span>Privacidade Total</span>
+            </div>
+            <div>
+              <i class="bi bi-credit-card"></i>
+              <span>Pagamento Seguro</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <footer>
+    <div class="footer-content">
+      <p>© 2025 ClubExclusivo.vip - Todos os direitos reservados.</p>
+      <p>Este conteúdo é destinado exclusivamente para maiores de 18 anos.</p>
+      <p>Contato: empresatokio@gmail.com</p>
+    </div>
+  </footer>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      // Animações de Scroll
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+          }
+        });
+      }, { threshold: 0.2 });
+      
+      document.querySelectorAll('.reveal-on-scroll').forEach((el, index) => {
+        el.style.transitionDelay = `${index * 100}ms`;
+        observer.observe(el);
+      });
+    });
+  </script>
+</body>
+
+</html>

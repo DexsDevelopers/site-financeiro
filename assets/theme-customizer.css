@@ -1,0 +1,260 @@
+/* theme-customizer.css - Estilos para o Sistema de Temas Personalizados */
+
+.theme-selector {
+    background: var(--card-bg-light);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.theme-selector-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.theme-selector-header h6 {
+    margin: 0;
+    color: var(--text-100);
+    font-weight: 600;
+}
+
+.theme-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 0.75rem;
+}
+
+.theme-option {
+    background: var(--bg-700);
+    border: 2px solid transparent;
+    border-radius: 8px;
+    padding: 0.75rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.theme-option:hover {
+    background: var(--bg-600);
+    transform: translateY(-2px);
+}
+
+.theme-option.active {
+    border-color: var(--accent);
+    background: var(--accent-600);
+}
+
+.theme-preview {
+    display: flex;
+    gap: 0.25rem;
+    margin-bottom: 0.5rem;
+    justify-content: center;
+}
+
+.color-swatch {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.2);
+}
+
+.theme-name {
+    font-size: 0.8rem;
+    color: var(--text-100);
+    font-weight: 500;
+}
+
+/* Modal do Construtor de Temas */
+#themeBuilderModal .modal-content {
+    background: var(--card-bg-light);
+    border: 1px solid var(--border);
+}
+
+#themeBuilderModal .modal-header {
+    border-bottom: 1px solid var(--border);
+}
+
+#themeBuilderModal .modal-footer {
+    border-top: 1px solid var(--border);
+}
+
+.theme-builder-form .form-group {
+    margin-bottom: 1rem;
+}
+
+.theme-builder-form .form-label {
+    color: var(--text-100);
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.theme-builder-form .form-control-color {
+    width: 50px;
+    height: 38px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.theme-builder-form .input-group {
+    align-items: center;
+}
+
+.theme-preview-container {
+    background: var(--bg-800);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+    min-height: 200px;
+}
+
+.preview-card {
+    background: var(--preview-surface, var(--bg-700));
+    border: 1px solid var(--preview-border, var(--border));
+    border-radius: 8px;
+    padding: 1rem;
+    color: var(--preview-text, var(--text-100));
+}
+
+.preview-header {
+    font-weight: 600;
+    color: var(--preview-text, var(--text-100));
+    margin-bottom: 0.75rem;
+}
+
+.preview-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.preview-metric {
+    text-align: center;
+}
+
+.preview-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--preview-primary, var(--accent));
+    margin-bottom: 0.25rem;
+}
+
+.preview-label {
+    font-size: 0.8rem;
+    color: var(--preview-text-secondary, var(--text-400));
+}
+
+.preview-button {
+    background: var(--preview-primary, var(--accent));
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    text-align: center;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+/* Temas Personalizados */
+.theme-ocean {
+    --primary: #0066cc;
+    --secondary: #3399ff;
+    --background: #0a0e1a;
+    --surface: #1a2332;
+    --text: #e6f3ff;
+    --text-secondary: #b3d9ff;
+    --border: rgba(0,102,204,0.2);
+}
+
+.theme-forest {
+    --primary: #2d5016;
+    --secondary: #4a7c59;
+    --background: #0f1b0f;
+    --surface: #1a2e1a;
+    --text: #e8f5e8;
+    --text-secondary: #c4e6c4;
+    --border: rgba(45,80,22,0.3);
+}
+
+.theme-sunset {
+    --primary: #ff6b35;
+    --secondary: #ff8e53;
+    --background: #1a0f0a;
+    --surface: #2e1a0f;
+    --text: #fff5f0;
+    --text-secondary: #ffd6c4;
+    --border: rgba(255,107,53,0.2);
+}
+
+.theme-purple {
+    --primary: #6f42c1;
+    --secondary: #8e44ad;
+    --background: #1a0f1a;
+    --surface: #2e1a2e;
+    --text: #f0e6f0;
+    --text-secondary: #d6b3d6;
+    --border: rgba(111,66,193,0.2);
+}
+
+.theme-minimal {
+    --primary: #333333;
+    --secondary: #666666;
+    --background: #ffffff;
+    --surface: #f8f9fa;
+    --text: #212529;
+    --text-secondary: #6c757d;
+    --border: rgba(0,0,0,0.1);
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .theme-options {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .theme-preview-container {
+        min-height: 150px;
+    }
+    
+    .preview-value {
+        font-size: 1.2rem;
+    }
+}
+
+/* Animações */
+.theme-option {
+    animation: fadeInUp 0.3s ease;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Modo Acessibilidade */
+.accessibility-mode .theme-option {
+    border-width: 3px;
+}
+
+.accessibility-mode .theme-option.active {
+    border-width: 4px;
+    box-shadow: 0 0 0 2px var(--accent);
+}
+
+.accessibility-mode .color-swatch {
+    width: 20px;
+    height: 20px;
+}
+
+.accessibility-mode .theme-name {
+    font-size: 1rem;
+    font-weight: 600;
+}

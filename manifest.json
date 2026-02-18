@@ -1,0 +1,106 @@
+{
+  "name": "Painel Financeiro Pessoal",
+  "short_name": "Painel Financeiro",
+  "description": "Sistema completo de gestão financeira pessoal com funcionalidades avançadas",
+  "start_url": "/dashboard.php",
+  "id": "painel-financeiro-pwa",
+  "display": "standalone",
+  "background_color": "#667eea",
+  "theme_color": "#667eea",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "categories": ["finance", "productivity", "utilities"],
+  "icons": [
+    { "src": "images/icon-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "images/icon-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "images/icon-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "images/icon-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "screenshots": [
+    {
+      "src": "screenshots/desktop-1.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Dashboard principal do painel financeiro"
+    },
+    {
+      "src": "screenshots/mobile-1.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Visão mobile do painel"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Acessar dashboard principal",
+      "url": "/dashboard.php",
+      "icons": [
+        {
+          "src": "icons/shortcut-dashboard.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Extrato",
+      "short_name": "Extrato",
+      "description": "Ver extrato financeiro",
+      "url": "/extrato_completo.php",
+      "icons": [
+        {
+          "src": "icons/shortcut-extrato.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Tarefas",
+      "short_name": "Tarefas",
+      "description": "Gerenciar tarefas",
+      "url": "/tarefas.php",
+      "icons": [
+        {
+          "src": "icons/shortcut-tarefas.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Relatórios",
+      "short_name": "Relatórios",
+      "description": "Ver relatórios financeiros",
+      "url": "/relatorios.php",
+      "icons": [
+        {
+          "src": "icons/shortcut-relatorios.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
+  "file_handlers": [],
+  "protocol_handlers": [
+    {
+      "protocol": "web+painelfinanceiro",
+        "url": "/dashboard.php?action=%s"
+    }
+  ],
+  "share_target": {},
+  "display_override": ["window-controls-overlay", "standalone"],
+  "handle_links": "preferred",
+  "capture_links": "existing-client-navigate"
+}

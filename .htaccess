@@ -1,0 +1,4 @@
+# Variáveis do bot de WhatsApp
+SetEnv WHATSAPP_API_URL https://lazaro-enforceable-finley.ngrok-free.dev
+SetEnv WHATSAPP_API_TOKEN lucastav8012
+ 

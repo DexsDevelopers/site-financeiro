@@ -1,0 +1,23 @@
+{
+  "name": "whatsapp-bot-site-financeiro",
+  "version": "1.0.0",
+  "description": "Bot WhatsApp específico para o Site Financeiro (Baileys + Express).",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node kill-port.js && node index.js",
+    "kill-port": "node kill-port.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.21",
+    "axios": "^1.6.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "form-data": "^4.0.0",
+    "pino": "^9.3.2",
+    "qrcode": "^1.5.4",
+    "qrcode-terminal": "^0.12.0"
+  }
+}
+

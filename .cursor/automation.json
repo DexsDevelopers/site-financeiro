@@ -1,0 +1,48 @@
+{
+  "version": "1.0.0",
+  "automations": [
+    {
+      "id": "auto-commit-changes",
+      "name": "Commit Automático de Mudanças",
+      "description": "Faz commit automático de mudanças não commitadas ao salvar arquivos",
+      "trigger": {
+        "type": "file-change",
+        "patterns": ["**/*.php", "**/*.js", "**/*.css", "**/*.html", "**/*.json"]
+      },
+      "command": {
+        "type": "shell",
+        "command": "git add .; git commit -m \"Atualização automática - $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')\"",
+        "workingDirectory": "${workspaceFolder}",
+        "shell": {
+          "executable": "powershell.exe"
+        }
+      },
+      "enabled": true,
+      "delay": 4000
+    },
+    {
+      "id": "auto-deploy-on-commit",
+      "name": "Deploy Automático no Commit",
+      "description": "Executa o deploy automaticamente quando há novos commits no repositório",
+      "trigger": {
+        "type": "git-commit",
+        "branch": "main"
+      },
+      "command": {
+        "type": "shell",
+        "command": "powershell -ExecutionPolicy Bypass -File \".\\.cursor\\deploy.ps1\"",
+        "workingDirectory": "${workspaceFolder}",
+        "shell": {
+          "executable": "powershell.exe",
+          "args": ["-ExecutionPolicy", "Bypass"]
+        }
+      },
+      "enabled": true,
+      "notifications": {
+        "onStart": "🚀 Iniciando deploy automático...",
+        "onSuccess": "✅ Deploy concluído com sucesso!",
+        "onError": "❌ Erro no deploy automático"
+      }
+    }
+  ]
+}

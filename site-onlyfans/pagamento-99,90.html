@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Finalizar Compra | Acesso Exclusivo</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Poppins:wght@400;500;700&display=swap"
+    rel="stylesheet">
+
+  <style>
+    /* NOVA PALETA DE CORES: VERMELHO, DOURADO E PRETO */
+    :root {
+      --primary-glow: #e60023;
+      /* Vermelho vibrante e profundo */
+      --secondary-glow: #D70040;
+      /* Vermelho carmesim */
+      --accent-glow: #ffc107;
+      /* Dourado para detalhes de luxo */
+      --gradient-primary: linear-gradient(90deg, var(--primary-glow), var(--secondary-glow));
+
+      --bg-color: #0a0a0a;
+      --surface-color-rgba: rgba(10, 10, 10, 0.6);
+      --glass-border-color: rgba(255, 255, 255, 0.15);
+
+      --text-color: #f5f5f5;
+      --text-color-muted: #a0a0a0;
+
+      --border-radius: 16px;
+      --font-heading: 'Orbitron', sans-serif;
+      --font-body: 'Poppins', sans-serif;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: url('foto.jpg') no-repeat center center fixed;
+      background-size: cover;
+      filter: blur(5px) brightness(0.3) saturate(1.2);
+      z-index: -2;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      background: radial-gradient(circle at var(--x, 50%) var(--y, 50%), var(--primary-glow), transparent 50%);
+      opacity: 0.2;
+      z-index: -1;
+      animation: aurora 15s ease-in-out infinite alternate;
+    }
+
+    @keyframes aurora {
+      0% {
+        --x: 20%;
+        --y: 20%;
+        opacity: 0.15;
+      }
+
+      50% {
+        --x: 80%;
+        --y: 80%;
+        opacity: 0.25;
+      }
+
+      100% {
+        --x: 20%;
+        --y: 20%;
+        opacity: 0.15;
+      }
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
+    .reveal-on-scroll {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+    }
+
+    .reveal-on-scroll.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    header {
+      text-align: center;
+      padding: 40px 20px;
+    }
+
+    header h1 {
+      font-family: var(--font-heading);
+      font-size: clamp(2rem, 8vw, 2.8rem);
+      color: var(--text-color);
+      text-shadow: 0 0 20px var(--primary-glow);
+    }
+
+    /* NOVO LAYOUT EM GRID */
+    .checkout-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 30px;
+    }
+
+    @media (min-width: 768px) {
+      .checkout-grid {
+        grid-template-columns: 1.2fr 1fr;
+      }
+    }
+
+    .checkout-card {
+      background: var(--surface-color-rgba);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--glass-border-color);
+      border-radius: var(--border-radius);
+      padding: 30px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .checkout-card::before {
+      /* Efeito de brilho na borda ao passar o mouse */
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: var(--border-radius);
+      padding: 1px;
+      background: conic-gradient(from 180deg at 50% 50%, rgba(255, 255, 255, 0.2), var(--primary-glow), rgba(255, 255, 255, 0.2));
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .checkout-card:hover::before {
+      opacity: 1;
+    }
+
+    .checkout-card h2 {
+      font-size: 1.5rem;
+      text-align: left;
+      margin-bottom: 25px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--glass-border-color);
+      color: var(--text-color);
+    }
+
+    /* Coluna da Esquerda: Resumo */
+    .plan-benefits {
+      list-style: none;
+      padding: 0;
+      margin: 20px 0;
+    }
+
+    .plan-benefits li {
+      color: var(--text-color-muted);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .plan-benefits li::before {
+      content: '🔥';
+    }
+
+    .order-total {
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid var(--glass-border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .order-total span {
+      font-size: 1.2rem;
+      font-weight: 500;
+    }
+
+    .order-total .total-price {
+      font-family: var(--font-heading);
+      font-size: 2.2rem;
+      color: var(--accent-glow);
+      text-shadow: 0 0 15px var(--accent-glow);
+    }
+
+    /* Coluna da Direita: Pagamento */
+    .payment-method {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background-color: rgba(0, 0, 0, 0.2);
+      padding: 15px;
+      border-radius: 10px;
+    }
+
+    .payment-method img {
+      height: 25px;
+    }
+
+    .final-cta {
+      text-align: center;
+      margin-top: 30px;
+    }
+
+    .btn {
+      width: 100%;
+      display: inline-block;
+      padding: 18px 40px;
+      background: var(--gradient-primary);
+      color: white;
+      font-family: var(--font-body);
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      border: none;
+      cursor: pointer;
+      text-align: center;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      box-shadow: 0 0 20px var(--primary-glow);
+    }
+
+    .btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 35px var(--primary-glow);
+    }
+
+    footer {
+      text-align: center;
+      padding: 40px 20px;
+      font-size: 0.9rem;
+      color: var(--text-color-muted);
+    }
+
+    .trust-seals {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 10px;
+      opacity: 0.8;
+    }
+
+    .trust-seals div {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <h1>🔥 Você está a um passo do paraíso...</h1>
+  </header>
+
+  <main class="container">
+    <div class="checkout-grid">
+
+      <div class="order-summary-column">
+        <div class="checkout-card reveal-on-scroll">
+          <h2>Resumo da sua Compra</h2>
+          <h3 id="plan-name-display" style="font-size: 1.5rem; color: var(--text-color);">Plano Anual</h3>
+          <p style="color: var(--text-color-muted); margin-top: 5px;">Seu acesso exclusivo inclui:</p>
+          <ul class="plan-benefits">
+            <li>💎 Acesso VIP Ilimitado</li>
+            <li>💎 12 meses de conteúdo premium</li>
+            <li>💎 Conteúdo em 4K</li>
+            <li>Bônus secretos e exclusivos</li>
+          </ul>
+
+          <div class="order-total">
+            <span>TOTAL</span>
+            <span class="total-price" id="plan-price-display">R$19,90</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="payment-column">
+        <div class="checkout-card reveal-on-scroll" style="transition-delay: 150ms;">
+          <h2>Forma de Pagamento</h2>
+          <div class="payment-method">
+            <span>Pague com segurança via</span>
+            <img
+              src="https://http2.mlstatic.com/storage/pog-cm-admin/calm-assets/3_C_fondoC--320x208--fe0ebeee--rebrand-mp.webp?refresh=1"
+              alt="Mercado Pago">
+          </div>
+
+          <div class="final-cta">
+            <p style="margin-bottom: 20px; font-size: 0.9rem; color: var(--text-color-muted);">Clique abaixo para ser
+              redirecionado ao ambiente 100% seguro do Mercado Pago.</p>
+
+            <a href="SEU_LINK_DO_MERCADO_PAGO_AQUI" class="btn">PAGAR COM SEGURANÇA</a>
+          </div>
+        </div>
+        <div class="trust-seals reveal-on-scroll"
+          style="justify-content: flex-start; margin-top: 20px; transition-delay: 250ms;">
+          <div>🛡️ Compra Criptografada</div>
+          <div>🔒 Privacidade Total</div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <footer>
+    <p style="font-size: 0.8rem; margin-top: 20px; opacity: 0.5;">© 2025 ClubExclusivo.vip - Todos os direitos
+      reservados.</p>
+  </footer>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      // Animações de Scroll
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) { entry.target.classList.add('visible'); }
+        });
+      }, { threshold: 0.2 });
+      document.querySelectorAll('.reveal-on-scroll').forEach((el, index) => {
+        el.style.transitionDelay = `${index * 100}ms`;
+        observer.observe(el);
+      });
+
+      // Lógica para preencher os dados dinamicamente da URL
+      const params = new URLSearchParams(window.location.search);
+      const plano = params.get('plano');
+      const preco = params.get('preco');
+
+      if (plano && preco) {
+        document.getElementById('plan-name-display').textContent = plano;
+        document.getElementById('plan-price-display').textContent = preco;
+      }
+    });
+  </script>
+</body>
+
+</html>

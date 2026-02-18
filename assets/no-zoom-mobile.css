@@ -1,0 +1,366 @@
+/* =========================================== */
+/* PREVENÇÃO TOTAL DE ZOOM NO MOBILE */
+/* =========================================== */
+
+/* Aplicar apenas em dispositivos móveis */
+@media screen and (max-width: 768px) {
+    /* Desabilitar zoom completamente no HTML */
+    html {
+        -webkit-text-size-adjust: 100% !important;
+        -ms-text-size-adjust: 100% !important;
+        text-size-adjust: 100% !important;
+        -webkit-touch-callout: none !important;
+        -webkit-user-select: none !important;
+        -khtml-user-select: none !important;
+        -moz-user-select: none !important;
+        -ms-user-select: none !important;
+        user-select: none !important;
+        touch-action: manipulation !important;
+        -webkit-tap-highlight-color: transparent !important;
+    }
+    
+    /* Desabilitar zoom no body */
+    body {
+        -webkit-text-size-adjust: 100% !important;
+        -ms-text-size-adjust: 100% !important;
+        text-size-adjust: 100% !important;
+        -webkit-touch-callout: none !important;
+        -webkit-user-select: none !important;
+        -khtml-user-select: none !important;
+        -moz-user-select: none !important;
+        -ms-user-select: none !important;
+        user-select: none !important;
+        overflow-x: hidden !important;
+        touch-action: manipulation !important;
+        -webkit-tap-highlight-color: transparent !important;
+    }
+    
+    /* Permitir seleção apenas em inputs e textareas */
+    input, textarea, [contenteditable] {
+        -webkit-user-select: text !important;
+        -khtml-user-select: text !important;
+        -moz-user-select: text !important;
+        -ms-user-select: text !important;
+        user-select: text !important;
+        -webkit-touch-callout: default !important;
+        font-size: 16px !important;
+        -webkit-text-size-adjust: 100% !important;
+        -ms-text-size-adjust: 100% !important;
+        text-size-adjust: 100% !important;
+    }
+    
+    /* Desabilitar zoom em todos os elementos (exceto scroll) */
+    *, *::before, *::after {
+        -webkit-text-size-adjust: 100% !important;
+        -ms-text-size-adjust: 100% !important;
+        text-size-adjust: 100% !important;
+        -webkit-touch-callout: none !important;
+        -webkit-user-select: none !important;
+        -khtml-user-select: none !important;
+        -moz-user-select: none !important;
+        -ms-user-select: none !important;
+        user-select: none !important;
+        -webkit-tap-highlight-color: transparent !important;
+    }
+    
+    /* Forçar tamanho de fonte para evitar zoom automático */
+    input, select, textarea, button {
+        font-size: 16px !important;
+        -webkit-text-size-adjust: 100% !important;
+        -ms-text-size-adjust: 100% !important;
+        text-size-adjust: 100% !important;
+        -webkit-appearance: none !important;
+        -moz-appearance: none !important;
+        appearance: none !important;
+    }
+    
+    /* Desabilitar gestos de zoom (mas permitir scroll) */
+    * {
+        -webkit-tap-highlight-color: transparent !important;
+    }
+    
+    /* Prevenir zoom em imagens */
+    img {
+        -webkit-touch-callout: none !important;
+        -webkit-user-select: none !important;
+        -khtml-user-select: none !important;
+        -moz-user-select: none !important;
+        -ms-user-select: none !important;
+        user-select: none !important;
+        pointer-events: none !important;
+    }
+    
+    /* Prevenir zoom em links (exceto links do menu) */
+    a:not(.nav-link) {
+        -webkit-touch-callout: none !important;
+        -webkit-user-select: none !important;
+        -khtml-user-select: none !important;
+        -moz-user-select: none !important;
+        -ms-user-select: none !important;
+        user-select: none !important;
+    }
+    
+    /* Permitir interação com links do menu */
+    .nav-link {
+        -webkit-touch-callout: default !important;
+        -webkit-user-select: auto !important;
+        -khtml-user-select: auto !important;
+        -moz-user-select: auto !important;
+        -ms-user-select: auto !important;
+        user-select: auto !important;
+        pointer-events: auto !important;
+    }
+    
+    /* Prevenir zoom em botões (exceto botões do menu) */
+    button:not(.navbar-toggler-custom):not(.btn-close-mobile), .btn:not(.navbar-toggler-custom):not(.btn-close-mobile) {
+        -webkit-touch-callout: none !important;
+        -webkit-user-select: none !important;
+        -khtml-user-select: none !important;
+        -moz-user-select: none !important;
+        -ms-user-select: none !important;
+        user-select: none !important;
+    }
+    
+    /* Permitir interação com botões do menu */
+    .navbar-toggler-custom, .btn-close-mobile {
+        -webkit-touch-callout: default !important;
+        -webkit-user-select: auto !important;
+        -khtml-user-select: auto !important;
+        -moz-user-select: auto !important;
+        -ms-user-select: auto !important;
+        user-select: auto !important;
+        pointer-events: auto !important;
+    }
+    
+    /* Prevenir zoom em divs e containers (exceto elementos do menu) */
+    div:not(.sidebar):not(.offcanvas):not(.offcanvas-body):not(.accordion):not(.accordion-item):not(.accordion-header):not(.accordion-body), 
+    section:not(.sidebar), 
+    article:not(.sidebar), 
+    header:not(.sidebar-header), 
+    footer:not(.sidebar-footer), 
+    nav:not(.sidebar-nav), 
+    main:not(.sidebar-main), 
+    aside:not(.sidebar) {
+        -webkit-touch-callout: none !important;
+        -webkit-user-select: none !important;
+        -khtml-user-select: none !important;
+        -moz-user-select: none !important;
+        -ms-user-select: none !important;
+        user-select: none !important;
+    }
+    
+    /* Permitir interação com elementos do menu */
+    .sidebar, .offcanvas, .offcanvas-body, .accordion, .accordion-item, .accordion-header, .accordion-body, .sidebar-header, .sidebar-nav, .sidebar-main {
+        -webkit-touch-callout: default !important;
+        -webkit-user-select: auto !important;
+        -khtml-user-select: auto !important;
+        -moz-user-select: auto !important;
+        -ms-user-select: auto !important;
+        user-select: auto !important;
+        pointer-events: auto !important;
+    }
+    
+    /* Prevenir zoom em tabelas */
+    table, tr, td, th {
+        -webkit-touch-callout: none !important;
+        -webkit-user-select: none !important;
+        -khtml-user-select: none !important;
+        -moz-user-select: none !important;
+        -ms-user-select: none !important;
+        user-select: none !important;
+    }
+    
+    /* Prevenir zoom em formulários (exceto formulários do menu) */
+    form:not(.sidebar-form), fieldset:not(.sidebar-fieldset), legend:not(.sidebar-legend) {
+        -webkit-touch-callout: none !important;
+        -webkit-user-select: none !important;
+        -khtml-user-select: none !important;
+        -moz-user-select: none !important;
+        -ms-user-select: none !important;
+        user-select: none !important;
+    }
+    
+    /* Permitir interação com formulários do menu */
+    .sidebar-form, .sidebar-fieldset, .sidebar-legend {
+        -webkit-touch-callout: default !important;
+        -webkit-user-select: auto !important;
+        -khtml-user-select: auto !important;
+        -moz-user-select: auto !important;
+        -ms-user-select: auto !important;
+        user-select: auto !important;
+        pointer-events: auto !important;
+    }
+    
+    /* Prevenir zoom em listas (exceto listas do menu) */
+    ul:not(.nav):not(.flex-column), ol:not(.nav):not(.flex-column), li:not(.nav-item) {
+        -webkit-touch-callout: none !important;
+        -webkit-user-select: none !important;
+        -khtml-user-select: none !important;
+        -moz-user-select: none !important;
+        -ms-user-select: none !important;
+        user-select: none !important;
+    }
+    
+    /* Permitir interação com listas do menu */
+    .nav, .flex-column, .nav-item {
+        -webkit-touch-callout: default !important;
+        -webkit-user-select: auto !important;
+        -khtml-user-select: auto !important;
+        -moz-user-select: auto !important;
+        -ms-user-select: auto !important;
+        user-select: auto !important;
+        pointer-events: auto !important;
+    }
+    
+    /* Prevenir zoom em parágrafos e textos (exceto textos do menu) */
+    p:not(.sidebar-title):not(.text-muted), 
+    span:not(.sidebar-title):not(.text-muted), 
+    h1:not(.sidebar-title), 
+    h2:not(.sidebar-title), 
+    h3:not(.sidebar-title), 
+    h4:not(.sidebar-title), 
+    h5:not(.sidebar-title), 
+    h6:not(.sidebar-title) {
+        -webkit-touch-callout: none !important;
+        -webkit-user-select: none !important;
+        -khtml-user-select: none !important;
+        -moz-user-select: none !important;
+        -ms-user-select: none !important;
+        user-select: none !important;
+    }
+    
+    /* Permitir interação com textos do menu */
+    .sidebar-title, .text-muted {
+        -webkit-touch-callout: default !important;
+        -webkit-user-select: auto !important;
+        -khtml-user-select: auto !important;
+        -moz-user-select: auto !important;
+        -ms-user-select: auto !important;
+        user-select: auto !important;
+        pointer-events: auto !important;
+    }
+}
+
+/* Aplicar também em dispositivos com orientação landscape */
+@media screen and (max-width: 768px) and (orientation: landscape) {
+    html, body {
+        -webkit-text-size-adjust: 100% !important;
+        -ms-text-size-adjust: 100% !important;
+        text-size-adjust: 100% !important;
+        -webkit-touch-callout: none !important;
+        -webkit-user-select: none !important;
+        -khtml-user-select: none !important;
+        -moz-user-select: none !important;
+        -ms-user-select: none !important;
+        user-select: none !important;
+        touch-action: manipulation !important;
+        -webkit-tap-highlight-color: transparent !important;
+    }
+}
+
+/* Aplicar também em dispositivos com orientação portrait */
+@media screen and (max-width: 768px) and (orientation: portrait) {
+    html, body {
+        -webkit-text-size-adjust: 100% !important;
+        -ms-text-size-adjust: 100% !important;
+        text-size-adjust: 100% !important;
+        -webkit-touch-callout: none !important;
+        -webkit-user-select: none !important;
+        -khtml-user-select: none !important;
+        -moz-user-select: none !important;
+        -ms-user-select: none !important;
+        user-select: none !important;
+        touch-action: manipulation !important;
+        -webkit-tap-highlight-color: transparent !important;
+    }
+}
+
+/* =========================================== */
+/* CORREÇÕES DE SCROLL NO MOBILE */
+/* =========================================== */
+
+@media screen and (max-width: 768px) {
+    /* Corrigir scroll suave no HTML e Body */
+    html {
+        -webkit-overflow-scrolling: touch !important;
+        overflow-x: hidden !important;
+        height: 100% !important;
+    }
+    
+    body {
+        -webkit-overflow-scrolling: touch !important;
+        overflow-x: hidden !important;
+        position: relative !important;
+        height: 100% !important;
+        min-height: 100vh !important;
+    }
+
+    /* Permitir scroll vertical suave em containers */
+    .main-content, .container, .row, .col {
+        -webkit-overflow-scrolling: touch !important;
+        overflow-x: hidden !important;
+    }
+
+    /* Corrigir scroll em elementos específicos */
+    .card, .modal-content, .dropdown-menu {
+        -webkit-overflow-scrolling: touch !important;
+        overflow-x: hidden !important;
+    }
+
+    /* Corrigir scroll em listas e grids */
+    .feature-grid, .productivity-stats, .timer-stats {
+        -webkit-overflow-scrolling: touch !important;
+        overflow-x: hidden !important;
+    }
+
+    /* Corrigir scroll em modais */
+    .modal-body {
+        -webkit-overflow-scrolling: touch !important;
+        overflow-x: hidden !important;
+        max-height: 70vh !important;
+        overflow-y: auto !important;
+    }
+
+    /* Corrigir scroll em tabelas */
+    .table-responsive {
+        -webkit-overflow-scrolling: touch !important;
+        overflow-x: auto !important;
+    }
+
+    /* Corrigir scroll em formulários */
+    .form-control, .form-select, textarea {
+        -webkit-overflow-scrolling: touch !important;
+    }
+
+    /* Corrigir scroll em hero sections */
+    .productivity-hero, .timer-hero, .tasks-hero {
+        -webkit-overflow-scrolling: touch !important;
+        overflow-x: hidden !important;
+    }
+
+    /* Corrigir scroll em feature cards */
+    .feature-card {
+        -webkit-overflow-scrolling: touch !important;
+        overflow-x: hidden !important;
+    }
+
+    /* Corrigir scroll em task cards */
+    .task-card {
+        -webkit-overflow-scrolling: touch !important;
+        overflow-x: hidden !important;
+    }
+
+    /* Corrigir scroll em sidebar */
+    .sidebar {
+        -webkit-overflow-scrolling: touch !important;
+        overflow-x: hidden !important;
+    }
+
+    /* Corrigir scroll em main content */
+    .main-content {
+        -webkit-overflow-scrolling: touch !important;
+        overflow-x: hidden !important;
+        height: 100vh !important;
+        overflow-y: auto !important;
+    }
+}

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste JavaScript - Estatísticas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h2>🧪 Teste JavaScript - APIs de Estatísticas</h2>
+        
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Teste 1: Tarefas de Hoje</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-primary" onclick="testarAPI('buscar_tarefas_hoje.php', 'resultado1')">
+                            Testar API
+                        </button>
+                        <div id="resultado1" class="mt-3"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Teste 2: Distribuição por Prioridade</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-primary" onclick="testarAPI('buscar_distribuicao_prioridade.php', 'resultado2')">
+                            Testar API
+                        </button>
+                        <div id="resultado2" class="mt-3"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Teste 3: Produtividade 7 Dias</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-primary" onclick="testarAPI('buscar_produtividade_7_dias.php', 'resultado3')">
+                            Testar API
+                        </button>
+                        <div id="resultado3" class="mt-3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Teste Completo: Modal de Estatísticas</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-success" onclick="testarModalCompleto()">
+                            Testar Modal Completo
+                        </button>
+                        <div id="resultadoCompleto" class="mt-3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function testarAPI(api, resultadoId) {
+            const resultado = document.getElementById(resultadoId);
+            resultado.innerHTML = '<div class="spinner-border text-primary" role="status"></div> Carregando...';
+            
+            fetch(api)
+                .then(response => {
+                    console.log('Status:', response.status);
+                    console.log('Headers:', response.headers);
+                    return response.text();
+                })
+                .then(text => {
+                    console.log('Resposta bruta:', text);
+                    
+                    try {
+                        const data = JSON.parse(text);
+                        resultado.innerHTML = `
+                            <div class="alert alert-success">
+                                <strong>✅ API funcionando!</strong><br>
+                                <pre>${JSON.stringify(data, null, 2)}</pre>
+                            </div>
+                        `;
+                    } catch (e) {
+                        resultado.innerHTML = `
+                            <div class="alert alert-danger">
+                                <strong>❌ Erro ao parsear JSON:</strong><br>
+                                <strong>Resposta bruta:</strong><br>
+                                <pre>${text}</pre>
+                                <strong>Erro:</strong> ${e.message}
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    resultado.innerHTML = `
+                        <div class="alert alert-danger">
+                            <strong>❌ Erro na requisição:</strong><br>
+                            ${error.message}
+                        </div>
+                    `;
+                });
+        }
+        
+        function testarModalCompleto() {
+            const resultado = document.getElementById('resultadoCompleto');
+            resultado.innerHTML = '<div class="spinner-border text-primary" role="status"></div> Testando modal completo...';
+            
+            // Simular o que acontece no modal de estatísticas
+            const apis = [
+                'buscar_tarefas_hoje.php',
+                'buscar_distribuicao_prioridade.php',
+                'buscar_produtividade_7_dias.php'
+            ];
+            
+            let sucessos = 0;
+            let erros = 0;
+            
+            apis.forEach((api, index) => {
+                fetch(api)
+                    .then(response => response.text())
+                    .then(text => {
+                        try {
+                            const data = JSON.parse(text);
+                            if (data.success) {
+                                sucessos++;
+                            } else {
+                                erros++;
+                            }
+                        } catch (e) {
+                            erros++;
+                        }
+                        
+                        if (index === apis.length - 1) {
+                            resultado.innerHTML = `
+                                <div class="alert ${sucessos === apis.length ? 'alert-success' : 'alert-warning'}">
+                                    <strong>Resultado do Teste Completo:</strong><br>
+                                    ✅ APIs funcionando: ${sucessos}<br>
+                                    ❌ APIs com erro: ${erros}<br>
+                                    <strong>Total: ${sucessos}/${apis.length}</strong>
+                                </div>
+                            `;
+                        }
+                    })
+                    .catch(error => {
+                        erros++;
+                        if (index === apis.length - 1) {
+                            resultado.innerHTML = `
+                                <div class="alert alert-danger">
+                                    <strong>Resultado do Teste Completo:</strong><br>
+                                    ✅ APIs funcionando: ${sucessos}<br>
+                                    ❌ APIs com erro: ${erros}<br>
+                                    <strong>Total: ${sucessos}/${apis.length}</strong>
+                                </div>
+                            `;
+                        }
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
