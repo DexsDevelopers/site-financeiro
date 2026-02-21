@@ -197,6 +197,37 @@ catch (PDOException $e) {
     background: #2ecc71;
     border-color: #2ecc71;
 }
+
+.btn-action-lux {
+    width: 45px;
+    height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--lux-border);
+    color: var(--lux-text-dim);
+    transition: all 0.2s ease;
+    cursor: pointer;
+    font-size: 1.2rem;
+}
+
+.btn-action-lux:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    transform: translateY(-2px);
+}
+
+.btn-action-lux.delete {
+    color: #ff4d4d;
+}
+
+.btn-action-lux.delete:hover {
+    background: rgba(255, 77, 77, 0.15);
+    border-color: rgba(255, 77, 77, 0.4);
+    color: #ff6666;
+}
 </style>
 
 <div class="rotinas-lux-container">
@@ -247,9 +278,13 @@ catch (PDOException $e) {
                 <?php echo $isConcluido ? '<i class="bi bi-check-circle-fill me-2"></i> Concluído' : 'Marcar como feito'; ?>
             </button>
             
-            <div style="display: flex; gap: 0.5rem; margin-top: 1rem; justify-content: flex-end;">
-                <button onclick="editarRotina(<?php echo $rotina['id']; ?>)" style="background: none; border: none; color: var(--lux-text-dim);"><i class="bi bi-pencil"></i></button>
-                <button onclick="excluirRotina(<?php echo $rotina['id']; ?>, '<?php echo addslashes($rotina['nome']); ?>')" style="background: none; border: none; color: #ff4d4d;"><i class="bi bi-trash"></i></button>
+            <div style="display: flex; gap: 0.8rem; margin-top: 1.5rem; justify-content: flex-end;">
+                <button class="btn-action-lux" onclick="event.stopPropagation(); editarRotina(<?php echo $rotina['id']; ?>)" title="Editar">
+                    <i class="bi bi-pencil-square"></i>
+                </button>
+                <button class="btn-action-lux delete" onclick="event.stopPropagation(); excluirRotina(<?php echo $rotina['id']; ?>, '<?php echo addslashes($rotina['nome']); ?>')" title="Excluir">
+                    <i class="bi bi-trash3"></i>
+                </button>
             </div>
         </div>
         <?php
