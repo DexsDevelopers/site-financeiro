@@ -7,7 +7,7 @@ if (!isset($_SESSION['user_id']) && !isset($_SESSION['user']['id'])) {
     return;
 }
 
-$userId = !empty($_SESSION['user']['id']) ? (int) $_SESSION['user']['id'] : (int) ($_SESSION['user_id'] ?? 0);
+$userId = !empty($_SESSION['user']['id']) ? (int)$_SESSION['user']['id'] : (int)($_SESSION['user_id'] ?? 0);
 
 // Carregar configurações do menu
 $menu_config = $cache->getUserCache($userId, 'menu_personalizado');
@@ -17,12 +17,13 @@ if (!$menu_config) {
         $stmt = $pdo->prepare("SELECT configuracao FROM config_menu_personalizado WHERE id_usuario = ?");
         $stmt->execute([$userId]);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        
+
         if ($result) {
             $menu_config = json_decode($result['configuracao'], true);
             $cache->setUserCache($userId, 'menu_personalizado', $menu_config, 3600);
         }
-    } catch (PDOException $e) {
+    }
+    catch (PDOException $e) {
         $menu_config = null;
     }
 }
@@ -41,7 +42,7 @@ if (!$menu_config) {
         'paginas_visiveis' => [
             'academy' => ['cursos.php', 'treinos.php', 'rotina_academia.php', 'alimentacao.php', 'notas_cursos.php'],
             'financeiro' => ['compras_futuras.php', 'relatorios.php', 'extrato_completo.php', 'recorrentes.php', 'orcamento.php', 'categorias.php', 'regras_categorizacao.php', 'alertas_inteligentes.php'],
-            'produtividade' => ['tarefas.php', 'calendario.php', 'pomodoro.php'],
+            'produtividade' => ['tarefas.php', 'rotinas.php', 'calendario.php', 'pomodoro.php'],
             'personalizacao' => ['temas_customizaveis.php', 'layouts_flexiveis.php', 'preferencias_avancadas.php', 'personalizar_menu.php'],
             'gestao_empresas' => ['gestao_empresas.php'],
             'sistema' => ['perfil.php', 'contas.php', 'whatsapp_admin.php', 'whatsapp_qr.php', 'integracoes_google.php', 'debug_google_integration.php', 'verificar_apis_google.php', 'debug_ia.php', 'debug_ia_whatsapp.php']
@@ -50,12 +51,33 @@ if (!$menu_config) {
         'ordem_paginas' => [
             'academy' => ['cursos.php', 'treinos.php', 'rotina_academia.php', 'alimentacao.php', 'notas_cursos.php'],
             'financeiro' => ['compras_futuras.php', 'relatorios.php', 'extrato_completo.php', 'recorrentes.php', 'orcamento.php', 'categorias.php', 'regras_categorizacao.php', 'alertas_inteligentes.php'],
-            'produtividade' => ['tarefas.php', 'calendario.php', 'pomodoro.php'],
+            'produtividade' => ['tarefas.php', 'rotinas.php', 'calendario.php', 'pomodoro.php'],
             'personalizacao' => ['temas_customizaveis.php', 'layouts_flexiveis.php', 'preferencias_avancadas.php', 'personalizar_menu.php'],
             'gestao_empresas' => ['gestao_empresas.php'],
             'sistema' => ['perfil.php', 'contas.php', 'whatsapp_admin.php', 'whatsapp_qr.php', 'integracoes_google.php', 'debug_google_integration.php', 'verificar_apis_google.php', 'debug_ia.php', 'debug_ia_whatsapp.php']
         ]
     ];
+}
+
+// Garante que 'rotinas.php' esteja visível na seção Produtividade
+if (!isset($menu_config['paginas_visiveis']['produtividade'])) {
+    $menu_config['paginas_visiveis']['produtividade'] = [];
+}
+if (!in_array('rotinas.php', $menu_config['paginas_visiveis']['produtividade'], true)) {
+    $menu_config['paginas_visiveis']['produtividade'][] = 'rotinas.php';
+}
+if (!isset($menu_config['ordem_paginas']['produtividade'])) {
+    $menu_config['ordem_paginas']['produtividade'] = [];
+}
+if (!in_array('rotinas.php', $menu_config['ordem_paginas']['produtividade'], true)) {
+    // Insere após tarefas.php se existir
+    $idx = array_search('tarefas.php', $menu_config['ordem_paginas']['produtividade']);
+    if ($idx !== false) {
+        array_splice($menu_config['ordem_paginas']['produtividade'], $idx + 1, 0, 'rotinas.php');
+    }
+    else {
+        $menu_config['ordem_paginas']['produtividade'][] = 'rotinas.php';
+    }
 }
 
 // Garante que 'contas.php' esteja sempre visível na seção Sistema (mesmo com config antiga)
@@ -119,12 +141,12 @@ try {
     $tipo = $stmtTipo->fetchColumn();
 
     $paginas_restritas = [
-        'whatsapp_admin.php', 
+        'whatsapp_admin.php',
         'whatsapp_qr.php',
-        'integracoes_google.php', 
-        'debug_google_integration.php', 
-        'verificar_apis_google.php', 
-        'debug_ia.php', 
+        'integracoes_google.php',
+        'debug_google_integration.php',
+        'verificar_apis_google.php',
+        'debug_ia.php',
         'debug_ia_whatsapp.php'
     ];
 
@@ -132,24 +154,25 @@ try {
         // Remove páginas restritas da lista visível e da ordem
         $menu_config['paginas_visiveis']['sistema'] = array_values(array_filter(
             $menu_config['paginas_visiveis']['sistema'],
-            fn($p) => !in_array($p, $paginas_restritas)
+        fn($p) => !in_array($p, $paginas_restritas)
         ));
         $menu_config['ordem_paginas']['sistema'] = array_values(array_filter(
             $menu_config['ordem_paginas']['sistema'],
-            fn($p) => !in_array($p, $paginas_restritas)
+        fn($p) => !in_array($p, $paginas_restritas)
         ));
     }
-} catch (Throwable $e) {
+}
+catch (Throwable $e) {
     // Em erro, por segurança, oculta as principais páginas admin
     $paginas_restritas_fallback = ['whatsapp_admin.php', 'whatsapp_qr.php'];
-    
+
     $menu_config['paginas_visiveis']['sistema'] = array_values(array_filter(
         $menu_config['paginas_visiveis']['sistema'],
-        fn($p) => !in_array($p, $paginas_restritas_fallback)
+    fn($p) => !in_array($p, $paginas_restritas_fallback)
     ));
     $menu_config['ordem_paginas']['sistema'] = array_values(array_filter(
         $menu_config['ordem_paginas']['sistema'],
-        fn($p) => !in_array($p, $paginas_restritas_fallback)
+    fn($p) => !in_array($p, $paginas_restritas_fallback)
     ));
 }
 
@@ -224,6 +247,7 @@ $paginasInfo = [
     'regras_categorizacao.php' => ['nome' => 'Regras de Categorização', 'icone' => 'bi-robot'],
     'alertas_inteligentes.php' => ['nome' => 'Alertas Inteligentes', 'icone' => 'bi-bell-fill'],
     'tarefas.php' => ['nome' => 'Rotina de Tarefas', 'icone' => 'bi-check2-square'],
+    'rotinas.php' => ['nome' => 'Rotina Diária (Hábitos)', 'icone' => 'bi-calendar-check'],
     'calendario.php' => ['nome' => 'Calendário', 'icone' => 'bi-calendar3'],
     'pomodoro.php' => ['nome' => 'Pomodoro Timer', 'icone' => 'bi-stopwatch'],
     'temas_customizaveis.php' => ['nome' => 'Temas Customizáveis', 'icone' => 'bi-palette'],
