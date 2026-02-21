@@ -18,7 +18,8 @@ $sucesso = null;
 // ===== OBTER ID DA ROTINA (GET ou POST) =====
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $rotinaId = (int)($_GET['id'] ?? 0);
-} elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
+}
+elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $rotinaId = (int)($_POST['id'] ?? 0);
 }
 
@@ -42,62 +43,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // JSON POST (API)
     if (strpos($contentType, 'application/json') !== false) {
         header('Content-Type: application/json');
+
         
-$input = json_decode(file_get_contents('php://input'), true);
-$nome = trim($input['nome'] ?? '');
-$horarioSugerido = $input['horario'] ?? null;
-$descricao = trim($input['descricao'] ?? '');
+$input = json_decode(file_get_contents('php://input'), true);        $nome = trim($input['nome'] ?? '');        $horarioSugerido = $input['horario'] ?? null;        $descricao = trim($input['descricao'] ?? '');        $prioridade = $input['prioridade'] ?? 'Média';
 
         if (!$nome) {
             http_response_code(400);
             echo json_encode(['success' => false, 'message' => 'Nome é obrigatório']);
-    exit;
-}
-
-if (empty($horarioSugerido) || $horarioSugerido === '00:00') {
-    $horarioSugerido = null;
-}
-
-try {
+            exit;        }
+        if (empty($horarioSugerido) || $horarioSugerido === '00:00') {
+            $horarioSugerido = null;        }
+        try {
             $stmt = $pdo->prepare("
                 UPDATE rotinas_fixas 
-                SET nome = ?, horario_sugerido = ?, descricao = ?
+                SET nome = ?, horario_sugerido = ?, descricao = ?, prioridade = ?
                 WHERE id = ? AND id_usuario = ?
             ");
-            $stmt->execute([$nome, $horarioSugerido, $descricao, $rotinaId, $userId]);
-            
+            $stmt->execute([$nome, $horarioSugerido, $descricao, $prioridade, $rotinaId, $userId]);
+
             echo json_encode(['success' => true, 'message' => 'Rotina atualizada com sucesso!']);
             exit;
-        } catch (PDOException $e) {
+        }
+        catch (PDOException $e) {
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Erro: ' . $e->getMessage()]);
-        exit;
+            exit;
+        }
     }
-    } 
     // Form POST (Formulário HTML)
     else {
         $nome = trim($_POST['nome'] ?? '');
         $horario = $_POST['horario'] ?? null;
         $descricao = trim($_POST['descricao'] ?? '');
-        
+        $prioridade = $_POST['prioridade'] ?? 'Média';
+
         if (!$nome) {
             $erro = 'Nome é obrigatório';
-        } else {
+        }
+        else {
             try {
-    $stmt = $pdo->prepare("
+                $stmt = $pdo->prepare("
         UPDATE rotinas_fixas 
-        SET nome = ?, horario_sugerido = ?, descricao = ?
+        SET nome = ?, horario_sugerido = ?, descricao = ?, prioridade = ?
         WHERE id = ? AND id_usuario = ?
     ");
-                $stmt->execute([$nome, $horario ?: null, $descricao, $rotinaId, $userId]);
-                
+                $stmt->execute([$nome, $horario ?: null, $descricao, $prioridade, $rotinaId, $userId]);
+
                 // Recarregar dados atualizados
                 $stmt = $pdo->prepare("SELECT * FROM rotinas_fixas WHERE id = ? AND id_usuario = ?");
                 $stmt->execute([$rotinaId, $userId]);
                 $rotina = $stmt->fetch(PDO::FETCH_ASSOC);
-                
+
                 $sucesso = 'Rotina atualizada com sucesso!';
-            } catch (Exception $e) {
+            }
+            catch (Exception $e) {
                 $erro = 'Erro ao atualizar: ' . $e->getMessage();
             }
         }
@@ -181,14 +180,16 @@ try {
                         <i class="bi bi-check-circle"></i> <?php echo $sucesso; ?>
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
-                <?php endif; ?>
+                <?php
+endif; ?>
 
                 <?php if ($erro): ?>
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
                         <i class="bi bi-exclamation-triangle"></i> <?php echo $erro; ?>
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
-                <?php endif; ?>
+                <?php
+endif; ?>
 
                 <form method="POST">
                     <input type="hidden" name="id" value="<?php echo $rotinaId; ?>">
@@ -200,10 +201,20 @@ try {
                                required autofocus>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Horário Sugerido (opcional)</label>
-                        <input type="time" name="horario" class="form-control" 
-                               value="<?php echo ($rotina['horario_sugerido']) ? substr($rotina['horario_sugerido'], 0, 5) : ''; ?>">
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <label class="form-label">Horário Sugerido</label>
+                            <input type="time" name="horario" class="form-control" 
+                                   value="<?php echo($rotina['horario_sugerido']) ? substr($rotina['horario_sugerido'], 0, 5) : ''; ?>">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Prioridade</label>
+                            <select name="prioridade" class="form-select">
+                                <option value="Baixa" <?php echo($rotina['prioridade'] == 'Baixa') ? 'selected' : ''; ?>>Baixa</option>
+                                <option value="Média" <?php echo($rotina['prioridade'] == 'Média') ? 'selected' : ''; ?>>Média</option>
+                                <option value="Alta" <?php echo($rotina['prioridade'] == 'Alta') ? 'selected' : ''; ?>>Alta</option>
+                            </select>
+                        </div>
                     </div>
 
                     <div class="mb-3">

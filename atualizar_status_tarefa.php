@@ -40,20 +40,42 @@ if (empty($tarefaId) || !is_numeric($tarefaId) || !in_array($novoStatus, ['pende
 
 // --- 3. Atualização no Banco de Dados ---
 try {
-    $stmt = $pdo->prepare("UPDATE tarefas SET status = ? WHERE id = ? AND id_usuario = ?");
-    $stmt->execute([$novoStatus, $tarefaId, $userId]);
+    if (strpos($tarefaId, 'ge-') === 0) {
+        // Tarefa da Gestão de Empresas
+        $realId = (int)str_replace('ge-', '', $tarefaId);
+
+        // Mapear status: tarefas usa 'concluido', ge_tarefas usa 'concluida'
+        $statusGE = ($novoStatus === 'concluida' || $novoStatus === 'concluido') ? 'concluida' : 'pendente';
+
+        $stmt = $pdo->prepare("UPDATE ge_tarefas gt 
+                               JOIN ge_empresas e ON gt.id_empresa = e.id 
+                               SET gt.status = ? 
+                               WHERE gt.id = ? AND e.id_usuario = ?");
+        $stmt->execute([$statusGE, $realId, $userId]);
+    }
+    else {
+        // Tarefa Normal
+        // Garantir que o status mapeie para o enum da tabela tarefas ('concluido')
+        $statusNormal = ($novoStatus === 'concluida' || $novoStatus === 'concluido') ? 'concluido' : 'pendente';
+
+        $stmt = $pdo->prepare("UPDATE tarefas SET status = ? WHERE id = ? AND id_usuario = ?");
+        $stmt->execute([$statusNormal, (int)$tarefaId, $userId]);
+    }
 
     if ($stmt->rowCount() > 0) {
         $response['success'] = true;
         $response['message'] = 'Status da tarefa atualizado com sucesso!';
-    } else {
-        http_response_code(404); // Não Encontrado
-        $response['message'] = 'Tarefa não encontrada ou você não tem permissão para alterá-la.';
     }
-    
+    else {
+        // Se já estava com o status desejado, rowCount é 0, mas consideramos sucesso
+        $response['success'] = true;
+        $response['message'] = 'Status atualizado!';
+    }
+
     echo json_encode($response);
 
-} catch (PDOException $e) {
+}
+catch (PDOException $e) {
     http_response_code(500); // Erro Interno do Servidor
     $response['message'] = 'Erro no banco de dados ao atualizar a tarefa.';
     // error_log($e->getMessage()); // Em produção

@@ -30,7 +30,7 @@ $input = json_decode(file_get_contents('php://input'), true);
 $tarefaId = $input['id'] ?? 0;
 $userId = $_SESSION['user_id'];
 
-if (empty($tarefaId) || !is_numeric($tarefaId)) {
+if (empty($tarefaId)) {
     http_response_code(400); // Requisição Inválida
     $response['message'] = 'ID da tarefa é inválido.';
     echo json_encode($response);
@@ -39,21 +39,31 @@ if (empty($tarefaId) || !is_numeric($tarefaId)) {
 
 // --- 3. Exclusão Segura no Banco ---
 try {
-    // Apenas o dono da tarefa pode excluí-la
-    $stmt = $pdo->prepare("DELETE FROM tarefas WHERE id = ? AND id_usuario = ?");
-    $stmt->execute([$tarefaId, $userId]);
+    if (strpos($tarefaId, 'ge-') === 0) {
+        $realId = (int)str_replace('ge-', '', $tarefaId);
+        $stmt = $pdo->prepare("DELETE gt FROM ge_tarefas gt 
+                               JOIN ge_empresas e ON gt.id_empresa = e.id 
+                               WHERE gt.id = ? AND e.id_usuario = ?");
+        $stmt->execute([$realId, $userId]);
+    }
+    else {
+        $stmt = $pdo->prepare("DELETE FROM tarefas WHERE id = ? AND id_usuario = ?");
+        $stmt->execute([(int)$tarefaId, $userId]);
+    }
 
     if ($stmt->rowCount() > 0) {
         $response['success'] = true;
         $response['message'] = 'Tarefa excluída com sucesso!';
-    } else {
+    }
+    else {
         http_response_code(404); // Não Encontrado
         $response['message'] = 'Tarefa não encontrada ou você não tem permissão para excluí-la.';
     }
-    
+
     echo json_encode($response);
 
-} catch (PDOException $e) {
+}
+catch (PDOException $e) {
     http_response_code(500); // Erro Interno do Servidor
     $response['message'] = 'Erro no banco de dados ao excluir a tarefa.';
     // error_log($e->getMessage()); // Em produção

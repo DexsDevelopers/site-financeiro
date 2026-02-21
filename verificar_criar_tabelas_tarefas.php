@@ -88,19 +88,24 @@ $tabelas = [
         CREATE TABLE IF NOT EXISTS tarefas (
             id INT AUTO_INCREMENT PRIMARY KEY,
             id_usuario INT NOT NULL,
+            id_empresa INT NULL,
             descricao TEXT NOT NULL,
             prioridade ENUM('Alta', 'Média', 'Baixa') DEFAULT 'Média',
             data_limite DATE NULL,
+            hora_inicio TIME NULL,
+            hora_fim TIME NULL,
             status ENUM('pendente', 'concluido') DEFAULT 'pendente',
             tempo_estimado INT DEFAULT NULL,
             ordem INT DEFAULT 0,
             data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (id_usuario) REFERENCES usuarios(id) ON DELETE CASCADE,
+            FOREIGN KEY (id_empresa) REFERENCES ge_empresas(id) ON DELETE SET NULL,
             INDEX idx_usuario (id_usuario),
+            INDEX idx_empresa (id_empresa),
             INDEX idx_status (status)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ",
-    
+
     'subtarefas' => "
         CREATE TABLE IF NOT EXISTS subtarefas (
             id INT AUTO_INCREMENT PRIMARY KEY,
@@ -112,13 +117,14 @@ $tabelas = [
             INDEX idx_tarefa (id_tarefa_principal)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ",
-    
+
     'rotinas_fixas' => "
         CREATE TABLE IF NOT EXISTS rotinas_fixas (
             id INT AUTO_INCREMENT PRIMARY KEY,
             id_usuario INT NOT NULL,
             nome VARCHAR(100) NOT NULL,
             horario_sugerido TIME NULL,
+            prioridade ENUM('Alta', 'Média', 'Baixa') DEFAULT 'Média',
             descricao TEXT NULL,
             ordem INT DEFAULT 0,
             ativo BOOLEAN DEFAULT TRUE,
@@ -128,7 +134,7 @@ $tabelas = [
             INDEX idx_usuario (id_usuario)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ",
-    
+
     'rotina_controle_diario' => "
         CREATE TABLE IF NOT EXISTS rotina_controle_diario (
             id INT AUTO_INCREMENT PRIMARY KEY,
@@ -148,6 +154,14 @@ $tabelas = [
     "
 ];
 
+// Scripts extras para adicionar colunas em tabelas existentes
+$scripts_extras = [
+    "ALTER TABLE tarefas ADD COLUMN IF NOT EXISTS id_empresa INT NULL AFTER id_usuario",
+    "ALTER TABLE tarefas ADD COLUMN IF NOT EXISTS hora_inicio TIME NULL AFTER data_limite",
+    "ALTER TABLE tarefas ADD COLUMN IF NOT EXISTS hora_fim TIME NULL AFTER hora_inicio",
+    "ALTER TABLE rotinas_fixas ADD COLUMN IF NOT EXISTS prioridade ENUM('Alta', 'Média', 'Baixa') DEFAULT 'Média' AFTER horario_sugerido",
+];
+
 $tabelas_ok = 0;
 $tabelas_criadas = 0;
 $tabelas_erro = 0;
@@ -158,14 +172,15 @@ foreach ($tabelas as $nome_tabela => $sql) {
         // Verificar se tabela existe
         $stmt = $pdo->query("SHOW TABLES LIKE '$nome_tabela'");
         $existe = $stmt->rowCount() > 0;
-        
+
         if ($existe) {
             echo "<div class='table-check ok'>
                     ✓ <strong>$nome_tabela</strong>
                     <span class='status ok'>Existe</span>
                   </div>";
             $tabelas_ok++;
-        } else {
+        }
+        else {
             // Criar tabela
             $pdo->exec($sql);
             echo "<div class='table-check created'>
@@ -174,12 +189,23 @@ foreach ($tabelas as $nome_tabela => $sql) {
                   </div>";
             $tabelas_criadas++;
         }
-    } catch (Exception $e) {
+    }
+    catch (Exception $e) {
         echo "<div class='table-check error'>
                 ✗ <strong>$nome_tabela</strong>
                 <span class='status error'>Erro: " . htmlspecialchars($e->getMessage()) . "</span>
               </div>";
         $tabelas_erro++;
+    }
+}
+
+// Executar scripts extras para colunas novas
+foreach ($scripts_extras as $sql_extra) {
+    try {
+        $pdo->exec($sql_extra);
+    }
+    catch (Exception $e) {
+    // Silencioso se der erro
     }
 }
 
@@ -192,7 +218,8 @@ echo "<div class='summary'>
 
 if ($tabelas_erro === 0) {
     echo "<p style='color: #4caf50; font-size: 16px; font-weight: bold;'>✓ Sistema pronto para usar!</p>";
-} else {
+}
+else {
     echo "<p style='color: #f44336; font-size: 16px; font-weight: bold;'>✗ Verifique os erros acima</p>";
 }
 

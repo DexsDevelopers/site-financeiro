@@ -28,6 +28,7 @@ $userId = $_SESSION['user_id'];
 $nome = trim($_POST['nome'] ?? '');
 $horario = !empty($_POST['horario']) ? $_POST['horario'] : null;
 $descricao = trim($_POST['descricao'] ?? '');
+$prioridade = $_POST['prioridade'] ?? 'Média';
 
 // Debug logging
 error_log("=== ADICIONAR ROTINA FIXA ===");
@@ -46,11 +47,11 @@ if (empty($nome)) {
 // --- 4. Inserir Rotina Fixa ---
 try {
     $stmt = $pdo->prepare("
-        INSERT INTO rotinas_fixas (id_usuario, nome, horario_sugerido, descricao, ativo, data_criacao)
-        VALUES (?, ?, ?, ?, TRUE, NOW())
+        INSERT INTO rotinas_fixas (id_usuario, nome, horario_sugerido, prioridade, descricao, ativo, data_criacao)
+        VALUES (?, ?, ?, ?, ?, TRUE, NOW())
     ");
-    $stmt->execute([$userId, $nome, $horario, $descricao ?: null]);
-    
+    $stmt->execute([$userId, $nome, $horario, $prioridade, $descricao ?: null]);
+
     $newRotinaId = $pdo->lastInsertId();
 
     // --- 5. Criar Controle Diário para Hoje ---
@@ -65,16 +66,17 @@ try {
     $response['success'] = true;
     $response['message'] = 'Rotina fixa criada com sucesso!';
     $response['rotina'] = [
-        'id'                => $newRotinaId,
-        'nome'              => $nome,
-        'horario_sugerido'  => $horario,
-        'descricao'         => $descricao,
-        'ativo'             => true,
-        'status_hoje'       => 'pendente'
+        'id' => $newRotinaId,
+        'nome' => $nome,
+        'horario_sugerido' => $horario,
+        'descricao' => $descricao,
+        'ativo' => true,
+        'status_hoje' => 'pendente'
     ];
     echo json_encode($response);
 
-} catch (PDOException $e) {
+}
+catch (PDOException $e) {
     http_response_code(500);
     $response['message'] = 'Erro ao criar rotina fixa.';
     error_log('[ERRO][adicionar_rotina_fixa.php] ' . $e->getMessage());
