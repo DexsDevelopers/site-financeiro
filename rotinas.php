@@ -1,8 +1,13 @@
 <?php
+/**
+ * rotinas.php - Sistema de Rotinas Diárias (HÁBITOS)
+ * REESCRITO PARA GARANTIR PERFORMANCE E DESIGN PREMIUM
+ */
 require_once 'templates/header.php';
 require_once 'includes/db_connect.php';
 
 $dataHoje = date('Y-m-d');
+$userId = $_SESSION['user_id'] ?? $_SESSION['user']['id'];
 
 // Buscar rotinas fixas do usuário
 $rotinasFixas = [];
@@ -20,687 +25,331 @@ try {
             AND rcd.id_usuario = rf.id_usuario 
             AND rcd.data_execucao = ?
         WHERE rf.id_usuario = ? AND rf.ativo = TRUE
-        ORDER BY COALESCE(rf.horario_sugerido, '23:59:59'), rf.nome
+        ORDER BY 
+            CASE 
+                WHEN rf.prioridade = 'Alta' THEN 1 
+                WHEN rf.prioridade = 'Média' THEN 2 
+                ELSE 3 
+            END,
+            COALESCE(rf.horario_sugerido, '23:59:59'), 
+            rf.nome
     ");
     $stmt->execute([$dataHoje, $userId]);
     $rotinasFixas = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    // Contar concluídas
+
     foreach ($rotinasFixas as $rotina) {
         if ($rotina['status_hoje'] === 'concluido') {
             $rotinasConcluidas++;
         }
     }
-    
-    // Calcular progresso
+
     if (count($rotinasFixas) > 0) {
         $progressoRotina = ($rotinasConcluidas / count($rotinasFixas)) * 100;
     }
-} catch (PDOException $e) {
+}
+catch (PDOException $e) {
     error_log("Erro ao buscar rotinas: " . $e->getMessage());
 }
 ?>
 
 <style>
 :root {
-    --rotina-primary: #d32f2f;
-    --rotina-bg: #1a1a1a;
-    --rotina-card: #222;
-    --rotina-border: #333;
-    --rotina-text: #f0f0f0;
-    --rotina-text-secondary: #a0a0a0;
+    --lux-primary: #ff4d4d;
+    --lux-bg: #141414;
+    --lux-card: rgba(255, 255, 255, 0.05);
+    --lux-border: rgba(255, 255, 255, 0.1);
+    --lux-text: #ffffff;
+    --lux-text-dim: #b3b3b3;
 }
 
-.rotinas-container {
+.rotinas-lux-container {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 2rem 1rem;
+    padding: 3rem 1.5rem;
 }
 
-.page-header-rotinas {
-    text-align: center;
-    margin-bottom: 3rem;
-}
-
-.page-header-rotinas h1 {
-    color: var(--rotina-text);
-    font-size: 2.5rem;
-    font-weight: 700;
-    margin-bottom: 0.5rem;
-}
-
-.page-header-rotinas p {
-    color: var(--rotina-text-secondary);
-    font-size: 1.1rem;
-}
-
-.rotinas-section {
-    background: var(--rotina-card);
-    border-radius: 16px;
-    padding: 2rem;
-    margin-bottom: 2rem;
-    border: 1px solid var(--rotina-border);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-}
-
-.section-header-rotinas {
+.header-premium-lux {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 2rem;
-    flex-wrap: wrap;
-    gap: 1rem;
+    margin-bottom: 4rem;
 }
 
-.section-title-rotinas {
+.header-premium-lux h1 {
+    font-size: 3rem;
+    font-weight: 800;
+    letter-spacing: -1px;
+    margin: 0;
+}
+
+.btn-add-lux {
+    background: var(--lux-primary);
+    color: white;
+    border: none;
+    padding: 1rem 2rem;
+    border-radius: 50px;
+    font-weight: 700;
+    transition: all 0.3s ease;
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 0.8rem;
+    box-shadow: 0 10px 20px rgba(255, 77, 77, 0.3);
 }
 
-.section-title-rotinas h3 {
-    color: var(--rotina-text);
-    margin: 0;
-    font-size: 1.5rem;
+.btn-add-lux:hover {
+    transform: scale(1.05);
+    box-shadow: 0 15px 30px rgba(255, 77, 77, 0.5);
 }
 
-.section-badge-rotinas {
-    background: var(--rotina-primary);
-    color: white;
-    padding: 0.5rem 1rem;
-    border-radius: 20px;
-    font-size: 0.9rem;
-    font-weight: 600;
+.stats-glass-lux {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--lux-border);
+    border-radius: 30px;
+    padding: 2.5rem;
+    margin-bottom: 4rem;
+    display: flex;
+    align-items: center;
+    gap: 3rem;
 }
 
-.progress-circular-rotinas {
-    width: 80px;
-    height: 80px;
+.circle-progress-lux {
+    width: 120px;
+    height: 120px;
     border-radius: 50%;
-    background: conic-gradient(var(--rotina-primary) 0deg, var(--rotina-primary) calc(var(--progress) * 3.6deg), var(--rotina-border) calc(var(--progress) * 3.6deg), var(--rotina-border) 360deg);
+    background: conic-gradient(var(--lux-primary) <?php echo $progressoRotina; ?>%, transparent 0);
     display: flex;
     align-items: center;
     justify-content: center;
     position: relative;
 }
 
-.progress-circular-rotinas::before {
-    content: '';
-    position: absolute;
-    width: 60px;
-    height: 60px;
-    background: var(--rotina-card);
+.circle-progress-lux::after {
+    content: '<?php echo round($progressoRotina); ?>%';
+    width: 100px;
+    height: 100px;
+    background: var(--lux-bg);
     border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    font-weight: 800;
 }
 
-.progress-text-rotinas {
-    position: relative;
-    z-index: 1;
-    color: var(--rotina-text);
-    font-weight: 700;
-    font-size: 1.1rem;
-}
-
-.rotinas-grid {
+.grid-lux-habitos {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 2rem;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 2rem;
 }
 
-.rotina-item {
-    background: linear-gradient(145deg, #2a2a2a, #1f1f1f);
-    border: 1px solid var(--rotina-border);
-    border-radius: 12px;
-    padding: 1.5rem;
-    transition: all 0.3s ease;
+.card-lux-habit {
+    background: var(--lux-card);
+    border: 1px solid var(--lux-border);
+    border-radius: 24px;
+    padding: 2rem;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     position: relative;
     overflow: hidden;
 }
 
-.rotina-item::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 4px;
-    height: 100%;
-    background: var(--rotina-primary);
-    transform: scaleY(0);
-    transition: transform 0.3s ease;
+.card-lux-habit:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-10px);
+    border-color: rgba(255, 77, 77, 0.4);
 }
 
-.rotina-item:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(211, 47, 47, 0.2);
-    border-color: var(--rotina-primary);
+.card-lux-habit.concluido {
+    border-color: #2ecc71;
+    background: rgba(46, 204, 113, 0.05);
 }
 
-.rotina-item:hover::before {
-    transform: scaleY(1);
+.prio-pill {
+    padding: 0.4rem 1rem;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
 }
 
-.rotina-item.completed {
-    opacity: 0.7;
-}
+.prio-Alta { background: rgba(255, 77, 77, 0.2); color: #ff4d4d; }
+.prio-Média { background: rgba(241, 196, 15, 0.2); color: #f1c40f; }
+.prio-Baixa { background: rgba(46, 204, 113, 0.2); color: #2ecc71; }
 
-.rotina-item.completed .rotina-icon i {
-    color: #28a745;
-}
-
-.rotina-header {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 1rem;
-}
-
-.rotina-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    background: rgba(211, 47, 47, 0.1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.rotina-icon i {
-    font-size: 1.5rem;
-    color: var(--rotina-primary);
-    transition: all 0.3s ease;
-}
-
-.rotina-content h6 {
-    color: var(--rotina-text);
-    font-size: 1.1rem;
-    font-weight: 600;
-    margin: 0 0 0.5rem 0;
-}
-
-.rotina-content small {
-    color: var(--rotina-text-secondary);
-    display: block;
-    font-size: 0.85rem;
-    margin-top: 0.25rem;
-}
-
-.rotina-actions {
-    display: flex;
-    gap: 0.5rem;
-    margin-top: 1rem;
-    padding-top: 1rem;
-    border-top: 1px solid var(--rotina-border);
-}
-
-.btn-rotina {
-    flex: 1;
-    padding: 0.5rem;
-    border-radius: 8px;
-    border: 1px solid;
-    background: transparent;
-    color: var(--rotina-text);
-    transition: all 0.3s ease;
-    cursor: pointer;
-    font-size: 0.9rem;
-}
-
-.btn-rotina:hover {
-    transform: translateY(-2px);
-}
-
-.btn-rotina-outline-warning {
-    border-color: #ffc107;
-    color: #ffc107;
-}
-
-.btn-rotina-outline-warning:hover {
-    background: #ffc107;
-    color: #000;
-}
-
-.btn-rotina-outline-danger {
-    border-color: #dc3545;
-    color: #dc3545;
-}
-
-.btn-rotina-outline-danger:hover {
-    background: #dc3545;
+.btn-complete-lux {
+    width: 100%;
+    margin-top: 1.5rem;
+    padding: 0.8rem;
+    border-radius: 15px;
+    border: 1px solid var(--lux-border);
+    background: rgba(255, 255, 255, 0.05);
     color: white;
+    font-weight: 700;
+    transition: 0.3s;
 }
 
-.empty-state-rotinas {
-    text-align: center;
-    padding: 3rem 2rem;
-    color: var(--rotina-text-secondary);
+.btn-complete-lux:hover {
+    background: var(--lux-primary);
+    border-color: var(--lux-primary);
 }
 
-.empty-state-rotinas i {
-    font-size: 4rem;
-    margin-bottom: 1rem;
-    opacity: 0.5;
-}
-
-.empty-state-rotinas h5 {
-    color: var(--rotina-text);
-    margin-bottom: 0.5rem;
-}
-
-.btn-add-rotina {
-    background: var(--rotina-primary);
-    color: white;
-    border: none;
-    padding: 0.75rem 2rem;
-    border-radius: 8px;
-    font-weight: 600;
-    transition: all 0.3s ease;
-    cursor: pointer;
-    margin-top: 1rem;
-}
-
-.btn-add-rotina:hover {
-    background: #b71c1c;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(211, 47, 47, 0.4);
-}
-
-/* Modal Styles */
-.modal-content-rotinas {
-    background: var(--rotina-card);
-    border: 1px solid var(--rotina-border);
-    border-radius: 16px;
-}
-
-.modal-header-rotinas {
-    border-bottom: 1px solid var(--rotina-border);
-    padding: 1.5rem;
-}
-
-.modal-header-rotinas h5 {
-    color: var(--rotina-text);
-    font-weight: 600;
-}
-
-.modal-body-rotinas {
-    padding: 1.5rem;
-}
-
-.modal-footer-rotinas {
-    border-top: 1px solid var(--rotina-border);
-    padding: 1.5rem;
-}
-
-.form-label-rotinas {
-    color: var(--rotina-text);
-    font-weight: 500;
-    margin-bottom: 0.5rem;
-}
-
-.form-control-rotinas {
-    background: var(--rotina-bg);
-    border: 1px solid var(--rotina-border);
-    color: var(--rotina-text);
-    border-radius: 8px;
-    padding: 0.75rem;
-}
-
-.form-control-rotinas:focus {
-    background: var(--rotina-bg);
-    border-color: var(--rotina-primary);
-    color: var(--rotina-text);
-    box-shadow: 0 0 0 0.2rem rgba(211, 47, 47, 0.25);
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .rotinas-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .section-header-rotinas {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    
-    .page-header-rotinas h1 {
-        font-size: 2rem;
-    }
-}
-
-/* Toast Notification */
-.toast-container {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 9999;
-}
-
-.toast-rotina {
-    background: var(--rotina-card);
-    border: 1px solid var(--rotina-border);
-    border-radius: 8px;
-    padding: 1rem 1.5rem;
-    margin-bottom: 1rem;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    animation: slideIn 0.3s ease;
-}
-
-@keyframes slideIn {
-    from {
-        transform: translateX(400px);
-        opacity: 0;
-    }
-    to {
-        transform: translateX(0);
-        opacity: 1;
-    }
-}
-
-.toast-rotina.success {
-    border-left: 4px solid #28a745;
-}
-
-.toast-rotina.error {
-    border-left: 4px solid #dc3545;
-}
-
-.toast-rotina.warning {
-    border-left: 4px solid #ffc107;
+.btn-complete-lux.is-done {
+    background: #2ecc71;
+    border-color: #2ecc71;
 }
 </style>
 
-<div class="rotinas-container">
-    <div class="page-header-rotinas">
-        <h1><i class="bi bi-calendar-check me-2"></i>Minhas Rotinas</h1>
-        <p>Gerencie seus hábitos e rotinas diárias</p>
+<div class="rotinas-lux-container">
+    <header class="header-premium-lux">
+        <div>
+            <h1>Rotina Diária</h1>
+            <p style="color: var(--lux-text-dim); margin: 0.5rem 0 0;">Construa sua melhor versão, um passo de cada vez.</p>
+        </div>
+        <button class="btn-add-lux" onclick="abrirModalRotina()">
+            <i class="bi bi-plus-lg"></i> Novo Hábito
+        </button>
+    </header>
+
+    <?php if (!empty($rotinasFixas)): ?>
+    <div class="stats-glass-lux">
+        <div class="circle-progress-lux"></div>
+        <div>
+            <h2 style="margin: 0;">Você está no caminho!</h2>
+            <p style="color: var(--lux-text-dim); margin-top: 0.5rem;">
+                Concluídos: <strong><?php echo $rotinasConcluidas; ?></strong> de <?php echo count($rotinasFixas); ?>
+            </p>
+        </div>
     </div>
 
-    <div class="rotinas-section">
-        <div class="section-header-rotinas">
-            <div class="section-title-rotinas">
-                <i class="bi bi-calendar-check" style="font-size: 2rem; color: var(--rotina-primary);"></i>
-                <div>
-                    <h3>Rotinas Fixas</h3>
-                    <span class="section-badge-rotinas">
-                        <?php echo $rotinasConcluidas; ?>/<?php echo count($rotinasFixas); ?> concluídas
+    <div class="grid-lux-habitos">
+        <?php foreach ($rotinasFixas as $rotina):
+        $isConcluido = ($rotina['status_hoje'] === 'concluido');
+?>
+        <div class="card-lux-habit <?php echo $isConcluido ? 'concluido' : ''; ?>" data-id="<?php echo $rotina['id']; ?>" data-controle-id="<?php echo $rotina['controle_id'] ?? ''; ?>">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <span class="prio-pill prio-<?php echo $rotina['prioridade']; ?>">
+                    <?php echo $rotina['prioridade']; ?>
+                </span>
+                <?php if ($rotina['horario_sugerido']): ?>
+                    <span style="color: var(--lux-text-dim); font-size: 0.9rem;">
+                        <i class="bi bi-clock me-1"></i> <?php echo date('H:i', strtotime($rotina['horario_sugerido'])); ?>
                     </span>
-                </div>
+                <?php
+        endif; ?>
             </div>
-            <?php if (count($rotinasFixas) > 0): ?>
-            <div class="progress-circular-rotinas" style="--progress: <?php echo $progressoRotina; ?>">
-                <span class="progress-text-rotinas"><?php echo round($progressoRotina); ?>%</span>
-            </div>
-            <?php endif; ?>
-        </div>
+            
+            <h3 style="margin-top: 0; color: white;"><?php echo htmlspecialchars($rotina['nome']); ?></h3>
+            <p style="color: var(--lux-text-dim); font-size: 0.95rem; min-height: 45px;">
+                <?php echo htmlspecialchars($rotina['descricao']); ?>
+            </p>
 
-        <?php if (empty($rotinasFixas)): ?>
-        <div class="empty-state-rotinas">
-            <i class="bi bi-calendar-x"></i>
-            <h5>Nenhuma rotina cadastrada</h5>
-            <p>Adicione rotinas que você quer fazer todos os dias</p>
-            <button class="btn-add-rotina" onclick="abrirModalRotina()">
-                <i class="bi bi-plus-circle me-2"></i>Adicionar Primeira Rotina
+            <button class="btn-complete-lux <?php echo $isConcluido ? 'is-done' : ''; ?>" onclick="toggleRotina(<?php echo $rotina['id']; ?>, '<?php echo $rotina['status_hoje'] ?? 'pendente'; ?>')">
+                <?php echo $isConcluido ? '<i class="bi bi-check-circle-fill me-2"></i> Concluído' : 'Marcar como feito'; ?>
             </button>
-        </div>
-        <?php else: ?>
-        <div class="rotinas-grid" id="lista-rotinas">
-            <?php foreach ($rotinasFixas as $rotina): ?>
-            <div class="rotina-item <?php echo $rotina['status_hoje'] === 'concluido' ? 'completed' : ''; ?>" 
-                 data-rotina-id="<?php echo $rotina['id']; ?>"
-                 data-controle-id="<?php echo $rotina['controle_id'] ?? ''; ?>">
-                <div class="rotina-header">
-                    <div class="rotina-icon" onclick="toggleRotina(<?php echo $rotina['id']; ?>, '<?php echo $rotina['status_hoje'] ?? 'pendente'; ?>')">
-                        <i class="bi bi-<?php echo $rotina['status_hoje'] === 'concluido' ? 'check-circle-fill' : 'circle'; ?>"></i>
-                    </div>
-                    <div class="rotina-content">
-                        <h6><?php echo htmlspecialchars($rotina['nome']); ?></h6>
-                        <?php if ($rotina['horario_sugerido'] && $rotina['horario_sugerido'] !== '00:00:00'): ?>
-                        <small><i class="bi bi-clock me-1"></i><?php echo date('H:i', strtotime($rotina['horario_sugerido'])); ?></small>
-                        <?php endif; ?>
-                        <?php if ($rotina['descricao']): ?>
-                        <small><i class="bi bi-card-text me-1"></i><?php echo htmlspecialchars($rotina['descricao']); ?></small>
-                        <?php endif; ?>
-                    </div>
-                </div>
-                <div class="rotina-actions">
-                    <button class="btn-rotina btn-rotina-outline-warning" onclick="editarRotina(<?php echo $rotina['id']; ?>)">
-                        <i class="bi bi-pencil me-1"></i>Editar
-                    </button>
-                    <button class="btn-rotina btn-rotina-outline-danger" onclick="excluirRotina(<?php echo $rotina['id']; ?>, '<?php echo htmlspecialchars($rotina['nome'], ENT_QUOTES); ?>')">
-                        <i class="bi bi-trash me-1"></i>Excluir
-                    </button>
-                </div>
+            
+            <div style="display: flex; gap: 0.5rem; margin-top: 1rem; justify-content: flex-end;">
+                <button onclick="editarRotina(<?php echo $rotina['id']; ?>)" style="background: none; border: none; color: var(--lux-text-dim);"><i class="bi bi-pencil"></i></button>
+                <button onclick="excluirRotina(<?php echo $rotina['id']; ?>, '<?php echo addslashes($rotina['nome']); ?>')" style="background: none; border: none; color: #ff4d4d;"><i class="bi bi-trash"></i></button>
             </div>
-            <?php endforeach; ?>
         </div>
-        <div style="text-align: center; margin-top: 2rem;">
-            <button class="btn-add-rotina" onclick="abrirModalRotina()">
-                <i class="bi bi-plus-circle me-2"></i>Adicionar Nova Rotina
-            </button>
-        </div>
-        <?php endif; ?>
+        <?php
+    endforeach; ?>
     </div>
+    <?php
+else: ?>
+    <div style="text-align: center; padding: 5rem; background: rgba(255,255,255,0.02); border-radius: 30px; border: 2px dashed var(--lux-border);">
+        <i class="bi bi-calendar-event" style="font-size: 4rem; color: var(--lux-text-dim); opacity: 0.3;"></i>
+        <h3 style="margin-top: 2rem;">Nada por aqui ainda...</h3>
+        <p style="color: var(--lux-text-dim);">Comece criando seu primeiro hábito diário!</p>
+        <button class="btn-add-lux" style="margin: 2rem auto 0;" onclick="abrirModalRotina()">Criar Agora</button>
+    </div>
+    <?php
+endif; ?>
 </div>
 
-<!-- Modal Adicionar Rotina -->
-<div class="modal fade" id="modalRotina" tabindex="-1" aria-hidden="true">
+<!-- Modal Elite -->
+<div class="modal fade" id="modalRotina" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content modal-content-rotinas">
-            <div class="modal-header modal-header-rotinas">
-                <h5 class="modal-title">
-                    <i class="bi bi-plus-circle me-2"></i>Adicionar Nova Rotina
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-content" style="background: #1a1a1a; border: 1px solid var(--lux-border); border-radius: 30px; overflow: hidden;">
+            <div class="p-4">
+                <h2 style="margin: 0 0 2rem 0;">Novo Hábito</h2>
+                <form id="formNovaRotina">
+                    <div class="mb-3">
+                        <label class="form-label text-dim">Nome do Hábito</label>
+                        <input type="text" name="nome" class="form-control bg-dark text-white border-0 py-3" required style="border-radius: 12px;">
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <label class="form-label text-dim">Horário</label>
+                            <input type="time" name="horario" class="form-control bg-dark text-white border-0 py-3" style="border-radius: 12px;">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label text-dim">Prioridade</label>
+                            <select name="prioridade" class="form-control bg-dark text-white border-0" style="border-radius: 12px;">
+                                <option value="Alta">Alta</option>
+                                <option value="Média" selected>Média</option>
+                                <option value="Baixa">Baixa</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label text-dim">Descrição</label>
+                        <textarea name="descricao" class="form-control bg-dark text-white border-0" rows="3" style="border-radius: 12px;"></textarea>
+                    </div>
+                    <button type="submit" class="btn-add-lux w-100 justify-content-center">Salvar Hábito</button>
+                </form>
             </div>
-            <form id="formNovaRotina">
-                <div class="modal-body modal-body-rotinas">
-                    <div class="mb-3">
-                        <label for="nomeRotina" class="form-label form-label-rotinas">
-                            <i class="bi bi-tag me-1"></i>Nome da Rotina *
-                        </label>
-                        <input type="text" 
-                               class="form-control form-control-rotinas" 
-                               id="nomeRotina" 
-                               name="nome"
-                               placeholder="Ex: Treinar, Estudar, Meditar..." 
-                               required 
-                               autofocus>
-                    </div>
-                    <div class="mb-3">
-                        <label for="horarioRotina" class="form-label form-label-rotinas">
-                            <i class="bi bi-clock me-1"></i>Horário Sugerido (Opcional)
-                        </label>
-                        <input type="time" 
-                               class="form-control form-control-rotinas" 
-                               id="horarioRotina" 
-                               name="horario">
-                        <small class="text-muted">
-                            <i class="bi bi-info-circle me-1"></i>Defina um horário ideal para esta rotina
-                        </small>
-                    </div>
-                    <div class="mb-3">
-                        <label for="descricaoRotina" class="form-label form-label-rotinas">
-                            <i class="bi bi-card-text me-1"></i>Descrição (Opcional)
-                        </label>
-                        <textarea class="form-control form-control-rotinas" 
-                                  id="descricaoRotina" 
-                                  name="descricao"
-                                  rows="3" 
-                                  placeholder="Adicione uma descrição ou observações sobre esta rotina..."></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer modal-footer-rotinas">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                        <i class="bi bi-x-circle me-1"></i>Cancelar
-                    </button>
-                    <button type="submit" class="btn btn-danger">
-                        <i class="bi bi-check-circle me-1"></i>Adicionar Rotina
-                    </button>
-                </div>
-            </form>
         </div>
     </div>
 </div>
-
-<!-- Toast Container -->
-<div class="toast-container" id="toastContainer"></div>
 
 <script>
-// Funções de Modal
-function abrirModalRotina() {
-    const modal = new bootstrap.Modal(document.getElementById('modalRotina'));
-    modal.show();
-    document.getElementById('formNovaRotina').reset();
-    setTimeout(() => {
-        document.getElementById('nomeRotina').focus();
-    }, 300);
-}
+function abrirModalRotina() { new bootstrap.Modal(document.getElementById('modalRotina')).show(); }
 
-// Submissão do Formulário
-document.addEventListener('DOMContentLoaded', function() {
-    const formRotina = document.getElementById('formNovaRotina');
-    if (formRotina) {
-        formRotina.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const formData = new FormData(formRotina);
-            const nome = formData.get('nome')?.trim();
-            
-            if (!nome) {
-                showToast('Nome é obrigatório', 'warning');
-                return;
-            }
-            
-            const btn = formRotina.querySelector('button[type="submit"]');
-            const btnOriginal = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Salvando...';
-            
-            fetch('adicionar_rotina_fixa.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showToast('Rotina criada com sucesso!', 'success');
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('modalRotina'));
-                    modal.hide();
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1000);
-                } else {
-                    showToast(data.message || 'Erro ao criar rotina', 'error');
-                    btn.disabled = false;
-                    btn.innerHTML = btnOriginal;
-                }
-            })
-            .catch(error => {
-                showToast('Erro ao salvar. Tente novamente.', 'error');
-                btn.disabled = false;
-                btn.innerHTML = btnOriginal;
-            });
-        });
-    }
+document.getElementById('formNovaRotina').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const btn = this.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    btn.innerHTML = 'Salvando...';
+    
+    fetch('adicionar_rotina_fixa.php', {
+        method: 'POST',
+        body: new FormData(this)
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) location.reload();
+        else { alert(data.message); btn.disabled = false; btn.innerHTML = 'Salvar Hábito'; }
+    });
 });
 
-// Toggle Rotina (Concluir/Pendente)
 function toggleRotina(rotinaId, statusAtual) {
+    const card = document.querySelector(`[data-id="${rotinaId}"]`);
+    const controleId = card.dataset.controleId;
     const novoStatus = statusAtual === 'concluido' ? 'pendente' : 'concluido';
     
-    // Primeiro, buscar o controle_id da rotina
-    const rotinaItem = document.querySelector(`[data-rotina-id="${rotinaId}"]`);
-    const controleId = rotinaItem?.dataset?.controleId;
-    
-    if (!controleId) {
-        // Se não tiver controle_id, criar um novo controle para hoje
-        fetch('processar_rotina_diaria.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `rotina_id=${rotinaId}&status=${novoStatus}&criar_controle=1`
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                window.location.reload();
-            } else {
-                showToast(data.message || 'Erro ao atualizar rotina', 'error');
-            }
-        })
-        .catch(error => {
-            showToast('Erro ao atualizar rotina', 'error');
-        });
-    } else {
-        // Usar o controle_id existente
-        fetch('processar_rotina_diaria.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `controle_id=${controleId}&status=${novoStatus}`
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                window.location.reload();
-            } else {
-                showToast(data.message || 'Erro ao atualizar rotina', 'error');
-            }
-        })
-        .catch(error => {
-            showToast('Erro ao atualizar rotina', 'error');
-        });
-    }
+    const body = !controleId 
+        ? `rotina_id=${rotinaId}&status=${novoStatus}&criar_controle=1`
+        : `controle_id=${controleId}&status=${novoStatus}`;
+
+    fetch('processar_rotina_diaria.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: body
+    }).then(r => r.json()).then(d => { if(d.success) location.reload(); });
 }
 
-// Editar Rotina
-function editarRotina(rotinaId) {
-    window.location.href = `editar_rotina_fixa.php?id=${rotinaId}`;
-}
+function editarRotina(id) { window.location.href = `editar_rotina_fixa.php?id=${id}`; }
 
-// Excluir Rotina
-function excluirRotina(rotinaId, nomeRotina) {
-    if (confirm(`Tem certeza que deseja excluir a rotina "${nomeRotina}"?`)) {
+function excluirRotina(id, nome) {
+    if (confirm(`Excluir "${nome}"?`)) {
         fetch('excluir_rotina_fixa.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: rotinaId })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showToast('Rotina excluída com sucesso!', 'success');
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1000);
-            } else {
-                showToast(data.message || 'Erro ao excluir rotina', 'error');
-            }
-        })
-        .catch(error => {
-            showToast('Erro ao excluir rotina', 'error');
-        });
+            body: JSON.stringify({ id: id })
+        }).then(r => r.json()).then(d => { if(d.success) location.reload(); });
     }
-}
-
-// Toast Notification
-function showToast(message, type = 'success') {
-    const container = document.getElementById('toastContainer');
-    const toast = document.createElement('div');
-    toast.className = `toast-rotina ${type}`;
-    toast.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <i class="bi bi-${type === 'success' ? 'check-circle' : type === 'error' ? 'x-circle' : 'exclamation-triangle'}"></i>
-            <span>${message}</span>
-        </div>
-    `;
-    container.appendChild(toast);
-    
-    setTimeout(() => {
-        toast.style.animation = 'slideIn 0.3s ease reverse';
-        setTimeout(() => toast.remove(), 300);
-    }, 3000);
 }
 </script>
 
 <?php require_once 'templates/footer.php'; ?>
-
