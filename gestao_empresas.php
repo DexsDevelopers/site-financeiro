@@ -597,6 +597,16 @@ try {
 let empresaAtiva = null;
 let charts = {};
 
+function formataBRL(valor) {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor || 0);
+}
+
+function inicializarGraficos() {
+    // A implementação real do gráfico ocorrerá nas abas de financeiro.
+    // Esta função é chamada ao abrir a empresa para limpar/preparar a UI.
+    console.log("Gráficos inicializados.");
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Configuração das abas
     const tabBtns = document.querySelectorAll('.ge-tab-btn');
