@@ -5,10 +5,17 @@ require_once 'templates/header.php';
 // $pdo e $userId já estão disponíveis via header.php
 
 // Buscar empresas principais do usuário (sem pai)
+$userType = $_SESSION['user_type'] ?? ($_SESSION['user']['tipo'] ?? 'usuario');
+
 try {
-    $stmt = $pdo->prepare("SELECT * FROM ge_empresas WHERE id_usuario = ? AND id_pai IS NULL ORDER BY data_criacao DESC");
-    $stmt->execute([$userId]);
-    $empresas = $stmt->fetchAll();
+    if ($userType === 'admin') {
+        $stmt = $pdo->prepare("SELECT * FROM ge_empresas WHERE id_pai IS NULL ORDER BY data_criacao DESC");
+        $stmt->execute();
+    } else {
+        $stmt = $pdo->prepare("SELECT * FROM ge_empresas WHERE id_usuario = ? AND id_pai IS NULL ORDER BY data_criacao DESC");
+        $stmt->execute([$userId]);
+    }
+    $empresas = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     // Tentar criar/atualizar as tabelas caso não existam (auto-setup)
     include_once 'setup_gestao_empresas.php';
@@ -737,7 +744,22 @@ function selecionarEmpresa(id) {
             // Carregar dados iniciais (Resumo)
             carregarStatsResumo();
             inicializarGraficos();
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Erro ao carregar',
+                text: d.message || 'Empresa não encontrada ou acesso negado.',
+                background: '#1a1a1c',
+                color: '#fff',
+                confirmButtonColor: '#e50914'
+            }).then(() => {
+                voltarLista();
+            });
         }
+    })
+    .catch(err => {
+        console.error('Error fetching company:', err);
+        Swal.fire('Erro!', 'Não foi possível conectar ao servidor.', 'error');
     });
 }
 

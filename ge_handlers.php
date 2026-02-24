@@ -10,21 +10,32 @@ if (!isset($_SESSION['user_id']) && !isset($_SESSION['user']['id'])) {
 }
 
 $userId = !empty($_SESSION['user']['id']) ? (int) $_SESSION['user']['id'] : (int) ($_SESSION['user_id'] ?? 0);
+$userType = $_SESSION['user_type'] ?? ($_SESSION['user']['tipo'] ?? 'usuario');
 $acao = $_REQUEST['acao'] ?? '';
+
+// Log de depuração reforçado
+error_log("GE_HANDLERS: Ação: $acao, UserID: $userId, UserType: $userType, ReqID: " . ($_REQUEST['id'] ?? 'N/A'));
 
 header('Content-Type: application/json');
 
 switch ($acao) {
     case 'get_empresa':
-        $id = (int)($_GET['id'] ?? 0);
-        $stmt = $pdo->prepare("SELECT * FROM ge_empresas WHERE id = ? AND id_usuario = ?");
-        $stmt->execute([$id, $userId]);
+        $id = (int)($_REQUEST['id'] ?? 0);
+        // Se for admin, ignora a trava de id_usuario
+        if ($userType === 'admin') {
+            $stmt = $pdo->prepare("SELECT * FROM ge_empresas WHERE id = ?");
+            $stmt->execute([$id]);
+        } else {
+            $stmt = $pdo->prepare("SELECT * FROM ge_empresas WHERE id = ? AND id_usuario = ?");
+            $stmt->execute([$id, $userId]);
+        }
         $empresa = $stmt->fetch();
         
         if ($empresa) {
             echo json_encode(['success' => true, 'data' => $empresa]);
         } else {
-            echo json_encode(['success' => false, 'message' => 'Empresa não encontrada.']);
+            error_log("GE_HANDLERS/get_empresa: Falha ao encontrar empresa $id para o usuário $userId (Tipo: $userType)");
+            echo json_encode(['success' => false, 'message' => 'Empresa não encontrada ou acesso negado.']);
         }
         break;
 
@@ -51,14 +62,17 @@ switch ($acao) {
         break;
 
     case 'get_resumo':
-        $idEmpresa = (int)($_GET['id'] ?? 0);
+        $idEmpresa = (int)($_REQUEST['id'] ?? 0);
         
-        // Verificar se a empresa pertence ao usuário
-        $stmtCheck = $pdo->prepare("SELECT id FROM ge_empresas WHERE id = ? AND id_usuario = ?");
-        $stmtCheck->execute([$idEmpresa, $userId]);
-        if (!$stmtCheck->fetch()) {
-            echo json_encode(['success' => false, 'message' => 'Acesso negado.']);
-            exit;
+        // Verificar se a empresa pertence ao usuário (Admins ignoram trava)
+        if ($userType !== 'admin') {
+            $stmtCheck = $pdo->prepare("SELECT id FROM ge_empresas WHERE id = ? AND id_usuario = ?");
+            $stmtCheck->execute([$idEmpresa, $userId]);
+            if (!$stmtCheck->fetch()) {
+                error_log("GE_HANDLERS/get_resumo: ACESSO NEGADO para empresa $idEmpresa e usuário $userId");
+                echo json_encode(['success' => false, 'message' => 'Acesso negado.']);
+                exit;
+            }
         }
 
         // Receitas e Despesas do mês atual
@@ -160,10 +174,15 @@ switch ($acao) {
         break;
 
     case 'excluir_financeiro':
-        $id = (int)($_GET['id'] ?? 0);
-        // Verificar permissão
-        $stmt = $pdo->prepare("DELETE t FROM ge_financeiro t JOIN ge_empresas e ON t.id_empresa = e.id WHERE t.id = ? AND e.id_usuario = ?");
-        $stmt->execute([$id, $userId]);
+        $id = (int)($_REQUEST['id'] ?? 0);
+        // Permitir admin
+        if ($userType === 'admin') {
+            $stmt = $pdo->prepare("DELETE FROM ge_financeiro WHERE id = ?");
+            $stmt->execute([$id]);
+        } else {
+            $stmt = $pdo->prepare("DELETE t FROM ge_financeiro t JOIN ge_empresas e ON t.id_empresa = e.id WHERE t.id = ? AND e.id_usuario = ?");
+            $stmt->execute([$id, $userId]);
+        }
         echo json_encode(['success' => true]);
         break;
 
@@ -189,15 +208,25 @@ switch ($acao) {
     case 'atualizar_status_tarefa':
         $id = (int)($_POST['id'] ?? 0);
         $status = $_POST['status'] ?? 'pendente';
-        $stmt = $pdo->prepare("UPDATE ge_tarefas t JOIN ge_empresas e ON t.id_empresa = e.id SET t.status = ? WHERE t.id = ? AND e.id_usuario = ?");
-        $stmt->execute([$status, $id, $userId]);
+        if ($userType === 'admin') {
+            $stmt = $pdo->prepare("UPDATE ge_tarefas SET status = ? WHERE id = ?");
+            $stmt->execute([$status, $id]);
+        } else {
+            $stmt = $pdo->prepare("UPDATE ge_tarefas t JOIN ge_empresas e ON t.id_empresa = e.id SET t.status = ? WHERE t.id = ? AND e.id_usuario = ?");
+            $stmt->execute([$status, $id, $userId]);
+        }
         echo json_encode(['success' => true]);
         break;
 
     case 'excluir_tarefa':
-        $id = (int)($_GET['id'] ?? 0);
-        $stmt = $pdo->prepare("DELETE t FROM ge_tarefas t JOIN ge_empresas e ON t.id_empresa = e.id WHERE t.id = ? AND e.id_usuario = ?");
-        $stmt->execute([$id, $userId]);
+        $id = (int)($_REQUEST['id'] ?? 0);
+        if ($userType === 'admin') {
+            $stmt = $pdo->prepare("DELETE FROM ge_tarefas WHERE id = ?");
+            $stmt->execute([$id]);
+        } else {
+            $stmt = $pdo->prepare("DELETE t FROM ge_tarefas t JOIN ge_empresas e ON t.id_empresa = e.id WHERE t.id = ? AND e.id_usuario = ?");
+            $stmt->execute([$id, $userId]);
+        }
         echo json_encode(['success' => true]);
         break;
 
@@ -223,8 +252,13 @@ switch ($acao) {
     case 'atualizar_status_ideia':
         $id = (int)($_POST['id'] ?? 0);
         $status = $_POST['status'] ?? 'analise';
-        $stmt = $pdo->prepare("UPDATE ge_ideias t JOIN ge_empresas e ON t.id_empresa = e.id SET t.status = ? WHERE t.id = ? AND e.id_usuario = ?");
-        $stmt->execute([$status, $id, $userId]);
+        if ($userType === 'admin') {
+            $stmt = $pdo->prepare("UPDATE ge_ideias SET status = ? WHERE id = ?");
+            $stmt->execute([$status, $id]);
+        } else {
+            $stmt = $pdo->prepare("UPDATE ge_ideias t JOIN ge_empresas e ON t.id_empresa = e.id SET t.status = ? WHERE t.id = ? AND e.id_usuario = ?");
+            $stmt->execute([$status, $id, $userId]);
+        }
         echo json_encode(['success' => true]);
         break;
 
@@ -293,16 +327,26 @@ switch ($acao) {
         $descricao = $_POST['descricao'] ?? '';
         $observacoes = $_POST['observacoes'] ?? '';
 
-        $stmt = $pdo->prepare("UPDATE ge_empresas SET nome = ?, cnpj = ?, segmento = ?, contato = ?, endereco = ?, descricao = ?, observacoes = ? WHERE id = ? AND id_usuario = ?");
-        $stmt->execute([$nome, $cnpj, $segmento, $contato, $endereco, $descricao, $observacoes, $id, $userId]);
+        if ($userType === 'admin') {
+            $stmt = $pdo->prepare("UPDATE ge_empresas SET nome = ?, cnpj = ?, segmento = ?, contato = ?, endereco = ?, descricao = ?, observacoes = ? WHERE id = ?");
+            $stmt->execute([$nome, $cnpj, $segmento, $contato, $endereco, $descricao, $observacoes, $id]);
+        } else {
+            $stmt = $pdo->prepare("UPDATE ge_empresas SET nome = ?, cnpj = ?, segmento = ?, contato = ?, endereco = ?, descricao = ?, observacoes = ? WHERE id = ? AND id_usuario = ?");
+            $stmt->execute([$nome, $cnpj, $segmento, $contato, $endereco, $descricao, $observacoes, $id, $userId]);
+        }
         echo json_encode(['success' => true]);
         break;
 
     case 'excluir_empresa':
-        $id = (int)($_POST['id'] ?? 0);
-        // Verificar se a empresa pertence ao usuário antes de deletar
-        $stmt = $pdo->prepare("DELETE FROM ge_empresas WHERE id = ? AND id_usuario = ?");
-        $stmt->execute([$id, $userId]);
+        $id = (int)($_REQUEST['id'] ?? 0);
+        // Administradores podem excluir qualquer empresa, usuários apenas as suas
+        if ($userType === 'admin') {
+            $stmt = $pdo->prepare("DELETE FROM ge_empresas WHERE id = ?");
+            $stmt->execute([$id]);
+        } else {
+            $stmt = $pdo->prepare("DELETE FROM ge_empresas WHERE id = ? AND id_usuario = ?");
+            $stmt->execute([$id, $userId]);
+        }
         
         if ($stmt->rowCount() > 0) {
             echo json_encode(['success' => true, 'message' => 'Empresa excluída com sucesso!']);
@@ -312,17 +356,27 @@ switch ($acao) {
         break;
 
     case 'excluir_rede_social':
-        $id = (int)($_GET['id'] ?? 0);
-        $stmt = $pdo->prepare("DELETE t FROM ge_redes_sociais t JOIN ge_empresas e ON t.id_empresa = e.id WHERE t.id = ? AND e.id_usuario = ?");
-        $stmt->execute([$id, $userId]);
+        $id = (int)($_REQUEST['id'] ?? 0);
+        if ($userType === 'admin') {
+            $stmt = $pdo->prepare("DELETE FROM ge_redes_sociais WHERE id = ?");
+            $stmt->execute([$id]);
+        } else {
+            $stmt = $pdo->prepare("DELETE t FROM ge_redes_sociais t JOIN ge_empresas e ON t.id_empresa = e.id WHERE t.id = ? AND e.id_usuario = ?");
+            $stmt->execute([$id, $userId]);
+        }
         echo json_encode(['success' => true]);
         break;
 
     case 'get_subempresas':
-        $idPai = (int)($_GET['id'] ?? 0);
+        $idPai = (int)($_REQUEST['id'] ?? 0);
         try {
-            $stmt = $pdo->prepare("SELECT * FROM ge_empresas WHERE id_pai = ? AND id_usuario = ? ORDER BY nome ASC");
-            $stmt->execute([$idPai, $userId]);
+            if ($userType === 'admin') {
+                $stmt = $pdo->prepare("SELECT * FROM ge_empresas WHERE id_pai = ? ORDER BY nome ASC");
+                $stmt->execute([$idPai]);
+            } else {
+                $stmt = $pdo->prepare("SELECT * FROM ge_empresas WHERE id_pai = ? AND id_usuario = ? ORDER BY nome ASC");
+                $stmt->execute([$idPai, $userId]);
+            }
             $subs = $stmt->fetchAll();
             
             // Adicionar estatísticas básicas para cada subempresa

@@ -4,7 +4,7 @@
 session_start();
 
 if (empty($_SESSION['user_id']) && empty($_SESSION['user']['id'])) {
-    header("Location: /seu_projeto/index.php");
+    header("Location: index.php");
     exit;
 }
 

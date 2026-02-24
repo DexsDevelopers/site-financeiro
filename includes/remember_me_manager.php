@@ -51,7 +51,7 @@ class RememberMeManager {
         
         try {
             $stmt = $this->pdo->prepare("
-                SELECT rt.*, u.id, u.nome_completo as nome, u.email 
+                SELECT rt.*, u.id, u.nome_completo as nome, u.email, u.tipo
                 FROM remember_tokens rt 
                 JOIN usuarios u ON rt.user_id = u.id 
                 WHERE rt.token = ? 
@@ -95,10 +95,12 @@ class RememberMeManager {
             $_SESSION['user_id'] = $userData['id'];
             $_SESSION['user_name'] = $userData['nome'];
             $_SESSION['user_email'] = $userData['email'];
+            $_SESSION['user_type'] = $userData['tipo'];
             $_SESSION['user'] = [
                 'id' => $userData['id'],
                 'nome' => $userData['nome'],
-                'email' => $userData['email']
+                'email' => $userData['email'],
+                'tipo' => $userData['tipo']
             ];
             
             error_log("RememberMeManager: Sessão criada para usuário ID: " . $userData['id']);

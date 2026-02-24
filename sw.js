@@ -1,6 +1,6 @@
 // sw.js - Service Worker para PWA
 const CACHE_NAME = 'painel-financeiro-v1.0.1';
-const OFFLINE_URL = '/offline.html';
+const OFFLINE_URL = 'offline.html';
 
 // Recursos essenciais para cache
 const CORE_ASSETS = [
@@ -20,7 +20,7 @@ const CORE_ASSETS = [
 // Instalar service worker
 self.addEventListener('install', event => {
   console.log('Service Worker: Instalando...');
-  
+
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
@@ -40,7 +40,7 @@ self.addEventListener('install', event => {
 // Ativar service worker
 self.addEventListener('activate', event => {
   console.log('Service Worker: Ativando...');
-  
+
   event.waitUntil(
     caches.keys()
       .then(cacheNames => {
@@ -80,14 +80,14 @@ self.addEventListener('fetch', event => {
   }
 
   // Ignorar requisições de API e formulários
-  if (event.request.url.includes('/api/') || 
-      event.request.url.includes('salvar_') || 
-      event.request.url.includes('atualizar_') || 
-      event.request.url.includes('excluir_') ||
-      event.request.url.includes('login_process.php') ||
-      event.request.url.includes('logout.php') ||
-      event.request.url.includes('registrar.php') ||
-      event.request.url.includes('upload.php')) {
+  if (event.request.url.includes('/api/') ||
+    event.request.url.includes('salvar_') ||
+    event.request.url.includes('atualizar_') ||
+    event.request.url.includes('excluir_') ||
+    event.request.url.includes('login_process.php') ||
+    event.request.url.includes('logout.php') ||
+    event.request.url.includes('registrar.php') ||
+    event.request.url.includes('upload.php')) {
     return;
   }
 
@@ -99,10 +99,10 @@ self.addEventListener('fetch', event => {
   // Ignorar requisições de recursos externos que podem causar problemas
   // e bibliotecas via CDN (deixar o navegador tratar)
   if (event.request.url.includes('googleapis.com') ||
-      event.request.url.includes('gstatic.com') ||
-      event.request.url.includes('onesignal.com') ||
-      event.request.url.includes('unpkg.com') ||
-      event.request.url.includes('cdn.jsdelivr.net')) {
+    event.request.url.includes('gstatic.com') ||
+    event.request.url.includes('onesignal.com') ||
+    event.request.url.includes('unpkg.com') ||
+    event.request.url.includes('cdn.jsdelivr.net')) {
     return;
   }
 
@@ -147,24 +147,24 @@ self.addEventListener('fetch', event => {
           })
           .catch(error => {
             console.log('Service Worker: Erro na requisição:', error);
-            
+
             // Se for uma página HTML, mostrar página offline
             if (event.request.headers.get('accept') && event.request.headers.get('accept').includes('text/html')) {
               return caches.match(OFFLINE_URL);
             }
-            
+
             // Para outros recursos, retornar erro
             throw error;
           });
       })
       .catch(error => {
         console.log('Service Worker: Erro geral:', error);
-        
+
         // Fallback para página offline se for HTML
         if (event.request.headers.get('accept') && event.request.headers.get('accept').includes('text/html')) {
           return caches.match(OFFLINE_URL);
         }
-        
+
         throw error;
       })
   );
@@ -173,11 +173,11 @@ self.addEventListener('fetch', event => {
 // Notificações push
 self.addEventListener('push', event => {
   console.log('Service Worker: Push recebido');
-  
+
   const options = {
     body: event.data ? event.data.text() : 'Nova notificação do Painel Financeiro',
-    icon: '/seu_projeto/icons/icon-192x192.png',
-    badge: '/seu_projeto/icons/icon-72x72.png',
+    icon: 'icons/icon-192x192.png',
+    badge: 'icons/icon-72x72.png',
     vibrate: [100, 50, 100],
     data: {
       dateOfArrival: Date.now(),
@@ -187,12 +187,12 @@ self.addEventListener('push', event => {
       {
         action: 'explore',
         title: 'Ver detalhes',
-        icon: '/seu_projeto/icons/action-explore.png'
+        icon: 'icons/action-explore.png'
       },
       {
         action: 'close',
         title: 'Fechar',
-        icon: '/seu_projeto/icons/action-close.png'
+        icon: 'icons/action-close.png'
       }
     ]
   };
@@ -205,19 +205,19 @@ self.addEventListener('push', event => {
 // Clique em notificação
 self.addEventListener('notificationclick', event => {
   console.log('Service Worker: Clique na notificação');
-  
+
   event.notification.close();
 
   if (event.action === 'explore') {
     event.waitUntil(
-      clients.openWindow('/seu_projeto/dashboard.php')
+      clients.openWindow('dashboard.php')
     );
   } else if (event.action === 'close') {
     // Apenas fechar a notificação
   } else {
     // Clique na notificação (não em uma ação)
     event.waitUntil(
-      clients.openWindow('/seu_projeto/dashboard.php')
+      clients.openWindow('dashboard.php')
     );
   }
 });
@@ -225,7 +225,7 @@ self.addEventListener('notificationclick', event => {
 // Sincronização em background
 self.addEventListener('sync', event => {
   console.log('Service Worker: Sincronização em background');
-  
+
   if (event.tag === 'background-sync') {
     event.waitUntil(
       // Implementar sincronização de dados offline
@@ -250,7 +250,7 @@ self.addEventListener('message', event => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
-  
+
   if (event.data && event.data.type === 'GET_VERSION') {
     event.ports[0].postMessage({ version: CACHE_NAME });
   }

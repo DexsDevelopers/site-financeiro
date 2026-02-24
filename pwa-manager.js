@@ -9,64 +9,64 @@ class PWAManager {
         this.isInstalled = false;
         this.serviceWorker = null;
         this.installPrompt = null;
-        
+
         this.init();
     }
-    
+
     async init() {
         console.log('PWA Manager: Inicializando...');
-        
+
         // Verificar se está instalado
         this.checkInstallStatus();
-        
+
         // Registrar service worker
         await this.registerServiceWorker();
-        
+
         // Configurar listeners
         this.setupEventListeners();
-        
+
         // Verificar atualizações
         this.checkForUpdates();
-        
+
         console.log('PWA Manager: Inicializado com sucesso');
     }
-    
+
     checkInstallStatus() {
         // Verificar se está em modo standalone
-        this.isInstalled = window.matchMedia('(display-mode: standalone)').matches || 
-                          window.navigator.standalone === true;
-        
+        this.isInstalled = window.matchMedia('(display-mode: standalone)').matches ||
+            window.navigator.standalone === true;
+
         if (this.isInstalled) {
             console.log('PWA Manager: App está instalado');
             this.showInstallStatus();
         }
     }
-    
+
     async registerServiceWorker() {
         if ('serviceWorker' in navigator) {
             try {
                 // Tentar registrar o service worker avançado primeiro
-                let registration = await navigator.serviceWorker.register('/seu_projeto/sw-advanced.js');
-                
+                let registration = await navigator.serviceWorker.register('sw-advanced.js');
+
                 if (!registration) {
                     // Fallback para service worker básico
-                    registration = await navigator.serviceWorker.register('/seu_projeto/sw.js');
+                    registration = await navigator.serviceWorker.register('sw.js');
                 }
-                
+
                 this.serviceWorker = registration;
                 console.log('PWA Manager: Service Worker registrado:', registration);
-                
+
                 // Verificar atualizações
                 registration.addEventListener('updatefound', () => {
                     this.handleServiceWorkerUpdate(registration);
                 });
-                
+
             } catch (error) {
                 console.error('PWA Manager: Erro ao registrar Service Worker:', error);
-                
+
                 // Tentar registrar service worker minimalista
                 try {
-                    this.serviceWorker = await navigator.serviceWorker.register('/seu_projeto/sw-minimal.js');
+                    this.serviceWorker = await navigator.serviceWorker.register('sw-minimal.js');
                     console.log('PWA Manager: Service Worker minimalista registrado');
                 } catch (minimalError) {
                     console.error('PWA Manager: Erro ao registrar Service Worker minimalista:', minimalError);
@@ -76,19 +76,19 @@ class PWAManager {
             console.log('PWA Manager: Service Worker não suportado');
         }
     }
-    
+
     setupEventListeners() {
         // Status de conexão
         window.addEventListener('online', () => {
             this.isOnline = true;
             this.handleOnline();
         });
-        
+
         window.addEventListener('offline', () => {
             this.isOnline = false;
             this.handleOffline();
         });
-        
+
         // Instalação do app
         window.addEventListener('beforeinstallprompt', (e) => {
             console.log('PWA Manager: beforeinstallprompt disparado');
@@ -96,14 +96,14 @@ class PWAManager {
             this.installPrompt = e;
             this.showInstallButton();
         });
-        
+
         window.addEventListener('appinstalled', () => {
             console.log('PWA Manager: App instalado');
             this.isInstalled = true;
             this.hideInstallButton();
             this.showInstallSuccess();
         });
-        
+
         // Atualizações do service worker
         if (this.serviceWorker) {
             this.serviceWorker.addEventListener('controllerchange', () => {
@@ -112,30 +112,30 @@ class PWAManager {
             });
         }
     }
-    
+
     handleOnline() {
         console.log('PWA Manager: Conexão restaurada');
         this.showNotification('🌐 Conexão restaurada!', 'success');
-        
+
         // Sincronizar dados offline se necessário
         this.syncOfflineData();
     }
-    
+
     handleOffline() {
         console.log('PWA Manager: Conexão perdida');
         this.showNotification('📡 Você está offline', 'warning');
     }
-    
+
     async handleServiceWorkerUpdate(registration) {
         if (registration && registration.waiting) {
             console.log('PWA Manager: Nova versão disponível');
             this.showUpdateNotification();
         }
     }
-    
+
     showInstallButton() {
         if (this.isInstalled) return;
-        
+
         // Criar botão de instalação se não existir
         if (!document.getElementById('pwa-install-btn')) {
             const button = document.createElement('button');
@@ -145,7 +145,7 @@ class PWAManager {
                 <i class="bi bi-download"></i>
                 Instalar App
             `;
-            
+
             button.style.cssText = `
                 position: fixed;
                 bottom: 20px;
@@ -162,15 +162,15 @@ class PWAManager {
                 transition: all 0.3s ease;
                 animation: slideInUp 0.5s ease;
             `;
-            
+
             button.addEventListener('click', () => {
                 this.installApp();
             });
-            
+
             document.body.appendChild(button);
         }
     }
-    
+
     hideInstallButton() {
         const button = document.getElementById('pwa-install-btn');
         if (button) {
@@ -182,36 +182,36 @@ class PWAManager {
             }, 300);
         }
     }
-    
+
     async installApp() {
         if (!this.installPrompt) {
             this.showInstallInstructions();
             return;
         }
-        
+
         try {
             this.installPrompt.prompt();
             const { outcome } = await this.installPrompt.userChoice;
-            
+
             if (outcome === 'accepted') {
                 console.log('PWA Manager: Usuário aceitou a instalação');
             } else {
                 console.log('PWA Manager: Usuário rejeitou a instalação');
             }
-            
+
             this.installPrompt = null;
         } catch (error) {
             console.error('PWA Manager: Erro ao instalar app:', error);
             this.showInstallInstructions();
         }
     }
-    
+
     showInstallInstructions() {
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
         const isAndroid = /Android/.test(navigator.userAgent);
-        
+
         let message = '';
-        
+
         if (isIOS) {
             message = `
                 <div class="pwa-instructions">
@@ -246,30 +246,30 @@ class PWAManager {
                 </div>
             `;
         }
-        
+
         this.showModal('📲 Como Instalar o App', message);
     }
-    
+
     showInstallSuccess() {
         this.showNotification('🎉 App instalado com sucesso!', 'success');
     }
-    
+
     showUpdateNotification() {
         // ✅ CONTROLE DE FREQUÊNCIA - Não mostrar toda hora
         const lastShown = localStorage.getItem('pwa-update-last-shown');
         const now = Date.now();
         const oneDay = 24 * 60 * 60 * 1000; // 24 horas
-        
+
         // Se foi mostrado há menos de 24 horas, não mostrar novamente
         if (lastShown && (now - parseInt(lastShown)) < oneDay) {
             console.log('⏰ PWA: Modal de atualização já foi mostrado nas últimas 24h. Ignorando...');
             return;
         }
-        
+
         // Marcar como mostrado agora
         localStorage.setItem('pwa-update-last-shown', now.toString());
         console.log('✅ PWA: Mostrando notificação de atualização');
-        
+
         const notification = document.createElement('div');
         notification.className = 'pwa-update-notification';
         notification.id = 'pwa-update-notification';
@@ -293,7 +293,7 @@ class PWAManager {
                 </div>
             </div>
         `;
-        
+
         notification.style.cssText = `
             position: fixed;
             top: 20px;
@@ -306,23 +306,23 @@ class PWAManager {
             max-width: 350px;
             animation: slideInRight 0.3s ease;
         `;
-        
+
         document.body.appendChild(notification);
-        
+
         // Auto-remover após 15 segundos (aumentado de 10)
         setTimeout(() => {
             this.dismissUpdate('auto');
         }, 15000);
     }
-    
+
     dismissUpdate(reason) {
         const notification = document.getElementById('pwa-update-notification');
         if (!notification) return;
-        
+
         const now = Date.now();
         const oneDay = 24 * 60 * 60 * 1000;
         const oneHour = 60 * 60 * 1000;
-        
+
         if (reason === 'today') {
             // Não mostrar por 24 horas
             localStorage.setItem('pwa-update-last-shown', now.toString());
@@ -331,7 +331,7 @@ class PWAManager {
             // Lembrar em 1 hora
             localStorage.setItem('pwa-update-last-shown', (now - oneDay + oneHour).toString());
         }
-        
+
         notification.style.animation = 'slideOutRight 0.3s ease';
         setTimeout(() => {
             if (notification.parentNode) {
@@ -339,28 +339,28 @@ class PWAManager {
             }
         }, 300);
     }
-    
+
     async updateApp() {
         if (this.serviceWorker && this.serviceWorker.waiting) {
             this.serviceWorker.waiting.postMessage({ type: 'SKIP_WAITING' });
             window.location.reload();
         }
     }
-    
+
     async syncOfflineData() {
         try {
             console.log('PWA Manager: Sincronizando dados offline...');
-            
+
             // Implementar sincronização de dados offline
             // Aqui você pode implementar a lógica para sincronizar dados
             // que foram salvos localmente quando offline
-            
+
             this.showNotification('🔄 Dados sincronizados!', 'success');
         } catch (error) {
             console.error('PWA Manager: Erro na sincronização:', error);
         }
     }
-    
+
     async checkForUpdates() {
         if (this.serviceWorker) {
             try {
@@ -368,15 +368,15 @@ class PWAManager {
                 const lastCheck = localStorage.getItem('pwa-last-update-check');
                 const now = Date.now();
                 const sixHours = 6 * 60 * 60 * 1000; // 6 horas
-                
+
                 if (lastCheck && (now - parseInt(lastCheck)) < sixHours) {
                     console.log('⏰ PWA: Última verificação foi há menos de 6h. Pulando...');
                     return;
                 }
-                
+
                 // Marcar horário da verificação
                 localStorage.setItem('pwa-last-update-check', now.toString());
-                
+
                 await this.serviceWorker.update();
                 console.log('✅ PWA Manager: Verificação de atualizações concluída');
             } catch (error) {
@@ -384,12 +384,12 @@ class PWAManager {
             }
         }
     }
-    
+
     showNotification(message, type = 'info') {
         const notification = document.createElement('div');
         notification.className = `pwa-notification pwa-notification-${type}`;
         notification.innerHTML = message;
-        
+
         notification.style.cssText = `
             position: fixed;
             top: 20px;
@@ -404,9 +404,9 @@ class PWAManager {
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             animation: slideInRight 0.3s ease;
         `;
-        
+
         document.body.appendChild(notification);
-        
+
         // Remover após 5 segundos
         setTimeout(() => {
             if (notification.parentNode) {
@@ -419,7 +419,7 @@ class PWAManager {
             }
         }, 5000);
     }
-    
+
     showModal(title, content) {
         const modal = document.createElement('div');
         modal.className = 'pwa-modal';
@@ -439,7 +439,7 @@ class PWAManager {
                 </div>
             </div>
         `;
-        
+
         modal.style.cssText = `
             position: fixed;
             top: 0;
@@ -451,25 +451,25 @@ class PWAManager {
             align-items: center;
             justify-content: center;
         `;
-        
+
         document.body.appendChild(modal);
-        
+
         // Event listeners
         modal.querySelector('.pwa-modal-close').addEventListener('click', () => {
             modal.remove();
         });
-        
+
         modal.querySelector('.pwa-modal-btn').addEventListener('click', () => {
             modal.remove();
         });
-        
+
         modal.querySelector('.pwa-modal-overlay').addEventListener('click', (e) => {
             if (e.target === e.currentTarget) {
                 modal.remove();
             }
         });
     }
-    
+
     showInstallStatus() {
         const status = document.createElement('div');
         status.className = 'pwa-install-status';
@@ -479,7 +479,7 @@ class PWAManager {
                 <span>App instalado</span>
             </div>
         `;
-        
+
         status.style.cssText = `
             position: fixed;
             top: 20px;
@@ -492,9 +492,9 @@ class PWAManager {
             z-index: 1000;
             animation: slideInLeft 0.3s ease;
         `;
-        
+
         document.body.appendChild(status);
-        
+
         // Remover após 3 segundos
         setTimeout(() => {
             if (status.parentNode) {
@@ -507,16 +507,16 @@ class PWAManager {
             }
         }, 3000);
     }
-    
+
     // Métodos públicos
     isAppInstalled() {
         return this.isInstalled;
     }
-    
+
     isOnline() {
         return this.isOnline;
     }
-    
+
     async clearCache() {
         if (this.serviceWorker) {
             try {
@@ -526,7 +526,7 @@ class PWAManager {
                         this.showNotification('🗑️ Cache limpo com sucesso!', 'success');
                     }
                 };
-                
+
                 this.serviceWorker.active.postMessage(
                     { type: 'CLEAR_CACHE' },
                     [messageChannel.port2]
@@ -536,7 +536,7 @@ class PWAManager {
             }
         }
     }
-    
+
     async updateCache() {
         if (this.serviceWorker) {
             try {
@@ -546,7 +546,7 @@ class PWAManager {
                         this.showNotification('🔄 Cache atualizado!', 'success');
                     }
                 };
-                
+
                 this.serviceWorker.active.postMessage(
                     { type: 'UPDATE_CACHE' },
                     [messageChannel.port2]
