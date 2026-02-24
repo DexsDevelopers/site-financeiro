@@ -852,6 +852,15 @@ if (!isset($_SESSION['dias_uso_cache_time']) ||
     </style>
 </head>
 <body class="<?php echo $_SESSION['body_classes'] ?? ''; ?>">
+<?php if (isset($_SESSION['admin_auth'])): ?>
+<div style="background: linear-gradient(135deg, #ff9800, #e65100); color: #fff; text-align: center; padding: 10px; z-index: 9999; position: sticky; top: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.5); font-weight: 600;">
+    <i class="bi bi-shield-exclamation me-2"></i>
+    Modo Admin: Acessando como <strong><?php echo htmlspecialchars($_SESSION['user_name']); ?></strong> 
+    <a href="admin/voltar_admin.php" class="btn btn-sm btn-dark ms-3 rounded-pill">
+        <i class="bi bi-box-arrow-left me-1"></i> Voltar ao Administrador
+    </a>
+</div>
+<?php endif; ?>
 <div class="main-wrapper">
     <aside class="offcanvas-lg offcanvas-start sidebar-nav d-flex flex-column p-3" tabindex="-1" id="sidebarMenu">
         <div class="offcanvas-header">

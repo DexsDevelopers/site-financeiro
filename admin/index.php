@@ -461,6 +461,10 @@ try {
                                     </td>
                                     <td class="text-end">
                                         <div class="btn-group btn-group-sm" role="group">
+                                            <a href="acessar_conta.php?id=<?php echo $user['id']; ?>" class="btn btn-outline-warning" title="Acessar Conta do Cliente">
+                                                <i class="bi bi-box-arrow-in-right"></i>
+                                                <span class="d-none d-lg-inline ms-1" style="font-weight:bold;">Acessar</span>
+                                            </a>
                                             <button class="btn btn-outline-info btn-redefinir-senha" 
                                                     data-id="<?php echo $user['id']; ?>" 
                                                     data-nome="<?php echo htmlspecialchars($user['nome_completo']); ?>"
@@ -515,6 +519,9 @@ try {
                                             </div>
                                         </div>
                                         <div class="btn-group btn-group-sm" role="group">
+                                            <a href="acessar_conta.php?id=<?php echo $user['id']; ?>" class="btn btn-outline-warning" title="Acessar Conta">
+                                                <i class="bi bi-box-arrow-in-right"></i>
+                                            </a>
                                             <button class="btn btn-outline-info btn-redefinir-senha" 
                                                     data-id="<?php echo $user['id']; ?>" 
                                                     data-nome="<?php echo htmlspecialchars($user['nome_completo']); ?>"
