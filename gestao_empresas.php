@@ -1433,8 +1433,18 @@ document.getElementById('form-editar-empresa').addEventListener('submit', functi
     .then(r => r.json())
     .then(d => {
         if (d.success) {
-            alert('Dados atualizados com sucesso!');
+            Swal.fire({
+                icon: 'success',
+                title: 'Atualizado!',
+                text: 'Dados da empresa salvos com sucesso.',
+                timer: 1500,
+                showConfirmButton: false,
+                background: '#1a1a1c',
+                color: '#fff'
+            });
             selecionarEmpresa(empresaAtiva);
+        } else {
+            Swal.fire('Erro!', d.message || 'Erro ao atualizar dados.', 'error');
         }
     });
 });

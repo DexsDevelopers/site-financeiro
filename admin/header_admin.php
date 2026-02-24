@@ -1205,6 +1205,12 @@ $paginaAtual = basename($_SERVER['PHP_SELF']);
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link <?php echo ($paginaAtual == 'admin_empresas.php') ? 'active' : ''; ?>" href="admin_empresas.php">
+                         <i class="bi bi-building-fill"></i>
+                         Gerenciar Empresas
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link <?php echo ($paginaAtual == 'notificacoes.php') ? 'active' : ''; ?>" href="notificacoes.php">
                         <i class="bi bi-send-fill"></i>
                         Enviar Notificações

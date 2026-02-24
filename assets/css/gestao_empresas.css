@@ -387,3 +387,57 @@
 .swal2-html-container {
     color: #aaa !important;
 }
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .ge-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+    
+    .ge-header .btn {
+        width: 100%;
+    }
+    
+    .ge-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .ge-widget-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .ge-tabs {
+        padding-bottom: 5px;
+    }
+    
+    .ge-tab-btn {
+        padding: 8px 15px;
+        font-size: 0.9rem;
+    }
+    
+    .ge-list-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .ge-badge {
+        align-self: flex-start;
+    }
+}
+
+@media (max-width: 576px) {
+    .ge-container {
+        padding: 10px;
+    }
+    
+    .ge-title h1 {
+        font-size: 1.5rem;
+    }
+    
+    .modal-dialog {
+        margin: 10px;
+    }
+}
