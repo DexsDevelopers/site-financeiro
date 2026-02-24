@@ -763,7 +763,7 @@ function selecionarEmpresa(id) {
                 color: '#fff',
                 confirmButtonColor: '#e50914'
             }).then(() => {
-                voltarLista();
+                voltarParaLista();
             });
         }
     })
@@ -1241,7 +1241,6 @@ function carregarListaRedesSociais() {
                              s.plataforma.toLowerCase().includes('tiktok') ? 'tiktok' :
                              s.plataforma.toLowerCase().includes('youtube') ? 'youtube' :
                              s.plataforma.toLowerCase().includes('linkedin') ? 'linkedin' : 'share';
-                const widget = `
                 const widget = `
                     <div class="ge-widget shadow-sm position-relative" data-usuario="${s.usuario}" data-plataforma="${s.plataforma}">
                         <button class="btn btn-sm text-danger position-absolute top-0 end-0 m-2" onclick="excluirRedeSocial(${s.id})" title="Excluir">
