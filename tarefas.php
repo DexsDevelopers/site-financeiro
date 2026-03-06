@@ -73,12 +73,18 @@ try {
             $rotinasConcluidasCount++;
         }
     }
+    // Conta tarefas concluídas HOJE
+    $stmt_hoje = $pdo->prepare("SELECT COUNT(*) FROM tarefas WHERE id_usuario = ? AND status = 'concluida' AND DATE(data_atualizacao) = ?");
+    $stmt_hoje->execute([$userId, $dataHoje]);
+    $tarefas_concluidas_hoje = $stmt_hoje->fetchColumn();
+    
 } catch (PDOException $e) {
     die("Erro ao buscar tarefas: " . $e->getMessage());
 }
 
 $totalPendentes = count($tarefas_pendentes);
-$totalConcluidas = count($tarefas_concluidas);
+$totalConcluidasHoje = $tarefas_concluidas_hoje + $rotinasConcluidasCount;
+
 ?>
 
 <style>
@@ -608,7 +614,7 @@ body {
             <span class="stat-label">Pendentes</span>
         </div>
         <div class="stat-card">
-            <span class="stat-value text-success"><?php echo $totalConcluidas; ?></span>
+            <span class="stat-value text-success"><?php echo $totalConcluidasHoje; ?></span>
             <span class="stat-label">Concluídas hoje</span>
         </div>
     </div>
