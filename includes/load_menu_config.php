@@ -42,7 +42,7 @@ if (!$menu_config) {
         'paginas_visiveis' => [
             'academy' => ['cursos.php', 'treinos.php', 'rotina_academia.php', 'alimentacao.php', 'notas_cursos.php'],
             'financeiro' => ['compras_futuras.php', 'relatorios.php', 'extrato_completo.php', 'recorrentes.php', 'orcamento.php', 'categorias.php', 'regras_categorizacao.php', 'alertas_inteligentes.php'],
-            'produtividade' => ['tarefas.php', 'rotinas.php', 'calendario.php', 'pomodoro.php'],
+            'produtividade' => ['tarefas.php', 'calendario.php', 'pomodoro.php'],
             'personalizacao' => ['temas_customizaveis.php', 'layouts_flexiveis.php', 'preferencias_avancadas.php', 'personalizar_menu.php'],
             'gestao_empresas' => ['gestao_empresas.php'],
             'sistema' => ['perfil.php', 'contas.php', 'whatsapp_admin.php', 'whatsapp_qr.php', 'integracoes_google.php', 'debug_google_integration.php', 'verificar_apis_google.php', 'debug_ia.php', 'debug_ia_whatsapp.php']
@@ -51,7 +51,7 @@ if (!$menu_config) {
         'ordem_paginas' => [
             'academy' => ['cursos.php', 'treinos.php', 'rotina_academia.php', 'alimentacao.php', 'notas_cursos.php'],
             'financeiro' => ['compras_futuras.php', 'relatorios.php', 'extrato_completo.php', 'recorrentes.php', 'orcamento.php', 'categorias.php', 'regras_categorizacao.php', 'alertas_inteligentes.php'],
-            'produtividade' => ['tarefas.php', 'rotinas.php', 'calendario.php', 'pomodoro.php'],
+            'produtividade' => ['tarefas.php', 'calendario.php', 'pomodoro.php'],
             'personalizacao' => ['temas_customizaveis.php', 'layouts_flexiveis.php', 'preferencias_avancadas.php', 'personalizar_menu.php'],
             'gestao_empresas' => ['gestao_empresas.php'],
             'sistema' => ['perfil.php', 'contas.php', 'whatsapp_admin.php', 'whatsapp_qr.php', 'integracoes_google.php', 'debug_google_integration.php', 'verificar_apis_google.php', 'debug_ia.php', 'debug_ia_whatsapp.php']
@@ -59,25 +59,32 @@ if (!$menu_config) {
     ];
 }
 
-// Garante que 'rotinas.php' esteja visível na seção Produtividade
+// Garante que 'rotinas.php' não esteja isolado se não quisermos e que 'tarefas.php' esteja
 if (!isset($menu_config['paginas_visiveis']['produtividade'])) {
     $menu_config['paginas_visiveis']['produtividade'] = [];
 }
-if (!in_array('rotinas.php', $menu_config['paginas_visiveis']['produtividade'], true)) {
-    $menu_config['paginas_visiveis']['produtividade'][] = 'rotinas.php';
+if (!in_array('tarefas.php', $menu_config['paginas_visiveis']['produtividade'], true)) {
+    array_unshift($menu_config['paginas_visiveis']['produtividade'], 'tarefas.php');
 }
+
+// Remove rotinas.php se estiver presente para unificar com tarefas
+$idx = array_search('rotinas.php', $menu_config['paginas_visiveis']['produtividade'], true);
+if ($idx !== false) {
+    unset($menu_config['paginas_visiveis']['produtividade'][$idx]);
+    $menu_config['paginas_visiveis']['produtividade'] = array_values($menu_config['paginas_visiveis']['produtividade']);
+}
+
+// Mesma coisa para ordem_paginas
 if (!isset($menu_config['ordem_paginas']['produtividade'])) {
     $menu_config['ordem_paginas']['produtividade'] = [];
 }
-if (!in_array('rotinas.php', $menu_config['ordem_paginas']['produtividade'], true)) {
-    // Insere após tarefas.php se existir
-    $idx = array_search('tarefas.php', $menu_config['ordem_paginas']['produtividade']);
-    if ($idx !== false) {
-        array_splice($menu_config['ordem_paginas']['produtividade'], $idx + 1, 0, 'rotinas.php');
-    }
-    else {
-        $menu_config['ordem_paginas']['produtividade'][] = 'rotinas.php';
-    }
+if (!in_array('tarefas.php', $menu_config['ordem_paginas']['produtividade'], true)) {
+    array_unshift($menu_config['ordem_paginas']['produtividade'], 'tarefas.php');
+}
+$idxOrd = array_search('rotinas.php', $menu_config['ordem_paginas']['produtividade'], true);
+if ($idxOrd !== false) {
+    unset($menu_config['ordem_paginas']['produtividade'][$idxOrd]);
+    $menu_config['ordem_paginas']['produtividade'] = array_values($menu_config['ordem_paginas']['produtividade']);
 }
 
 // Garante que 'contas.php' esteja sempre visível na seção Sistema (mesmo com config antiga)
@@ -246,8 +253,8 @@ $paginasInfo = [
     'categorias.php' => ['nome' => 'Categorias', 'icone' => 'bi-tags'],
     'regras_categorizacao.php' => ['nome' => 'Regras de Categorização', 'icone' => 'bi-robot'],
     'alertas_inteligentes.php' => ['nome' => 'Alertas Inteligentes', 'icone' => 'bi-bell-fill'],
-    'tarefas.php' => ['nome' => 'Rotina de Tarefas', 'icone' => 'bi-check2-square'],
-    'rotinas.php' => ['nome' => 'Rotina Diária (Hábitos)', 'icone' => 'bi-calendar-check'],
+    'tarefas.php' => ['nome' => 'Tarefas & Hábitos', 'icone' => 'bi-check2-square'],
+    'rotinas.php' => ['nome' => 'Hábitos (Antigo)', 'icone' => 'bi-calendar-check'],
     'calendario.php' => ['nome' => 'Calendário', 'icone' => 'bi-calendar3'],
     'pomodoro.php' => ['nome' => 'Pomodoro Timer', 'icone' => 'bi-stopwatch'],
     'temas_customizaveis.php' => ['nome' => 'Temas Customizáveis', 'icone' => 'bi-palette'],

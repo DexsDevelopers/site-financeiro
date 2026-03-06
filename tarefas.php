@@ -40,6 +40,39 @@ try {
             $tarefas_concluidas[$key]['subtarefas'] = $subtarefas_mapeadas[$tarefa['id']] ?? [];
         }
     }
+
+    // --- Buscar rotinas (Hábitos) ---
+    $dataHoje = date('Y-m-d');
+    $rotinasFixas = [];
+    $rotinasConcluidasCount = 0;
+    
+    $stmtHabitos = $pdo->prepare("
+        SELECT rf.*, 
+               rcd.status as status_hoje,
+               rcd.id as controle_id
+        FROM rotinas_fixas rf
+        LEFT JOIN rotina_controle_diario rcd 
+            ON rf.id = rcd.id_rotina_fixa 
+            AND rcd.id_usuario = rf.id_usuario 
+            AND rcd.data_execucao = ?
+        WHERE rf.id_usuario = ? AND rf.ativo = TRUE
+        ORDER BY 
+            CASE 
+                WHEN rf.prioridade = 'Alta' THEN 1 
+                WHEN rf.prioridade = 'Média' THEN 2 
+                ELSE 3 
+            END,
+            COALESCE(rf.horario_sugerido, '23:59:59'), 
+            rf.nome
+    ");
+    $stmtHabitos->execute([$dataHoje, $userId]);
+    $rotinasFixas = $stmtHabitos->fetchAll(PDO::FETCH_ASSOC);
+
+    foreach ($rotinasFixas as $rotina) {
+        if ($rotina['status_hoje'] === 'concluido') {
+            $rotinasConcluidasCount++;
+        }
+    }
 } catch (PDOException $e) {
     die("Erro ao buscar tarefas: " . $e->getMessage());
 }
@@ -72,6 +105,67 @@ body {
     max-width: 1200px;
     margin: 0 auto;
 }
+
+/* --- Variáveis e Estilos Rotinas (Lux) --- */
+.grid-lux-habitos {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+}
+
+.card-lux-habit {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    padding: 1.5rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.card-lux-habit:hover {
+    border-color: rgba(255,255,255,0.2);
+    transform: translateY(-5px);
+}
+
+.card-lux-habit.concluido {
+    border-color: var(--success);
+    background: rgba(16, 185, 129, 0.05); /* success alpha */
+}
+
+.btn-complete-lux {
+    width: 100%;
+    margin-top: 1.5rem;
+    padding: 0.8rem;
+    border-radius: 12px;
+    border: 1px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+    font-weight: 700;
+    transition: 0.3s;
+}
+
+.btn-complete-lux:hover {
+    background: var(--accent-color);
+    border-color: var(--accent-color);
+}
+
+.btn-complete-lux.is-done {
+    background: var(--success);
+    border-color: var(--success);
+}
+
+.prio-pill {
+    padding: 0.3rem 0.8rem;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+.prio-Alta { background: rgba(239, 68, 68, 0.2); color: var(--danger); }
+.prio-Média, .prio-Media { background: rgba(245, 158, 11, 0.2); color: var(--warning); }
+.prio-Baixa { background: rgba(16, 185, 129, 0.2); color: var(--success); }
 
 /* --- Header e Stats --- */
 .page-header {
@@ -397,13 +491,24 @@ body {
     transform: translate(-50%, -50%);
 }
 
-.btn-delete-sub {
+.btn-delete-sub, .btn-edit-sub {
     opacity: 0;
     transition: opacity 0.2s;
+}
+
+.btn-delete-sub {
     color: var(--danger);
 }
 
-.subtask-item:hover .btn-delete-sub { opacity: 1; }
+.btn-edit-sub {
+    color: var(--text-secondary);
+}
+
+.btn-edit-sub:hover {
+    color: var(--accent-color);
+}
+
+.subtask-item:hover .btn-delete-sub, .subtask-item:hover .btn-edit-sub { opacity: 1; }
 
 .form-new-subtask {
     margin-top: 0.75rem;
@@ -483,12 +588,17 @@ body {
     <!-- Cabeçalho -->
     <div class="page-header">
         <div>
-            <h1 class="page-title">Tarefas & Rotina</h1>
-            <p class="text-muted mb-0">Gerencie seu dia com eficiência</p>
+            <h1 class="page-title">Tarefas & Hábitos</h1>
+            <p class="text-muted mb-0">Gerencie seu dia e construa sua melhor versão</p>
         </div>
-        <button class="btn-premium" data-bs-toggle="modal" data-bs-target="#modalNovaTarefa">
-            <i class="bi bi-plus-lg"></i> Nova Tarefa
-        </button>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-light" style="border-radius: 12px;" onclick="new bootstrap.Modal(document.getElementById('modalRotina')).show()">
+                <i class="bi bi-calendar-heart"></i> Novo Hábito
+            </button>
+            <button class="btn-premium" data-bs-toggle="modal" data-bs-target="#modalNovaTarefa">
+                <i class="bi bi-list-check"></i> Nova Tarefa
+            </button>
+        </div>
     </div>
 
     <!-- Estatísticas Rápidas -->
@@ -502,6 +612,52 @@ body {
             <span class="stat-label">Concluídas hoje</span>
         </div>
     </div>
+
+    <!-- Seção: Hábitos (Rotina Diária) -->
+    <div class="section-heading mt-4">
+        <i class="bi bi-calendar-heart"></i> Hábitos Diários (<?php echo $rotinasConcluidasCount . '/' . count($rotinasFixas); ?> concluídos)
+    </div>
+
+    <?php if (empty($rotinasFixas)): ?>
+        <div class="empty-state mb-4 py-4">
+            <i class="bi bi-calendar-event"></i>
+            <h5>Nenhum hábito configurado</h5>
+            <p class="text-muted small">Crie hábitos para acompanhar seu progresso diário.</p>
+        </div>
+    <?php else: ?>
+        <div class="grid-lux-habitos">
+            <?php foreach ($rotinasFixas as $rotina):
+                $isConcluido = ($rotina['status_hoje'] === 'concluido');
+            ?>
+            <div class="card-lux-habit <?= $isConcluido ? 'concluido' : '' ?>" data-id="<?= $rotina['id']; ?>" data-controle-id="<?= $rotina['controle_id'] ?? ''; ?>">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <span class="prio-pill prio-<?= $rotina['prioridade'] ?>">
+                        <?= $rotina['prioridade'] ?>
+                    </span>
+                    <?php if ($rotina['horario_sugerido']): ?>
+                        <span style="color: var(--text-secondary); font-size: 0.85rem;">
+                            <i class="bi bi-clock me-1"></i> <?= date('H:i', strtotime($rotina['horario_sugerido'])) ?>
+                        </span>
+                    <?php endif; ?>
+                </div>
+
+                <h4 style="margin: 0 0 0.5rem 0; font-size: 1.15rem; color: var(--text-primary);"><?= htmlspecialchars($rotina['nome']) ?></h4>
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.5rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 40px;">
+                    <?= htmlspecialchars($rotina['descricao']) ?>
+                </p>
+
+                <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-bottom:0.5rem;">
+                     <button class="btn-icon edit" onclick="window.location.href='editar_rotina_fixa.php?id=<?= $rotina['id'] ?>'" title="Editar"><i class="bi bi-pencil"></i></button>
+                     <button class="btn-icon delete" onclick="excluirRotina(<?= $rotina['id'] ?>, '<?= addslashes($rotina['nome']) ?>')" title="Excluir"><i class="bi bi-trash"></i></button>
+                </div>
+
+                <button class="btn-complete-lux <?= $isConcluido ? 'is-done' : '' ?>" onclick="toggleRotina(<?= $rotina['id'] ?>, '<?= $rotina['status_hoje'] ?? 'pendente' ?>')">
+                    <?= $isConcluido ? '<i class="bi bi-check-circle-fill me-2"></i> Concluído' : 'Marcar como feito' ?>
+                </button>
+            </div>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
 
     <!-- Seção: Pendentes -->
     <div class="section-heading">
@@ -580,7 +736,8 @@ body {
                             <div class="subtask-item" id="subtask-row-<?php echo $sub['id']; ?>">
                                 <input type="checkbox" class="subtask-checkbox" id="sub-<?php echo $sub['id']; ?>" data-id="<?php echo $sub['id']; ?>" <?php echo $sub['status'] === 'concluida' ? 'checked' : ''; ?>>
                                 <label for="sub-<?php echo $sub['id']; ?>" class="subtask-label"><?php echo htmlspecialchars($sub['descricao']); ?></label>
-                                <button class="btn-icon delete btn-delete-sub" data-id="<?php echo $sub['id']; ?>"><i class="bi bi-x-lg"></i></button>
+                                <button type="button" class="btn-icon edit btn-edit-sub" data-id="<?php echo $sub['id']; ?>" title="Editar subtarefa"><i class="bi bi-pencil"></i></button>
+                                <button type="button" class="btn-icon delete btn-delete-sub" data-id="<?php echo $sub['id']; ?>" title="Excluir subtarefa"><i class="bi bi-x-lg"></i></button>
                             </div>
                             <?php endforeach; ?>
                         </div>
@@ -623,6 +780,48 @@ body {
             </div>
         </div>
         <?php endforeach; ?>
+    </div>
+</div>
+
+<!-- Modal Novo Hábito -->
+<div class="modal fade" id="modalRotina" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-calendar-heart text-danger me-2"></i>Novo Hábito</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formNovaRotina">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nome do Hábito</label>
+                        <input type="text" name="nome" class="form-control" required>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <label class="form-label">Horário (Opcional)</label>
+                            <input type="time" name="horario" class="form-control">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Prioridade</label>
+                            <select name="prioridade" class="form-select">
+                                <option value="Baixa">🟢 Baixa</option>
+                                <option value="Média" selected>🟡 Média</option>
+                                <option value="Alta">🔴 Alta</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Descrição</label>
+                        <textarea name="descricao" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-link text-decoration-none text-muted" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-premium px-4">Salvar</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -717,6 +916,66 @@ document.addEventListener('DOMContentLoaded', function() {
             toast.addEventListener('mouseleave', Swal.resumeTimer)
         }
     });
+
+    // --- Rotinas Javascript ---
+    document.getElementById('formNovaRotina')?.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const btn = this.querySelector('button[type="submit"]');
+        const original = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+        
+        fetch('adicionar_rotina_fixa.php', {
+            method: 'POST',
+            body: new FormData(this)
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                Toast.fire({icon:'success', title:'Hábito criado!'});
+                setTimeout(() => location.reload(), 800);
+            } else {
+                Toast.fire({icon:'error', title:data.message});
+                btn.disabled = false;
+                btn.innerHTML = original;
+            }
+        });
+    });
+
+    window.toggleRotina = function(rotinaId, statusAtual) {
+        const card = document.querySelector(`.card-lux-habit[data-id="${rotinaId}"]`);
+        const controleId = card.dataset.controleId;
+        const novoStatus = statusAtual === 'concluido' ? 'pendente' : 'concluido';
+        
+        const body = !controleId 
+            ? `rotina_id=${rotinaId}&status=${novoStatus}&criar_controle=1`
+            : `controle_id=${controleId}&status=${novoStatus}`;
+
+        fetch('processar_rotina_diaria.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: body
+        }).then(r => r.json()).then(d => { if(d.success) location.reload(); });
+    };
+
+    window.excluirRotina = function(id, nome) {
+        Swal.fire({
+            title: 'Excluir hábito?',
+            text: `O hábito "${nome}" será apagado permanentemente.`,
+            icon: 'warning',
+            background: '#1a1a1a', color: '#fff',
+            showCancelButton: true, confirmButtonColor: '#ef4444', cancelButtonColor: '#3f3f46',
+            confirmButtonText: 'Sim', cancelButtonText: 'Não'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch('excluir_rotina_fixa.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: id })
+                }).then(r => r.json()).then(d => { if(d.success) location.reload(); });
+            }
+        });
+    };
 
     // --- Nova Tarefa ---
     document.getElementById('formNovaTarefa')?.addEventListener('submit', function(e) {
@@ -844,7 +1103,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     newItem.innerHTML = `
                         <input type="checkbox" class="subtask-checkbox" id="sub-${data.subtarefa.id}" data-id="${data.subtarefa.id}">
                         <label for="sub-${data.subtarefa.id}" class="subtask-label">${data.subtarefa.descricao}</label>
-                        <button class="btn-icon delete btn-delete-sub" data-id="${data.subtarefa.id}"><i class="bi bi-x-lg"></i></button>
+                        <button type="button" class="btn-icon edit btn-edit-sub" data-id="${data.subtarefa.id}" title="Editar subtarefa"><i class="bi bi-pencil"></i></button>
+                        <button type="button" class="btn-icon delete btn-delete-sub" data-id="${data.subtarefa.id}" title="Excluir subtarefa"><i class="bi bi-x-lg"></i></button>
                     `;
                     lista.appendChild(newItem);
                     input.value = '';
@@ -883,6 +1143,92 @@ document.addEventListener('DOMContentLoaded', function() {
                 if(d.success) {
                     const row = document.getElementById(`subtask-row-${id}`);
                     if(row) row.remove();
+                }
+            });
+        }
+    });
+
+    // --- Subtarefas: Editar ---
+    document.body.addEventListener('click', function(e) {
+        const btnEdit = e.target.closest('.btn-edit-sub');
+        if (btnEdit) {
+            const id = btnEdit.dataset.id;
+            const item = document.getElementById(`subtask-row-${id}`);
+            const label = item.querySelector('.subtask-label');
+            const btnDelete = item.querySelector('.btn-delete-sub');
+            const textoOriginal = label.textContent;
+
+            // Evitar sobreposição/múltiplas edições abertas na mesma subtask
+            if (item.querySelector('.input-edit-subtask')) return;
+
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'input-subtask input-edit-subtask';
+            input.value = textoOriginal;
+            input.style.flex = '1';
+            input.style.marginRight = '8px';
+
+            label.style.display = 'none';
+            btnEdit.style.display = 'none';
+            
+            item.insertBefore(input, btnEdit);
+            input.focus();
+
+            const salvarEdicao = () => {
+                const novoTexto = input.value.trim();
+                if (!novoTexto || novoTexto === textoOriginal) {
+                    cancelarEdicao();
+                    return;
+                }
+                
+                input.disabled = true;
+                fetch('atualizar_subtarefa.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: id, descricao: novoTexto })
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        label.textContent = novoTexto;
+                        cancelarEdicao();
+                        Toast.fire({ icon: 'success', title: 'Subtarefa atualizada' });
+                    } else {
+                        Toast.fire({ icon: 'error', title: data.message || 'Erro ao atualizar' });
+                        input.disabled = false;
+                        input.focus();
+                    }
+                })
+                .catch(() => {
+                    Toast.fire({ icon: 'error', title: 'Erro na conexão' });
+                    input.disabled = false;
+                });
+            };
+
+            const cancelarEdicao = () => {
+                input.remove();
+                label.style.display = '';
+                btnEdit.style.display = '';
+            };
+
+            // Remover listener blur se já pressionou enter
+            let foiSalvo = false;
+            const handleSaveOnce = () => {
+                if (!foiSalvo) {
+                    foiSalvo = true;
+                    salvarEdicao();
+                }
+            };
+
+            input.addEventListener('blur', () => { setTimeout(handleSaveOnce, 100); });
+            input.addEventListener('keydown', function(evt) {
+                if (evt.key === 'Enter') {
+                    evt.preventDefault();
+                    handleSaveOnce();
+                }
+                if (evt.key === 'Escape') {
+                    foiSalvo = true;
+                    cancelarEdicao();
                 }
             });
         }
