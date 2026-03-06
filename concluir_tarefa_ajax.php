@@ -34,7 +34,7 @@ try {
     $userId = $_SESSION['user_id'];
     
     // Atualizar status da tarefa
-    $stmt = $pdo->prepare("UPDATE tarefas SET status = 'concluida', data_atualizacao = NOW() WHERE id = ? AND id_usuario = ?");
+    $stmt = $pdo->prepare("UPDATE tarefas SET status = 'concluida', data_conclusao = NOW() WHERE id = ? AND id_usuario = ?");
     $stmt->execute([$tarefaId, $userId]);
     
     if ($stmt->rowCount() > 0) {

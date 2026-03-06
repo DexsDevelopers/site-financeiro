@@ -23,7 +23,7 @@ $userId = $_SESSION['user_id'];
 try {
     // Prepara a query para atualizar o status da tarefa para 'concluida'
     // Novamente, usamos "AND id_usuario = ?" pela mesma razão de segurança de antes.
-    $stmt = $pdo->prepare("UPDATE tarefas SET status = 'concluida', data_atualizacao = NOW() WHERE id = ? AND id_usuario = ?");
+    $stmt = $pdo->prepare("UPDATE tarefas SET status = 'concluida', data_conclusao = NOW() WHERE id = ? AND id_usuario = ?");
     
     $stmt->execute([$tarefaId, $userId]);
 

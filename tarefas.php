@@ -7,6 +7,13 @@ $tarefas_pendentes = [];
 $tarefas_concluidas = [];
 
 try {
+    // Garante que a coluna data_conclusao exista, caso não tenha sido criada ainda..
+    $pdo->exec("ALTER TABLE tarefas ADD COLUMN data_conclusao DATETIME DEFAULT NULL");
+} catch (PDOException $e) {
+    // A coluna já existe. Silênciado.
+}
+
+try {
     // Busca tarefas pendentes por prioridade e ordem
     $sql_pendentes = "SELECT * FROM tarefas WHERE id_usuario = ? AND status = 'pendente' ORDER BY FIELD(prioridade, 'Alta', 'Média', 'Baixa'), ordem ASC";
     $stmt_pendentes = $pdo->prepare($sql_pendentes);
@@ -74,7 +81,7 @@ try {
         }
     }
     // Conta tarefas concluídas HOJE
-    $stmt_hoje = $pdo->prepare("SELECT COUNT(*) FROM tarefas WHERE id_usuario = ? AND status = 'concluida' AND DATE(data_atualizacao) = ?");
+    $stmt_hoje = $pdo->prepare("SELECT COUNT(*) FROM tarefas WHERE id_usuario = ? AND status = 'concluida' AND DATE(data_conclusao) = ?");
     $stmt_hoje->execute([$userId, $dataHoje]);
     $tarefas_concluidas_hoje = $stmt_hoje->fetchColumn();
     
