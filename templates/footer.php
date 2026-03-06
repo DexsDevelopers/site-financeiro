@@ -25,9 +25,9 @@
 <script src="https://cdn.jsdelivr.net/npm/countup.js@2.8.0/dist/countUp.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <!-- Onboarding (TourLite + passos por página) -->
-<script src="assets/js/tour-lite.js" defer></script>
-<script src="assets/js/onboarding-steps.js" defer></script>
-<script src="assets/js/onboarding.js" defer></script>
+<script src="assets/js/tour-lite.js?v=<?= filemtime(__DIR__ . '/../assets/js/tour-lite.js') ?>" defer></script>
+<script src="assets/js/onboarding-steps.js?v=<?= filemtime(__DIR__ . '/../assets/js/onboarding-steps.js') ?>" defer></script>
+<script src="assets/js/onboarding.js?v=<?= filemtime(__DIR__ . '/../assets/js/onboarding.js') ?>" defer></script>
 
 <script>
     // Função global para mostrar notificações "Toast"

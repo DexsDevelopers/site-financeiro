@@ -127,8 +127,8 @@ if (!isset($_SESSION['dias_uso_cache_time']) ||
     <!-- Driver.js (Tour GUI) - CSS será injetado com fallback por assets/js/onboarding.js -->
     
     <!-- CSS Personalizado -->
-    <link rel="stylesheet" href="assets/css/dashboard.css">
-    <link rel="stylesheet" href="assets/css/responsive-improved.css">
+    <link rel="stylesheet" href="assets/css/dashboard.css?v=<?= filemtime(__DIR__ . '/../assets/css/dashboard.css') ?>">
+    <link rel="stylesheet" href="assets/css/responsive-improved.css?v=<?= filemtime(__DIR__ . '/../assets/css/responsive-improved.css') ?>">
     
     <style>
         :root { 
