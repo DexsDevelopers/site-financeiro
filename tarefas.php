@@ -9,8 +9,13 @@ $tarefas_concluidas = [];
 try {
     // Garante que a coluna data_conclusao exista, caso não tenha sido criada ainda..
     $pdo->exec("ALTER TABLE tarefas ADD COLUMN data_conclusao DATETIME DEFAULT NULL");
+    
+    // FORÇAR CRIAÇÃO DA COLUNA DIAS_SEMANA
+    try {
+        $pdo->exec("ALTER TABLE rotinas_fixas ADD COLUMN dias_semana VARCHAR(20) DEFAULT NULL");
+    } catch (PDOException $e) { /* Coluna já existe */ }
 } catch (PDOException $e) {
-    // A coluna já existe. Silênciado.
+    // Silênciado.
 }
 
 try {
