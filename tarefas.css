@@ -1,9 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Lexend+Deca:wght@200;400;500;600&display=swap');
-/**
- * Arquivo: assets/css/tarefas.css
- * Descrição: Estilos para a página de tarefas
- */
-
 /* ========== GLOBAL DESIGN TOKENS (LUXURY DARK) ========== */
 :root {
     --bg-dark: #0d0d0f;
@@ -20,8 +14,6 @@
     --success: #30d158;
     --warning: #ffd60a;
     --danger: #ff453a;
-    --info: #4dabf7;
-    /* This was in the original, but not in the new root. Keeping it for now as it's used elsewhere. */
     --radius-premium: 18px;
     --shadow-premium: 0 10px 30px rgba(0, 0, 0, 0.5);
     --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -31,6 +23,12 @@
     --glass-bg: rgba(26, 26, 26, 0.85);
     --glass-border: rgba(255, 255, 255, 0.08);
     --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+
+body {
+    background-color: var(--bg-dark);
+    color: var(--text);
+    font-family: 'Lexend Deca', sans-serif;
 }
 
 * {
@@ -570,6 +568,18 @@ h5,
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     position: relative;
+    overflow: hidden;
+}
+
+.subtasks-container::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at center, rgba(229, 9, 20, 0.03), transparent 70%);
+    pointer-events: none;
 }
 
 .subtask-item {
@@ -580,6 +590,8 @@ h5,
     border-bottom: 1px solid rgba(255, 255, 255, 0.02);
     transition: all var(--transition-fast);
     border-radius: 12px;
+    position: relative;
+    z-index: 2;
 }
 
 .subtask-item:last-child {
@@ -588,7 +600,7 @@ h5,
 
 .subtask-item:hover {
     background: rgba(255, 255, 255, 0.05);
-    transform: scale(1.02) translateX(8px);
+    transform: scale(1.01) translateX(8px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
@@ -606,10 +618,10 @@ h5,
 }
 
 .subtask-checkbox:checked {
-    background: var(--success);
-    border-color: var(--success);
-    box-shadow: 0 0 15px rgba(48, 209, 88, 0.5);
-    transform: rotate(360deg);
+    background: #30d158;
+    border-color: #30d158;
+    box-shadow: 0 0 15px rgba(48, 209, 88, 0.6), inset 0 0 5px rgba(255, 255, 255, 0.4);
+    transform: rotate(360deg) scale(1.1);
 }
 
 .subtask-checkbox:checked::after {
@@ -621,6 +633,7 @@ h5,
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
+    text-shadow: 0 0 2px rgba(255, 255, 255, 0.5);
 }
 
 .subtask-label {

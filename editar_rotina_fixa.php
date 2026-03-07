@@ -109,7 +109,7 @@ $page_title = "Editar Rotina Fixa - Orion";
 require_once 'templates/header.php';
 
 // CSS Específico para esta página com cache buster
-echo '<link rel="stylesheet" href="tarefas.css?v=' . filemtime('tarefas.css') . '">';
+echo '<link rel="stylesheet" href="' . asset('tarefas.css') . '">';
 ?>
 
 <div class="container py-4">
