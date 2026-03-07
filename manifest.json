@@ -2,13 +2,13 @@
   "name": "Painel Financeiro Pessoal",
   "short_name": "Painel Financeiro",
   "description": "Sistema completo de gestão financeira pessoal com funcionalidades avançadas",
-  "start_url": "/dashboard.php",
+  "start_url": "dashboard.php",
   "id": "painel-financeiro-pwa",
   "display": "standalone",
   "background_color": "#667eea",
   "theme_color": "#667eea",
   "orientation": "portrait-primary",
-  "scope": "/",
+  "scope": "./",
   "lang": "pt-BR",
   "dir": "ltr",
   "categories": [
@@ -63,7 +63,7 @@
       "name": "Dashboard",
       "short_name": "Dashboard",
       "description": "Acessar dashboard principal",
-      "url": "/dashboard.php",
+      "url": "dashboard.php",
       "icons": [
         {
           "src": "icons/shortcut-dashboard.png",
@@ -75,7 +75,7 @@
       "name": "Extrato",
       "short_name": "Extrato",
       "description": "Ver extrato financeiro",
-      "url": "/extrato_completo.php",
+      "url": "extrato_completo.php",
       "icons": [
         {
           "src": "icons/shortcut-extrato.png",
@@ -87,7 +87,7 @@
       "name": "Tarefas",
       "short_name": "Tarefas",
       "description": "Gerenciar tarefas",
-      "url": "/tarefas.php",
+      "url": "tarefas.php",
       "icons": [
         {
           "src": "icons/shortcut-tarefas.png",
@@ -99,7 +99,7 @@
       "name": "Relatórios",
       "short_name": "Relatórios",
       "description": "Ver relatórios financeiros",
-      "url": "/relatorios.php",
+      "url": "relatorios.php",
       "icons": [
         {
           "src": "icons/shortcut-relatorios.png",

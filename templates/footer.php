@@ -279,7 +279,7 @@ if (
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             // Usar service worker minimalista para Safari
-            const swFile = (isSafari || isIOS) ? '/sw-minimal.js' : '/sw.js';
+            const swFile = (isSafari || isIOS) ? 'sw-minimal.js' : 'sw.js';
             
             navigator.serviceWorker.register(swFile)
                 .then(registration => {
@@ -304,7 +304,7 @@ if (
                     // Para Safari, não tentar fallback para evitar mais erros
                     if (!isSafari && !isIOS) {
                         console.log('Tentando service worker minimalista...');
-                        navigator.serviceWorker.register('/sw-minimal.js')
+                        navigator.serviceWorker.register('sw-minimal.js')
                             .then(registration => {
                                 console.log('SW minimalista registrado: ', registration);
                             })
