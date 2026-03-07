@@ -3,6 +3,13 @@
 
 session_start();
 
+// 🔹 PREVENÇÃO DE CACHE AGRESSIVA NO DESKTOP
+// Força o navegador a verificar se o HTML mudou em cada acesso
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Cache-Control: post-check=0, pre-check=0", false);
+header("Pragma: no-cache");
+header("Expires: Thu, 01 Jan 1970 00:00:00 GMT");
+
 if (empty($_SESSION['user_id']) && empty($_SESSION['user']['id'])) {
     header("Location: index.php");
     exit;

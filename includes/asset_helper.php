@@ -13,6 +13,8 @@ if (!function_exists('asset')) {
         $fullPath = __DIR__ . '/../' . ltrim($path, '/');
         
         if (file_exists($fullPath)) {
+            // 🔹 Limpa o cache de status do PHP para garantir o timestamp real do disco
+            clearstatcache(true, $fullPath);
             $version = filemtime($fullPath);
             // Detecta se o path já tem query string
             $separator = (strpos($path, '?') !== false) ? '&' : '?';

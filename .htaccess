@@ -2,3 +2,28 @@
 SetEnv WHATSAPP_API_URL https://lazaro-enforceable-finley.ngrok-free.dev
 SetEnv WHATSAPP_API_TOKEN lucastav8012
  
+# 🔹 AUTOMAÇÃO DE CACHE - DESKTOP & MOBILE
+<IfModule mod_expires.c>
+    ExpiresActive On
+    # HTML/PHP nunca cacheia
+    ExpiresByType text/html "access plus 0 seconds"
+    # Assets estáticos podem cachear (pois o asset_helper colocará ?v= automático quando mudar)
+    ExpiresByType text/css "access plus 1 year"
+    ExpiresByType application/javascript "access plus 1 year"
+    ExpiresByType image/x-icon "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/jpg "access plus 1 year"
+    ExpiresByType image/jpeg "access plus 1 year"
+</IfModule>
+
+<IfModule mod_headers.c>
+    # PDFs e HTMLs não devem ser cacheados
+    <FilesMatch "\.(html|htm|php)$">
+        Header set Cache-Control "max-age=0, no-cache, no-store, must-revalidate"
+        Header set Pragma "no-cache"
+    </FilesMatch>
+    # Arquivos versionados podem ser cacheados agressivamente
+    <FilesMatch "\.(js|css|png|jpg|jpeg|gif|ico)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+</IfModule>
