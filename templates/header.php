@@ -881,6 +881,11 @@ if (!isset($_SESSION['dias_uso_cache_time']) ||
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link <?php echo ($paginaAtual == 'skills.php') ? 'active' : ''; ?>" href="skills.php">
+                        <i class="bi bi-cpu-fill me-2"></i> Biblioteca de Skills
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link" href="https://helmer.netlify.app/" target="_blank">
                         <i class="bi bi-people-fill me-2"></i> Minha Equipe
                     </a>
