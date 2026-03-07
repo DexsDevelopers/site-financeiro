@@ -69,7 +69,6 @@ try {
             AND rcd.id_usuario = rf.id_usuario 
             AND rcd.data_execucao = ?
         WHERE rf.id_usuario = ? AND rf.ativo = TRUE
-        AND (rf.dias_semana IS NULL OR rf.dias_semana = '' OR FIND_IN_SET(DAYOFWEEK(CURDATE()), rf.dias_semana))
         ORDER BY 
             CASE 
                 WHEN rf.prioridade = 'Alta' THEN 1 
@@ -646,14 +645,25 @@ body {
         </div>
     <?php else: ?>
         <div class="grid-lux-habitos">
-            <?php foreach ($rotinasFixas as $rotina):
-                $isConcluido = ($rotina['status_hoje'] === 'concluido');
+            <?php 
+                $diaSemanaHoje = date('w') + 1; // MySQL DAYOFWEEK: 1=Sun...7=Sat
+                foreach ($rotinasFixas as $rotina):
+                    $isConcluido = ($rotina['status_hoje'] === 'concluido');
+                    $hojeAgendado = (empty($rotina['dias_semana']) || strpos($rotina['dias_semana'], (string)$diaSemanaHoje) !== false);
             ?>
-            <div class="card-lux-habit <?= $isConcluido ? 'concluido' : '' ?>" data-id="<?= $rotina['id']; ?>" data-controle-id="<?= $rotina['controle_id'] ?? ''; ?>">
+            <div class="card-lux-habit <?= $isConcluido ? 'concluido' : '' ?> <?= !$hojeAgendado ? 'opacity-50' : '' ?>" 
+                 data-id="<?= $rotina['id']; ?>" 
+                 data-controle-id="<?= $rotina['controle_id'] ?? ''; ?>">
+                
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                    <span class="prio-pill prio-<?= $rotina['prioridade'] ?>">
-                        <?= $rotina['prioridade'] ?>
-                    </span>
+                    <div class="d-flex gap-2 align-items: center;">
+                        <span class="prio-pill prio-<?= $rotina['prioridade'] ?>">
+                            <?= $rotina['prioridade'] ?>
+                        </span>
+                        <?php if (!$hojeAgendado): ?>
+                            <span class="badge rounded-pill bg-secondary text-white-50" style="font-size: 0.65rem; padding: 0.4rem 0.6rem;">Fora da Agenda</span>
+                        <?php endif; ?>
+                    </div>
                     <?php if ($rotina['horario_sugerido']): ?>
                         <span style="color: var(--text-secondary); font-size: 0.85rem;">
                             <i class="bi bi-clock me-1"></i> <?= date('H:i', strtotime($rotina['horario_sugerido'])) ?>
@@ -661,8 +671,10 @@ body {
                     <?php endif; ?>
                 </div>
 
-                <h4 style="margin: 0 0 0.5rem 0; font-size: 1.15rem; color: var(--text-primary);"><?= htmlspecialchars($rotina['nome']) ?></h4>
-                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.5rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 40px;">
+                <h4 style="margin: 0 0 0.5rem 0; font-size: 1.15rem; color: var(--text-primary); <?= !$hojeAgendado ? 'font-style: italic;' : ''?>">
+                    <?= htmlspecialchars($rotina['nome']) ?>
+                </h4>
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.5rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 40px; opacity: 0.7;">
                     <?= htmlspecialchars($rotina['descricao']) ?>
                 </p>
 
@@ -671,9 +683,15 @@ body {
                      <button class="btn-icon delete" onclick="excluirRotina(<?= $rotina['id'] ?>, '<?= addslashes($rotina['nome']) ?>')" title="Excluir"><i class="bi bi-trash"></i></button>
                 </div>
 
-                <button class="btn-complete-lux <?= $isConcluido ? 'is-done' : '' ?>" onclick="toggleRotina(<?= $rotina['id'] ?>, '<?= $rotina['status_hoje'] ?? 'pendente' ?>')">
-                    <?= $isConcluido ? '<i class="bi bi-check-circle-fill me-2"></i> Concluído' : 'Marcar como feito' ?>
-                </button>
+                <?php if ($hojeAgendado): ?>
+                    <button class="btn-complete-lux <?= $isConcluido ? 'is-done' : '' ?>" onclick="toggleRotina(<?= $rotina['id'] ?>, '<?= $rotina['status_hoje'] ?? 'pendente' ?>')">
+                        <?= $isConcluido ? '<i class="bi bi-check-circle-fill me-2"></i> Concluído' : 'Marcar como feito' ?>
+                    </button>
+                <?php else: ?>
+                    <button class="btn-complete-lux border-white-5 opacity-25" disabled title="Não agendado para hoje">
+                        Indisponível hoje
+                    </button>
+                <?php endif; ?>
             </div>
             <?php endforeach; ?>
         </div>
