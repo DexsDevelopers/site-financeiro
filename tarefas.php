@@ -105,13 +105,13 @@ $totalConcluidasHoje = $tarefas_concluidas_hoje + $rotinasConcluidasCount;
     <div class="page-header">
         <div>
             <h1 class="page-title">Tarefas & Hábitos</h1>
-            <p class="text-muted mb-0">Gerencie seu dia e construa sua melhor versão</p>
+            <p class="text-white-50 mb-0" style="font-size: 15px; margin-top: 5px;">Gerencie seu dia e construa sua melhor versão</p>
         </div>
-        <div class="d-flex gap-2">
-            <button class="btn btn-outline-light" style="border-radius: 12px;" onclick="new bootstrap.Modal(document.getElementById('modalRotina')).show()">
+        <div class="header-actions">
+            <button class="btn-elite-outline" onclick="new bootstrap.Modal(document.getElementById('modalRotina')).show()">
                 <i class="bi bi-calendar-heart"></i> Novo Hábito
             </button>
-            <button class="btn-premium" data-bs-toggle="modal" data-bs-target="#modalNovaTarefa">
+            <button class="btn-elite-primary" data-bs-toggle="modal" data-bs-target="#modalNovaTarefa">
                 <i class="bi bi-list-check"></i> Nova Tarefa
             </button>
         </div>
@@ -120,12 +120,12 @@ $totalConcluidasHoje = $tarefas_concluidas_hoje + $rotinasConcluidasCount;
     <!-- Estatísticas Rápidas -->
     <div class="stats-grid">
         <div class="stat-card">
-            <span class="stat-value text-accent"><?php echo $totalPendentes; ?></span>
-            <span class="stat-label">Pendentes</span>
+            <span class="stat-value"><?php echo $totalPendentes; ?></span>
+            <span class="stat-label">Tarefas Pendentes</span>
         </div>
         <div class="stat-card">
-            <span class="stat-value text-success"><?php echo $totalConcluidasHoje; ?></span>
-            <span class="stat-label">Concluídas hoje</span>
+            <span class="stat-value"><?php echo $totalConcluidasHoje; ?></span>
+            <span class="stat-label">Concluídas Hoje</span>
         </div>
     </div>
 
@@ -395,8 +395,8 @@ $totalConcluidasHoje = $tarefas_concluidas_hoje + $rotinasConcluidasCount;
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-link text-decoration-none text-muted" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-premium px-4">Salvar</button>
+                    <button type="button" class="btn-cancel-elite" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn-elite-primary">Salvar</button>
                 </div>
             </form>
         </div>
@@ -445,8 +445,8 @@ $totalConcluidasHoje = $tarefas_concluidas_hoje + $rotinasConcluidasCount;
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-link text-decoration-none text-muted" data-bs-dismiss="modal">Cancelar</button>
-                <button type="submit" class="btn btn-premium px-4">Criar Tarefa</button>
+                <button type="button" class="btn-cancel-elite" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn-elite-primary">Criar Tarefa</button>
             </div>
             </form>
         </div>
@@ -468,8 +468,8 @@ $totalConcluidasHoje = $tarefas_concluidas_hoje + $rotinasConcluidasCount;
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-link text-decoration-none text-muted" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-premium">Salvar Alterações</button>
+                    <button type="button" class="btn-cancel-elite" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn-elite-primary">Salvar Alterações</button>
                 </div>
             </form>
         </div>
@@ -487,7 +487,7 @@ document.addEventListener('DOMContentLoaded', function() {
         showConfirmButton: false,
         timer: 3000,
         timerProgressBar: true,
-        background: '#1a1a1a',
+        background: '#161618',
         color: '#fff',
         didOpen: (toast) => {
             toast.addEventListener('mouseenter', Swal.stopTimer)
@@ -541,8 +541,8 @@ document.addEventListener('DOMContentLoaded', function() {
             title: 'Excluir hábito?',
             text: `O hábito "${nome}" será apagado permanentemente.`,
             icon: 'warning',
-            background: '#1a1a1a', color: '#fff',
-            showCancelButton: true, confirmButtonColor: '#ef4444', cancelButtonColor: '#3f3f46',
+            background: '#161618', color: '#fff',
+            showCancelButton: true, confirmButtonColor: '#e50914', cancelButtonColor: '#2c2c2e',
             confirmButtonText: 'Sim', cancelButtonText: 'Não'
         }).then((result) => {
             if (result.isConfirmed) {
@@ -597,11 +597,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 title: 'Excluir Tarefa?',
                 text: `"${title}" será removida permanentemente.`,
                 icon: 'warning',
-                background: '#1a1a1a',
+                background: '#161618',
                 color: '#fff',
                 showCancelButton: true,
-                confirmButtonColor: '#ef4444',
-                cancelButtonColor: '#3f3f46',
+                confirmButtonColor: '#e50914',
+                cancelButtonColor: '#2c2c2e',
                 confirmButtonText: 'Sim, excluir',
                 cancelButtonText: 'Cancelar'
             }).then((result) => {
