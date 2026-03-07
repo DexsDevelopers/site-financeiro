@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Lexend+Deca:wght@200;400;500;600&display=swap');
+
 /* ========== GLOBAL DESIGN TOKENS (LUXURY DARK) ========== */
 :root {
     --bg-dark: #0d0d0f;
@@ -84,88 +86,71 @@ h5,
     gap: 15px;
 }
 
-.header h1 {
+/* ========== CABEÇALHO (PAGE HEADER) ========== */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.page-title {
     font-size: 32px;
     font-weight: 700;
     margin: 0;
     letter-spacing: -0.03em;
-    /* Tight typography luxury style */
     background: linear-gradient(180deg, #fff 0%, #a1a1a1 100%);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
-.header-subtitle {
-    color: var(--text-muted);
-    font-size: 15px;
-    margin-top: 8px;
-    font-weight: 300;
-    letter-spacing: 0.01em;
-}
-
-.stats {
+/* ========== ESTATÍSTICAS (STATS GRID) ========== */
+.stats-grid {
     display: flex;
     gap: 15px;
+    margin-bottom: 25px;
     flex-wrap: wrap;
 }
 
-.stat {
+.stat-card {
     background: var(--bg-card);
     border: 1px solid var(--border);
     padding: 15px 20px;
-    border-radius: 10px;
+    border-radius: 14px;
     display: flex;
-    align-items: center;
-    gap: 15px;
-    min-width: 180px;
-    transition: all var(--transition-fast);
+    flex-direction: column;
+    gap: 5px;
+    min-width: 160px;
+    flex: 1;
+    transition: all var(--transition-normal);
     position: relative;
     overflow: hidden;
+    box-shadow: var(--shadow-sm);
 }
 
-.stat:before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 4px;
-    height: 100%;
-    background: currentColor;
-    opacity: 0.5;
-}
-
-.stat:hover {
+.stat-card:hover {
     transform: translateY(-5px) scale(1.02);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    box-shadow: var(--shadow-lg);
     border-color: rgba(255, 255, 255, 0.2);
     background: var(--bg-hover);
 }
 
-.stat-icon {
-    font-size: 24px;
-    opacity: 0.8;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.stat-content {
-    flex: 1;
-    min-width: 0;
-}
-
 .stat-value {
     font-weight: 700;
-    font-size: 22px;
+    font-size: 24px;
     display: block;
-    margin-bottom: 2px;
+    font-family: 'Outfit', sans-serif;
 }
 
 .stat-label {
-    font-size: 12px;
+    font-size: 11px;
     color: var(--text-muted);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 1px;
+    font-weight: 600;
 }
 
 .progress-bar {
