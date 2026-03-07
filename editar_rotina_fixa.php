@@ -104,183 +104,101 @@ $input = json_decode(file_get_contents('php://input'), true);        $nome = tri
     }
 }
 ?>
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Editar Rotina - Painel Financeiro</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <style>
-        :root {
-            --primary: #dc3545;
-            --bg-dark: #0a0a0a;
-            --bg-card: #141414;
-        }
-        body { 
-            background: var(--bg-dark); 
-            color: #fff; 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
-        }
-        .container { 
-            max-width: 500px; 
-            margin-top: 40px; 
-        }
-        .card { 
-            background: var(--bg-card); 
-            border: 1px solid rgba(255, 255, 255, 0.1); 
-        }
-        .card-header {
-            background: rgba(255, 255, 255, 0.05);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        .form-control, .form-select { 
-            background: #0a0a0a; 
-            border: 1px solid rgba(255, 255, 255, 0.1); 
-            color: #fff; 
-        }
-        .form-control:focus, .form-select:focus { 
-            background: #0a0a0a; 
-            border-color: var(--primary); 
-            color: #fff;
-            box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25);
-        }
-        .btn-primary { 
-            background: var(--primary); 
-            border: none; 
-        }
-        .btn-primary:hover { 
-            background: #c4080f; 
-        }
-        .alert {
-            border: none;
-            border-radius: 6px;
-        }
-        .alert-success {
-            background: rgba(76, 175, 80, 0.15);
-            color: #4caf50;
-            border: 1px solid rgba(76, 175, 80, 0.3);
-        }
-        .alert-danger {
-            background: rgba(244, 67, 54, 0.15);
-            color: #f44336;
-            border: 1px solid rgba(244, 67, 54, 0.3);
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-pencil"></i> Editar Rotina Fixa</h5>
-            </div>
-            <div class="card-body">
-                <?php if ($sucesso): ?>
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        <i class="bi bi-check-circle"></i> <?php echo $sucesso; ?>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                <?php
-endif; ?>
+<?php
+// templates/header.php já foi incluído se estivermos usando a estrutura padrão,
+// mas aqui precisamos garantir que as variáveis de rota/usuário estejam prontas.
+require_once 'includes/config.php';
+require_once 'includes/auth.php';
 
-                <?php if ($erro): ?>
-                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        <i class="bi bi-exclamation-triangle"></i> <?php echo $erro; ?>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                <?php
-endif; ?>
+$page_title = "Editar Rotina Fixa - Orion";
+require_once 'templates/header.php';
 
-                <form method="POST">
-                    <input type="hidden" name="id" value="<?php echo $rotinaId; ?>">
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Nome da Rotina <span class="text-danger">*</span></label>
-                        <input type="text" name="nome" class="form-control" 
-                               value="<?php echo htmlspecialchars($rotina['nome']); ?>" 
-                               required autofocus>
-                    </div>
+// CSS Específico para esta página (se necessário, mas tarefas.css agora é global)
+echo '<link rel="stylesheet" href="tarefas.css?v=' . filemtime('tarefas.css') . '">';
+?>
 
-                    <div class="row mb-3">
-                        <div class="col-6">
-                            <label class="form-label">Horário Sugerido</label>
-                            <input type="time" name="horario" class="form-control" 
-                                   value="<?php echo($rotina['horario_sugerido']) ? substr($rotina['horario_sugerido'], 0, 5) : ''; ?>">
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-premium border-0">
+                <div class="card-header bg-transparent border-bottom border-white-5 opacity-75">
+                    <h5 class="mb-0"><i class="bi bi-pencil-square me-2 text-primary"></i> Editar Rotina Fixa</h5>
+                </div>
+                <div class="card-body p-4">
+                    <?php if ($sucesso): ?>
+                        <div class="alert alert-success border-0 bg-success bg-opacity-10 text-success mb-4" role="alert">
+                            <i class="bi bi-check-circle-fill me-2"></i> <?php echo $sucesso; ?>
                         </div>
-                        <div class="col-6">
-                            <label class="form-label">Prioridade</label>
-                            <select name="prioridade" class="form-select">
-                                <option value="Baixa" <?php echo($rotina['prioridade'] == 'Baixa') ? 'selected' : ''; ?>>Baixa</option>
-                                <option value="Média" <?php echo($rotina['prioridade'] == 'Média') ? 'selected' : ''; ?>>Média</option>
-                                <option value="Alta" <?php echo($rotina['prioridade'] == 'Alta') ? 'selected' : ''; ?>>Alta</option>
-                            </select>
-                        </div>
-                    </div>
+                    <?php endif; ?>
 
-                    <div class="mb-3">
-                        <label class="form-label">Dias da Semana</label>
-                        <style>
-                            .dias-selecao .btn-check:checked + .btn {
-                                background-color: #e50914 !important;
-                                border-color: #e50914 !important;
-                                color: white !important;
-                                font-weight: bold;
-                                box-shadow: 0 0 15px rgba(229, 9, 20, 0.6);
-                            }
-                            .dias-selecao .btn-outline-light {
-                                border-color: rgba(255,255,255,0.3) !important;
-                                color: #ffffff !important;
-                                background-color: rgba(255,255,255,0.05);
-                            }
-                            .dias-selecao .btn-outline-light:hover {
-                                background-color: rgba(255,255,255,0.1);
-                            }
-                            .dia-item {
-                                min-width: 48px;
-                                flex: 1;
-                            }
-                            .form-label, label {
-                                color: #ffffff !important;
-                                font-weight: 600 !important;
-                                opacity: 1 !important;
-                                margin-bottom: 8px;
-                            }
-                        </style>
-                        <div class="d-flex flex-wrap gap-2 dias-selecao">
-                            <?php 
-                            $diasNome = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-                            $diasSelecionados = !empty($rotina['dias_semana']) ? explode(',', $rotina['dias_semana']) : [];
-                            for($i=1; $i<=7; $i++): 
-                                $checked = in_array($i, $diasSelecionados) ? 'checked' : '';
-                            ?>
-                            <div class="dia-item text-center">
-                                <input type="checkbox" class="btn-check" name="dias_semana[]" id="edit_dia_<?= $i ?>" value="<?= $i ?>" <?= $checked ?>>
-                                <label class="btn btn-outline-light w-100 py-2 px-0" for="edit_dia_<?= $i ?>" style="font-size: 0.85rem; transition: all 0.2s;"><?= $diasNome[$i-1] ?></label>
+                    <?php if ($erro): ?>
+                        <div class="alert alert-danger border-0 bg-danger bg-opacity-10 text-danger mb-4" role="alert">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i> <?php echo $erro; ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <form method="POST">
+                        <input type="hidden" name="id" value="<?php echo $rotinaId; ?>">
+                        
+                        <div class="mb-4">
+                            <label class="form-label">Nome da Rotina</label>
+                            <input type="text" name="nome" class="form-control form-control-lg" 
+                                   value="<?php echo htmlspecialchars($rotina['nome']); ?>" 
+                                   required autofocus>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-6">
+                                <label class="form-label">Horário Sugerido</label>
+                                <input type="time" name="horario" class="form-control" 
+                                       value="<?php echo($rotina['horario_sugerido']) ? substr($rotina['horario_sugerido'], 0, 5) : ''; ?>">
                             </div>
-                            <?php endfor; ?>
+                            <div class="col-6">
+                                <label class="form-label">Prioridade</label>
+                                <select name="prioridade" class="form-select">
+                                    <option value="Baixa" <?php echo($rotina['prioridade'] == 'Baixa') ? 'selected' : ''; ?>>Baixa</option>
+                                    <option value="Média" <?php echo($rotina['prioridade'] == 'Média') ? 'selected' : ''; ?>>Média</option>
+                                    <option value="Alta" <?php echo($rotina['prioridade'] == 'Alta') ? 'selected' : ''; ?>>Alta</option>
+                                </select>
+                            </div>
                         </div>
-                        <small class="text-muted mt-1 d-block">Se nenhum for selecionado, aparecerá todos os dias.</small>
-                    </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Descrição (opcional)</label>
-                        <textarea name="descricao" class="form-control" rows="4"><?php echo htmlspecialchars($rotina['descricao'] ?? ''); ?></textarea>
-                    </div>
+                        <div class="mb-4">
+                            <label class="form-label">Dias da Semana</label>
+                            <div class="d-flex flex-wrap gap-2 dias-selecao">
+                                <?php 
+                                $diasNome = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+                                $diasSelecionados = !empty($rotina['dias_semana']) ? explode(',', $rotina['dias_semana']) : [];
+                                for($i=1; $i<=7; $i++): 
+                                    $checked = in_array($i, $diasSelecionados) ? 'checked' : '';
+                                ?>
+                                <div class="dia-item flex-fill">
+                                    <input type="checkbox" class="btn-check" name="dias_semana[]" id="edit_dia_<?= $i ?>" value="<?= $i ?>" <?= $checked ?>>
+                                    <label class="btn btn-outline-light w-100 py-2 px-0" for="edit_dia_<?= $i ?>"><?= $diasNome[$i-1] ?></label>
+                                </div>
+                                <?php endfor; ?>
+                            </div>
+                            <small class="text-white-50 mt-2 d-block">Se nenhum for selecionado, aparecerá todos os dias.</small>
+                        </div>
 
-                    <div class="d-flex gap-2">
-                        <a href="tarefas.php" class="btn btn-secondary">
-                            <i class="bi bi-arrow-left"></i> Voltar
-                        </a>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-save"></i> Salvar Alterações
-                        </button>
-                    </div>
-                </form>
+                        <div class="mb-4">
+                            <label class="form-label">Descrição (opcional)</label>
+                            <textarea name="descricao" class="form-control" rows="3"><?php echo htmlspecialchars($rotina['descricao'] ?? ''); ?></textarea>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end pt-3">
+                            <a href="tarefas.php" class="btn btn-outline-light px-4">
+                                <i class="bi bi-arrow-left"></i> Voltar
+                            </a>
+                            <button type="submit" class="btn btn-primary px-5">
+                                <i class="bi bi-save"></i> Salvar Alterações
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
+</div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+<?php require_once 'templates/footer.php'; ?>
