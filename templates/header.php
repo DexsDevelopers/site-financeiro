@@ -12,6 +12,7 @@ require_once __DIR__ . '/../includes/db_connect.php';
 require_once __DIR__ . '/../includes/auto_login.php';
 require_once __DIR__ . '/../includes/apply_user_settings.php';
 require_once __DIR__ . '/../includes/load_menu_config.php';
+require_once __DIR__ . '/../includes/asset_helper.php';
 
 // Definir ID do usuário logado
 $userId = !empty($_SESSION['user']['id']) ? (int) $_SESSION['user']['id'] : (int) ($_SESSION['user_id'] ?? 0);
@@ -119,8 +120,8 @@ if (!isset($_SESSION['dias_uso_cache_time']) ||
     <!-- Driver.js (Tour GUI) - CSS será injetado com fallback por assets/js/onboarding.js -->
     
     <!-- CSS Personalizado -->
-    <link rel="stylesheet" href="assets/css/dashboard.css?v=<?= filemtime(__DIR__ . '/../assets/css/dashboard.css') ?>">
-    <link rel="stylesheet" href="assets/css/responsive-improved.css?v=<?= filemtime(__DIR__ . '/../assets/css/responsive-improved.css') ?>">
+    <link rel="stylesheet" href="<?= asset('assets/css/dashboard.css') ?>">
+    <link rel="stylesheet" href="<?= asset('assets/css/responsive-improved.css') ?>">
     
     <style>
         :root { 
