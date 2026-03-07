@@ -461,6 +461,7 @@ class OrionEngine {
             $descricao = ucfirst($descricao);
         }
 
+        try {
             $idCategoria = $categoria ? $categoria['id'] : 18;
             $newCatCreated = false;
 
