@@ -63,109 +63,61 @@ self.addEventListener('activate', event => {
 // Interceptar requisições
 self.addEventListener('fetch', event => {
   // Ignorar requisições que não são GET
-  if (event.request.method !== 'GET') {
+  if (event.request.method !== 'GET') return;
+
+  const url = new URL(event.request.url);
+  const isLocal = url.origin === self.location.origin;
+
+  // Ignorar requisições de API, processos e externos críticos
+  if (url.pathname.includes('/api/') ||
+    url.pathname.includes('salvar_') ||
+    url.pathname.includes('atualizar_') ||
+    url.pathname.includes('excluir_') ||
+    url.pathname.includes('processar_') ||
+    url.pathname.includes('login_') ||
+    url.pathname.includes('logout.php') ||
+    url.pathname.includes('cdn.jsdelivr.net') ||
+    url.pathname.includes('googleapis.com')) {
     return;
   }
 
-  // Ignorar completamente requisições cross-origin (deixa o navegador tratar)
-  try {
-    const reqUrl = new URL(event.request.url);
-    const swOrigin = self.location.origin;
-    if (reqUrl.origin !== swOrigin) {
-      return;
-    }
-  } catch (e) {
-    // Se não conseguir parsear, não intercepta
+  // ESTRATÉGIA: Network First para arquivos do sistema (CSS/JS/PHP)
+  // Isso garante que se houver internet, ele pega a versão mais nova.
+  // Se estiver offline, pega o que estiver no cache.
+  if (isLocal && (url.pathname.endsWith('.php') || url.pathname.endsWith('.css') || url.pathname.endsWith('.js'))) {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          if (response && response.status === 200) {
+            const responseClone = response.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseClone));
+          }
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
     return;
   }
 
-  // Ignorar requisições de API e formulários
-  if (event.request.url.includes('/api/') ||
-    event.request.url.includes('salvar_') ||
-    event.request.url.includes('atualizar_') ||
-    event.request.url.includes('excluir_') ||
-    event.request.url.includes('login_process.php') ||
-    event.request.url.includes('logout.php') ||
-    event.request.url.includes('registrar.php') ||
-    event.request.url.includes('upload.php')) {
-    return;
-  }
-
-  // Ignorar requisições com redirecionamentos
-  if (event.request.redirect !== 'follow') {
-    return;
-  }
-
-  // Ignorar requisições de recursos externos que podem causar problemas
-  // e bibliotecas via CDN (deixar o navegador tratar)
-  if (event.request.url.includes('googleapis.com') ||
-    event.request.url.includes('gstatic.com') ||
-    event.request.url.includes('onesignal.com') ||
-    event.request.url.includes('unpkg.com') ||
-    event.request.url.includes('cdn.jsdelivr.net')) {
-    return;
-  }
-
+  // ESTRATÉGIA: Cache First para o resto (Imagens, Fontes estáveis)
   event.respondWith(
     caches.match(event.request)
       .then(response => {
-        // Retornar do cache se disponível
-        if (response) {
-          console.log('Service Worker: Servindo do cache:', event.request.url);
-          return response;
-        }
+        if (response) return response;
 
-        // Buscar da rede com configurações específicas para Safari
-        return fetch(event.request, {
-          method: event.request.method,
-          headers: event.request.headers,
-          mode: 'cors',
-          credentials: 'same-origin',
-          redirect: 'follow'
-        })
-          .then(response => {
-            // Verificar se a resposta é válida e não é um redirecionamento
-            if (!response || response.status !== 200 || response.type !== 'basic' || response.redirected) {
-              return response;
-            }
-
-            // Clonar a resposta para cache
-            const responseToCache = response.clone();
-
-            // Adicionar ao cache apenas se for uma resposta válida
-            if (responseToCache.status === 200) {
-              caches.open(CACHE_NAME)
-                .then(cache => {
-                  cache.put(event.request, responseToCache);
-                })
-                .catch(error => {
-                  console.log('Service Worker: Erro ao salvar no cache:', error);
-                });
-            }
-
+        return fetch(event.request).then(response => {
+          if (!response || response.status !== 200 || response.type !== 'basic') {
             return response;
-          })
-          .catch(error => {
-            console.log('Service Worker: Erro na requisição:', error);
-
-            // Se for uma página HTML, mostrar página offline
-            if (event.request.headers.get('accept') && event.request.headers.get('accept').includes('text/html')) {
-              return caches.match(OFFLINE_URL);
-            }
-
-            // Para outros recursos, retornar erro
-            throw error;
-          });
+          }
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseToCache));
+          return response;
+        });
       })
-      .catch(error => {
-        console.log('Service Worker: Erro geral:', error);
-
-        // Fallback para página offline se for HTML
-        if (event.request.headers.get('accept') && event.request.headers.get('accept').includes('text/html')) {
+      .catch(() => {
+        if (event.request.headers.get('accept').includes('text/html')) {
           return caches.match(OFFLINE_URL);
         }
-
-        throw error;
       })
   );
 });
