@@ -230,8 +230,23 @@ class OrionEngine {
     private function detectIntent($queryLower) {
         $intent = ['type' => 'unknown', 'confidence' => 0];
 
+        // AJUDA
+        if (preg_match('/\b(ajuda|help|socorro|comandos|o que você faz|capacidades)\b/i', $queryLower)) {
+            $intent = ['type' => 'help', 'confidence' => 0.9];
+        }
+
+        // CONSULTAS - Gastos (Prioridade Alta para evitar confundir com 'add_expense')
+        elseif (preg_match('/\b(quanto|qual|mostre|liste|ver)\b.*\b(gasto|gastei|despesa)\b/i', $queryLower)) {
+            $intent = ['type' => 'query_spending', 'confidence' => 0.95];
+        }
+        
+        // CONSULTAS - Receitas
+        elseif (preg_match('/\b(quanto|qual|mostre|liste|ver)\b.*\b(receita|ganhei|lucro|faturei|entrou)\b/i', $queryLower)) {
+            $intent = ['type' => 'query_income', 'confidence' => 0.95];
+        }
+
         // FINANÇAS - Receitas/Vendas
-        if (preg_match('/\b(vendi|venda|recebi|ganhei|lucro|faturei|faturamento|entrada|depósito|pagamento recebido)\b/i', $queryLower)) {
+        elseif (preg_match('/\b(vendi|venda|recebi|ganhei|lucro|faturei|faturamento|entrada|depósito|pagamento recebido)\b/i', $queryLower)) {
             $intent = ['type' => 'add_income', 'confidence' => 0.9];
         }
         
@@ -299,17 +314,7 @@ class OrionEngine {
         elseif (preg_match('/\b(criar|adicionar|nova)\b.*\b(conta|banco)\b/i', $queryLower)) {
             $intent = ['type' => 'add_account', 'confidence' => 0.85];
         }
-        
-        // CONSULTAS - Gastos
-        elseif (preg_match('/\b(quanto|qual|mostre|liste|ver)\b.*\b(gasto|gastei|despesa)\b/i', $queryLower)) {
-            $intent = ['type' => 'query_spending', 'confidence' => 0.85];
-        }
-        
-        // CONSULTAS - Receitas
-        elseif (preg_match('/\b(quanto|qual|mostre|liste|ver)\b.*\b(receita|ganhei|lucro)\b/i', $queryLower)) {
-            $intent = ['type' => 'query_income', 'confidence' => 0.85];
-        }
-        
+
         // CONSULTAS - Tarefas (ANTES DE SALDO - PRIORIDADE)
         elseif (preg_match('/\b(tarefa|tarefas|fazer|pendente|agenda|to do)\b/i', $queryLower)) {
             $intent = ['type' => 'query_tasks', 'confidence' => 0.85];
@@ -348,11 +353,6 @@ class OrionEngine {
         // ANÁLISES - Insights / Economia
         elseif (preg_match('/\b(insight|dica|sugestão|recomendação|conselho|economizar|economia)\b/i', $queryLower)) {
             $intent = ['type' => 'query_insights', 'confidence' => 0.75];
-        }
-        
-        // AJUDA
-        elseif (preg_match('/\b(ajuda|help|socorro|comandos|o que você faz|capacidades)\b/i', $queryLower)) {
-            $intent = ['type' => 'help', 'confidence' => 0.9];
         }
 
         return $intent;
