@@ -96,20 +96,23 @@ if (!isset($_SESSION['dias_uso_cache_time']) ||
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Painel Financeiro">
     
+    <!-- Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
     <!-- Icons -->
-    <link rel="icon" type="image/png" sizes="32x32" href="/images/icon-192x192.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/images/icon-192x192.png">
-    <link rel="apple-touch-icon" href="/images/icon-192x192.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/images/icon-192x192.png">
-    <link rel="apple-touch-icon" sizes="152x152" href="/images/icon-192x192.png">
-    <link rel="apple-touch-icon" sizes="167x167" href="/images/icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="images/icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="images/icon-192x192.png">
+    <link rel="apple-touch-icon" href="images/icon-192x192.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="images/icon-192x192.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="images/icon-192x192.png">
+    <link rel="apple-touch-icon" sizes="167x167" href="images/icon-192x192.png">
     
     <!-- Microsoft Tiles -->
-    <meta name="msapplication-TileImage" content="/images/icon-192x192.png">
-    <meta name="msapplication-square70x70logo" content="/images/icon-192x192.png">
-    <meta name="msapplication-square150x150logo" content="/images/icon-192x192.png">
-    <meta name="msapplication-wide310x150logo" content="/images/icon-192x192.png">
-    <meta name="msapplication-square310x310logo" content="/images/icon-192x192.png">
+    <meta name="msapplication-TileImage" content="images/icon-192x192.png">
+    <meta name="msapplication-square70x70logo" content="images/icon-192x192.png">
+    <meta name="msapplication-square150x150logo" content="images/icon-192x192.png">
+    <meta name="msapplication-wide310x150logo" content="images/icon-192x192.png">
+    <meta name="msapplication-square310x310logo" content="images/icon-192x192.png">
     <meta name="theme-color" content="#e50914">
     
     <!-- OTIMIZAÇÃO: Preload de recursos críticos -->
