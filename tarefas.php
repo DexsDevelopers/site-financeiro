@@ -835,11 +835,26 @@ body {
                                 background-color: #e50914 !important;
                                 border-color: #e50914 !important;
                                 color: white !important;
-                                box-shadow: 0 0 10px rgba(229, 9, 20, 0.4);
+                                font-weight: bold;
+                                box-shadow: 0 0 15px rgba(229, 9, 20, 0.6);
+                            }
+                            .dias-selecao .btn-outline-light {
+                                border-color: rgba(255,255,255,0.3) !important;
+                                color: #ffffff !important;
+                                background-color: rgba(255,255,255,0.05);
+                            }
+                            .dias-selecao .btn-outline-light:hover {
+                                background-color: rgba(255,255,255,0.1);
                             }
                             .dia-item {
-                                min-width: 45px;
+                                min-width: 48px;
                                 flex: 1;
+                            }
+                            #novaRotinaModal .form-label {
+                                color: #ffffff !important;
+                                font-weight: 600 !important;
+                                opacity: 1 !important;
+                                margin-bottom: 8px;
                             }
                         </style>
                         <div class="d-flex flex-wrap gap-2 dias-selecao">
@@ -849,11 +864,11 @@ body {
                             ?>
                             <div class="dia-item text-center">
                                 <input type="checkbox" class="btn-check" name="dias_semana[]" id="dia_<?= $i ?>" value="<?= $i ?>">
-                                <label class="btn btn-outline-light w-100 py-2 px-0" for="dia_<?= $i ?>" style="font-size: 0.8rem;"><?= $diasNome[$i-1] ?></label>
+                                <label class="btn btn-outline-light w-100 py-2 px-0" for="dia_<?= $i ?>" style="font-size: 0.85rem; transition: all 0.2s;"><?= $diasNome[$i-1] ?></label>
                             </div>
                             <?php endfor; ?>
                         </div>
-                        <small class="text-muted d-block mt-1">Se nenhum for selecionado, aparecerá todos os dias.</small>
+                        <small class="text-white-50 d-block mt-1">Se nenhum for selecionado, aparecerá todos os dias.</small>
                     </div>
 
                     <div class="mb-3">
