@@ -1,25 +1,26 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Lexend+Deca:wght@200;400;500;600&display=swap');
 /**
  * Arquivo: assets/css/tarefas.css
  * Descrição: Estilos para a página de tarefas
  */
 
 :root {
-    --primary: #dc3545;
-    --bg-dark: #0a0a0a;
-    --bg-card: #141414;
-    --border: rgba(255, 255, 255, 0.08);
+    --primary: #e50914;
+    --primary-glow: rgba(229, 9, 20, 0.4);
+    --bg-dark: #0d0d0f;
+    --bg-card: #161618;
+    --bg-hover: #1c1c1e;
+    --border: rgba(255, 255, 255, 0.06);
     --text: #ffffff;
-    --text-muted: #b0b0b0;
+    --text-muted: rgba(255, 255, 255, 0.5);
     --success: #6bcf7f;
     --warning: #ffd93d;
     --danger: #ff6b6b;
     --info: #4dabf7;
-    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
-    --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.15);
-    --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.2);
-    --transition-fast: 0.2s ease;
-    --transition-normal: 0.3s ease;
-    --transition-slow: 0.5s ease;
+    --shadow-premium: 0 8px 32px rgba(0, 0, 0, 0.4);
+    --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --radius-premium: 14px;
 }
 
 * {
@@ -31,8 +32,19 @@
 body {
     background: var(--bg-dark);
     color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    font-size: 14px;
+    font-family: 'Lexend Deca', sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+.display-4 {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
 }
 
 .container-main {
@@ -467,47 +479,84 @@ body {
     color: #ffd93d;
 }
 
-.priority-baixa {
-    background: rgba(107, 207, 127, 0.2);
-    color: #6bcf7f;
-}
-
-.item-date {
+/* ========== PREMIUM TASK CARDS (LUXURY DARK) ========== */
+.task-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-premium);
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+    position: relative;
+    overflow: hidden;
+    transition: all var(--transition-normal);
+    box-shadow: var(--shadow-premium);
     display: flex;
-    align-items: center;
-    gap: 4px;
+    flex-direction: column;
+    gap: 0.75rem;
 }
 
-.item-time {
+.task-card:hover {
+    background: var(--bg-hover);
+    transform: translateY(-4px) scale(1.01);
+    border-color: rgba(229, 9, 20, 0.2);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
+.task-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100px;
+    height: 100px;
+    background: radial-gradient(circle at top right, rgba(229, 9, 20, 0.05), transparent 70%);
+    pointer-events: none;
+}
+
+.task-main {
     display: flex;
-    align-items: center;
-    gap: 4px;
-    background: rgba(255, 255, 255, 0.05);
-    padding: 2px 8px;
-    border-radius: 4px;
+    align-items: flex-start;
+    gap: 1rem;
+    position: relative;
+    z-index: 2;
 }
 
-.item-status {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 2px 8px;
-    border-radius: 4px;
+.task-title {
+    font-size: 1.1rem;
     font-weight: 600;
-    font-size: 11px;
-    background: rgba(107, 207, 127, 0.2);
-    color: #6bcf7f;
+    color: var(--text);
+    margin: 0;
+    letter-spacing: -0.3px;
 }
 
-.item-actions {
+.task-meta {
     display: flex;
-    gap: 6px;
-    opacity: 0;
-    transition: opacity 0.2s;
+    gap: 1rem;
+    align-items: center;
+    font-size: 0.85rem;
+    color: var(--text-muted);
 }
 
-.item:hover .item-actions {
+.task-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-left: auto;
+    opacity: 0.4;
+    transition: opacity var(--transition-fast);
+}
+
+.task-card:hover .task-actions {
     opacity: 1;
+}
+
+/* Subtarefas com Glassmorphism */
+.subtasks-container {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-left: 2.8rem;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(5px);
 }
 
 .btn-icon {

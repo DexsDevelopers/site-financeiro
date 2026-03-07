@@ -103,20 +103,11 @@ if (!isset($_SESSION['dias_uso_cache_time']) ||
     <link rel="icon" type="image/png" sizes="32x32" href="images/icon-192x192.png">
     <link rel="icon" type="image/png" sizes="16x16" href="images/icon-192x192.png">
     <link rel="apple-touch-icon" href="images/icon-192x192.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="images/icon-192x192.png">
-    <link rel="apple-touch-icon" sizes="152x152" href="images/icon-192x192.png">
-    <link rel="apple-touch-icon" sizes="167x167" href="images/icon-192x192.png">
-    
-    <!-- Microsoft Tiles -->
-    <meta name="msapplication-TileImage" content="images/icon-192x192.png">
-    <meta name="msapplication-square70x70logo" content="images/icon-192x192.png">
-    <meta name="msapplication-square150x150logo" content="images/icon-192x192.png">
-    <meta name="msapplication-wide310x150logo" content="images/icon-192x192.png">
-    <meta name="msapplication-square310x310logo" content="images/icon-192x192.png">
-    <meta name="theme-color" content="#e50914">
     
     <!-- OTIMIZAÇÃO: Preload de recursos críticos -->
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&family=Roboto+Mono:wght@400;700&display=swap" as="style">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Lexend+Deca:wght@200;400;500;600&display=swap" rel="stylesheet">
     <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" as="style">
     
     <link rel="manifest" href="manifest.json">
@@ -878,11 +869,6 @@ if (!isset($_SESSION['dias_uso_cache_time']) ||
                 <li class="nav-item">
                     <a class="nav-link <?php echo ($paginaAtual == 'analista_ia.php') ? 'active' : ''; ?>" href="analista_ia.php">
                         <i class="bi bi-stars me-2"></i> Analista Pessoal
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link <?php echo ($paginaAtual == 'skills.php') ? 'active' : ''; ?>" href="skills.php">
-                        <i class="bi bi-cpu-fill me-2"></i> Biblioteca de Skills
                     </a>
                 </li>
                 <li class="nav-item">
