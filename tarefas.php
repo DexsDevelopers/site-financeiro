@@ -3,6 +3,9 @@
 require_once 'templates/header.php';
 require_once 'includes/db_connect.php';
 
+// CSS para esta página com cache buster
+echo '<link rel="stylesheet" href="tarefas.css?v=' . filemtime('tarefas.css') . '">';
+?>
 $tarefas_pendentes = [];
 $tarefas_concluidas = [];
 
