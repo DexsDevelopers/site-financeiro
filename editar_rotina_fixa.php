@@ -105,15 +105,10 @@ $input = json_decode(file_get_contents('php://input'), true);        $nome = tri
 }
 ?>
 <?php
-// templates/header.php já foi incluído se estivermos usando a estrutura padrão,
-// mas aqui precisamos garantir que as variáveis de rota/usuário estejam prontas.
-require_once 'includes/config.php';
-require_once 'includes/auth.php';
-
 $page_title = "Editar Rotina Fixa - Orion";
 require_once 'templates/header.php';
 
-// CSS Específico para esta página (se necessário, mas tarefas.css agora é global)
+// CSS Específico para esta página com cache buster
 echo '<link rel="stylesheet" href="tarefas.css?v=' . filemtime('tarefas.css') . '">';
 ?>
 
