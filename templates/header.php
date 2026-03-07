@@ -91,12 +91,10 @@ if (!isset($_SESSION['dias_uso_cache_time']) ||
     <meta name="msapplication-config" content="/browserconfig.xml">
     
     <!-- Apple Meta Tags -->
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Painel Financeiro">
-    
-    <!-- Manifest -->
-    <link rel="manifest" href="/manifest.json">
     
     <!-- Icons -->
     <link rel="icon" type="image/png" sizes="32x32" href="/images/icon-192x192.png">

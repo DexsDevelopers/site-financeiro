@@ -7,16 +7,14 @@ $tarefas_pendentes = [];
 $tarefas_concluidas = [];
 
 try {
-    // Garante que a coluna data_conclusao exista, caso não tenha sido criada ainda..
+    // Garante que a coluna data_conclusao exista
     $pdo->exec("ALTER TABLE tarefas ADD COLUMN data_conclusao DATETIME DEFAULT NULL");
-    
+} catch (PDOException $e) { /* Já existe */ }
+
+try {
     // FORÇAR CRIAÇÃO DA COLUNA DIAS_SEMANA
-    try {
-        $pdo->exec("ALTER TABLE rotinas_fixas ADD COLUMN dias_semana VARCHAR(20) DEFAULT NULL");
-    } catch (PDOException $e) { /* Coluna já existe */ }
-} catch (PDOException $e) {
-    // Silênciado.
-}
+    $pdo->exec("ALTER TABLE rotinas_fixas ADD COLUMN dias_semana VARCHAR(20) DEFAULT NULL");
+} catch (PDOException $e) { /* Já existe */ }
 
 try {
     // Busca tarefas pendentes por prioridade e ordem
