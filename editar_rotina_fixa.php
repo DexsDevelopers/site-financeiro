@@ -76,6 +76,7 @@ $input = json_decode(file_get_contents('php://input'), true);        $nome = tri
         $horario = $_POST['horario'] ?? null;
         $descricao = trim($_POST['descricao'] ?? '');
         $prioridade = $_POST['prioridade'] ?? 'Média';
+        $diasSemana = isset($_POST['dias_semana']) ? implode(',', $_POST['dias_semana']) : null;
 
         if (!$nome) {
             $erro = 'Nome é obrigatório';
@@ -84,10 +85,10 @@ $input = json_decode(file_get_contents('php://input'), true);        $nome = tri
             try {
                 $stmt = $pdo->prepare("
         UPDATE rotinas_fixas 
-        SET nome = ?, horario_sugerido = ?, descricao = ?, prioridade = ?
+        SET nome = ?, horario_sugerido = ?, descricao = ?, prioridade = ?, dias_semana = ?
         WHERE id = ? AND id_usuario = ?
     ");
-                $stmt->execute([$nome, $horario ?: null, $descricao, $prioridade, $rotinaId, $userId]);
+                $stmt->execute([$nome, $horario ?: null, $descricao, $prioridade, $diasSemana, $rotinaId, $userId]);
 
                 // Recarregar dados atualizados
                 $stmt = $pdo->prepare("SELECT * FROM rotinas_fixas WHERE id = ? AND id_usuario = ?");
@@ -215,6 +216,26 @@ endif; ?>
                                 <option value="Alta" <?php echo($rotina['prioridade'] == 'Alta') ? 'selected' : ''; ?>>Alta</option>
                             </select>
                         </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Dias da Semana</label>
+                        <div class="d-flex flex-wrap gap-2">
+                            <?php 
+                            $diasNome = [1 => 'Dom', 2 => 'Seg', 3 => 'Ter', 4 => 'Qua', 5 => 'Qui', 6 => 'Sex', 7 => 'Sáb'];
+                            $diasAtivos = !empty($rotina['dias_semana']) ? explode(',', $rotina['dias_semana']) : [];
+                            foreach ($diasNome as $val => $nome): 
+                                $checked = in_array($val, $diasAtivos) ? 'checked' : '';
+                            ?>
+                                <div class="form-check form-check-inline m-0">
+                                    <input class="btn-check" type="checkbox" name="dias_semana[]" value="<?= $val ?>" id="dia_<?= $val ?>" <?= $checked ?>>
+                                    <label class="btn btn-outline-light btn-sm px-3" style="border-radius:8px;" for="dia_<?= $val ?>">
+                                        <?= $nome ?>
+                                    </label>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                        <small class="text-muted mt-1 d-block">Se nenhum for selecionado, aparecerá todos os dias.</small>
                     </div>
 
                     <div class="mb-3">

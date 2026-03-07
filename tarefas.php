@@ -63,6 +63,7 @@ try {
             AND rcd.id_usuario = rf.id_usuario 
             AND rcd.data_execucao = ?
         WHERE rf.id_usuario = ? AND rf.ativo = TRUE
+        AND (rf.dias_semana IS NULL OR rf.dias_semana = '' OR FIND_IN_SET(DAYOFWEEK(CURDATE()), rf.dias_semana))
         ORDER BY 
             CASE 
                 WHEN rf.prioridade = 'Alta' THEN 1 
@@ -824,6 +825,24 @@ body {
                             </select>
                         </div>
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label">Dias da Semana</label>
+                        <div class="d-flex flex-wrap gap-2">
+                            <?php 
+                            $diasNome = [1 => 'Dom', 2 => 'Seg', 3 => 'Ter', 4 => 'Qua', 5 => 'Qui', 6 => 'Sex', 7 => 'Sáb'];
+                            foreach ($diasNome as $val => $nome): 
+                            ?>
+                                <div class="form-check form-check-inline m-0">
+                                    <input class="btn-check" type="checkbox" name="dias_semana[]" value="<?= $val ?>" id="new_dia_<?= $val ?>">
+                                    <label class="btn btn-outline-light btn-sm px-2" style="border-radius:8px; font-size: 0.75rem;" for="new_dia_<?= $val ?>">
+                                        <?= $nome ?>
+                                    </label>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                        <small class="text-muted mt-1 d-block" style="font-size: 0.7rem;">Se nenhum for selecionado, aparecerá todos os dias.</small>
+                    </div>
+
                     <div class="mb-3">
                         <label class="form-label">Descrição</label>
                         <textarea name="descricao" class="form-control" rows="2"></textarea>

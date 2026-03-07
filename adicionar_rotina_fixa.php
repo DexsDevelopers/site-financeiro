@@ -29,6 +29,7 @@ $nome = trim($_POST['nome'] ?? '');
 $horario = !empty($_POST['horario']) ? $_POST['horario'] : null;
 $descricao = trim($_POST['descricao'] ?? '');
 $prioridade = $_POST['prioridade'] ?? 'Média';
+$diasSemana = isset($_POST['dias_semana']) ? implode(',', $_POST['dias_semana']) : null;
 
 // Debug logging
 error_log("=== ADICIONAR ROTINA FIXA ===");
@@ -36,6 +37,7 @@ error_log("POST data: " . json_encode($_POST));
 error_log("Nome recebido: '$nome'");
 error_log("Horário recebido: '$horario'");
 error_log("Descrição recebida: '$descricao'");
+error_log("Dias semana: '$diasSemana'");
 
 if (empty($nome)) {
     http_response_code(400);
@@ -47,10 +49,10 @@ if (empty($nome)) {
 // --- 4. Inserir Rotina Fixa ---
 try {
     $stmt = $pdo->prepare("
-        INSERT INTO rotinas_fixas (id_usuario, nome, horario_sugerido, prioridade, descricao, ativo, data_criacao)
-        VALUES (?, ?, ?, ?, ?, TRUE, NOW())
+        INSERT INTO rotinas_fixas (id_usuario, nome, horario_sugerido, prioridade, descricao, ativo, data_criacao, dias_semana)
+        VALUES (?, ?, ?, ?, ?, TRUE, NOW(), ?)
     ");
-    $stmt->execute([$userId, $nome, $horario, $prioridade, $descricao ?: null]);
+    $stmt->execute([$userId, $nome, $horario, $prioridade, $descricao ?: null, $diasSemana]);
 
     $newRotinaId = $pdo->lastInsertId();
 

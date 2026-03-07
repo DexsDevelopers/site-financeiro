@@ -19,6 +19,7 @@ try {
             $nome = trim($_POST['nome'] ?? '');
             $horario = $_POST['horario'] ?? null;
             $descricao = trim($_POST['descricao'] ?? '');
+            $diasSemana = $_POST['dias_semana'] ?? null;
             
             if (!$nome) {
                 http_response_code(400);
@@ -27,10 +28,10 @@ try {
             }
             
             $stmt = $pdo->prepare("
-                INSERT INTO rotinas_fixas (id_usuario, nome, horario_sugerido, descricao, ativo)
-                VALUES (?, ?, ?, ?, TRUE)
+                INSERT INTO rotinas_fixas (id_usuario, nome, horario_sugerido, descricao, ativo, dias_semana)
+                VALUES (?, ?, ?, ?, TRUE, ?)
             ");
-            $stmt->execute([$userId, $nome, $horario ?: null, $descricao ?: null]);
+            $stmt->execute([$userId, $nome, $horario ?: null, $descricao ?: null, $diasSemana]);
             
             echo json_encode(['success' => true, 'message' => 'Rotina criada!', 'id' => $pdo->lastInsertId()]);
             break;
@@ -40,6 +41,7 @@ try {
             $nome = trim($_POST['nome'] ?? '');
             $horario = $_POST['horario'] ?? null;
             $descricao = trim($_POST['descricao'] ?? '');
+            $diasSemana = $_POST['dias_semana'] ?? null;
             
             if (!$id || !$nome) {
                 http_response_code(400);
@@ -49,10 +51,10 @@ try {
             
             $stmt = $pdo->prepare("
                 UPDATE rotinas_fixas 
-                SET nome = ?, horario_sugerido = ?, descricao = ?
+                SET nome = ?, horario_sugerido = ?, descricao = ?, dias_semana = ?
                 WHERE id = ? AND id_usuario = ?
             ");
-            $stmt->execute([$nome, $horario ?: null, $descricao ?: null, $id, $userId]);
+            $stmt->execute([$nome, $horario ?: null, $descricao ?: null, $diasSemana, $id, $userId]);
             
             if ($stmt->rowCount() > 0) {
                 echo json_encode(['success' => true, 'message' => 'Rotina atualizada!']);
