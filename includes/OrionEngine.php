@@ -462,13 +462,18 @@ class OrionEngine {
         }
 
         try {
-            $idCategoria = $categoria ? $categoria['id'] : 18;
+            $idCategoria = 0;
             $newCatCreated = false;
 
             // Se não tem categoria mas tem potencial_category, tenta criar
             if (!$categoria && !empty($entities['potential_category'])) {
                 $nomeCat = ucfirst($entities['potential_category']);
                 
+                // Proteção contra nomes puramente numéricos (bug do badge "7")
+                if (is_numeric($nomeCat)) {
+                    $nomeCat = "Geral";
+                }
+
                 // Verifica se já não existe (case-insensitive) para o usuário
                 $stmtCheck = $this->pdo->prepare("SELECT id, nome FROM categorias WHERE id_usuario = ? AND LOWER(nome) = LOWER(?)");
                 $stmtCheck->execute([$this->userId, $nomeCat]);
@@ -484,6 +489,26 @@ class OrionEngine {
                     $idCategoria = $this->pdo->lastInsertId();
                     $newCatCreated = true;
                     $entities['category'] = ['id' => $idCategoria, 'nome' => $nomeCat];
+                }
+            }
+
+            // Fallback se ainda não tiver ID (busca "Outros" ou cria)
+            if (!$idCategoria) {
+                if ($categoria) {
+                    $idCategoria = $categoria['id'];
+                } else {
+                    $stmtDef = $this->pdo->prepare("SELECT id FROM categorias WHERE id_usuario = ? AND (nome LIKE 'Outros%' OR nome LIKE 'Geral%') LIMIT 1");
+                    $stmtDef->execute([$this->userId]);
+                    $idExistente = $stmtDef->fetchColumn();
+                    
+                    if ($idExistente) {
+                        $idCategoria = $idExistente;
+                    } else {
+                        $stmtNewDefault = $this->pdo->prepare("INSERT INTO categorias (id_usuario, nome, tipo) VALUES (?, 'Outros', ?)");
+                        $stmtNewDefault->execute([$this->userId, $type]);
+                        $idCategoria = $this->pdo->lastInsertId();
+                        $entities['category'] = ['id' => $idCategoria, 'nome' => 'Outros'];
+                    }
                 }
             }
 

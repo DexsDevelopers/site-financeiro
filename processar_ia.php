@@ -199,13 +199,20 @@ try {
     $tipo_final = $dados['tipo'] ?? 'despesa';
 
     if (!empty($dados['nova_categoria_nome'])) {
+        $nova_cat_nome = trim($dados['nova_categoria_nome']);
+        // Proteção contra nomes numéricos
+        if (is_numeric($nova_cat_nome)) $nova_cat_nome = "Outros";
+        
         // Criar Nova
         $stmt = $pdo->prepare("INSERT INTO categorias (id_usuario, nome, tipo) VALUES (?, ?, ?)");
-        $stmt->execute([$userId, $dados['nova_categoria_nome'], $dados['nova_categoria_tipo'] ?? $tipo_final]);
+        $stmt->execute([$userId, $nova_cat_nome, $dados['nova_categoria_tipo'] ?? $tipo_final]);
         $id_categoria = $pdo->lastInsertId();
     } else {
         // Buscar Existente (Case Insensitive para garantir)
-        $cat_nome = $dados['categoria_nome'] ?? 'Outros';
+        $cat_nome = trim($dados['categoria_nome'] ?? 'Outros');
+        // Proteção contra nomes numéricos em categorias sugeridas
+        if (is_numeric($cat_nome)) $cat_nome = "Outros";
+
         $stmt = $pdo->prepare("SELECT id, tipo FROM categorias WHERE id_usuario = ? AND nome LIKE ? LIMIT 1");
         $stmt->execute([$userId, $cat_nome]); // LIKE padrão do MySQL é case-insensitive
         $cat_existente = $stmt->fetch(PDO::FETCH_ASSOC);
