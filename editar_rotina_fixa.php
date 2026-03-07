@@ -220,20 +220,30 @@ endif; ?>
 
                     <div class="mb-3">
                         <label class="form-label">Dias da Semana</label>
-                        <div class="d-flex flex-wrap gap-2">
+                        <style>
+                            .dias-selecao .btn-check:checked + .btn {
+                                background-color: #e50914 !important;
+                                border-color: #e50914 !important;
+                                color: white !important;
+                                box-shadow: 0 0 10px rgba(229, 9, 20, 0.4);
+                            }
+                            .dia-item {
+                                min-width: 45px;
+                                flex: 1;
+                            }
+                        </style>
+                        <div class="d-flex flex-wrap gap-2 dias-selecao">
                             <?php 
-                            $diasNome = [1 => 'Dom', 2 => 'Seg', 3 => 'Ter', 4 => 'Qua', 5 => 'Qui', 6 => 'Sex', 7 => 'Sáb'];
-                            $diasAtivos = !empty($rotina['dias_semana']) ? explode(',', $rotina['dias_semana']) : [];
-                            foreach ($diasNome as $val => $nome): 
-                                $checked = in_array($val, $diasAtivos) ? 'checked' : '';
+                            $diasNome = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+                            $diasSelecionados = !empty($rotina['dias_semana']) ? explode(',', $rotina['dias_semana']) : [];
+                            for($i=1; $i<=7; $i++): 
+                                $checked = in_array($i, $diasSelecionados) ? 'checked' : '';
                             ?>
-                                <div class="form-check form-check-inline m-0">
-                                    <input class="btn-check" type="checkbox" name="dias_semana[]" value="<?= $val ?>" id="dia_<?= $val ?>" <?= $checked ?>>
-                                    <label class="btn btn-outline-light btn-sm px-3" style="border-radius:8px;" for="dia_<?= $val ?>">
-                                        <?= $nome ?>
-                                    </label>
-                                </div>
-                            <?php endforeach; ?>
+                            <div class="dia-item text-center">
+                                <input type="checkbox" class="btn-check" name="dias_semana[]" id="edit_dia_<?= $i ?>" value="<?= $i ?>" <?= $checked ?>>
+                                <label class="btn btn-outline-light w-100 py-2 px-0" for="edit_dia_<?= $i ?>" style="font-size: 0.8rem;"><?= $diasNome[$i-1] ?></label>
+                            </div>
+                            <?php endfor; ?>
                         </div>
                         <small class="text-muted mt-1 d-block">Se nenhum for selecionado, aparecerá todos os dias.</small>
                     </div>
