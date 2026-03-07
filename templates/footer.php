@@ -275,44 +275,29 @@ if (
     const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     
-    // Registrar service worker apropriado
+    // Registrar service worker apropriado (Versão Automática sw.php)
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            // Usar service worker minimalista para Safari
-            const swFile = (isSafari || isIOS) ? 'sw-minimal.js' : 'sw.js';
+            const swFile = (isSafari || isIOS) ? 'sw-minimal.js' : 'sw.php';
             
             navigator.serviceWorker.register(swFile)
                 .then(registration => {
-                    console.log('SW registrado: ', registration);
+                    console.log('SW registrado (Auto): ', registration);
                     
-                    // Verificar atualizações apenas para navegadores não-Safari
-                    if (!isSafari && !isIOS) {
-                        registration.addEventListener('updatefound', () => {
-                            const newWorker = registration.installing;
-                            newWorker.addEventListener('statechange', () => {
-                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                    // Nova versão disponível
-                                    showUpdateAvailable();
-                                }
-                            });
+                    // Lógica de auto-update: recarrega se o SW mudar e tomar o controle
+                    registration.addEventListener('updatefound', () => {
+                        const newWorker = registration.installing;
+                        newWorker.addEventListener('statechange', () => {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                // Envia comando para o novo SW pular a espera e atualizar agora
+                                newWorker.postMessage({ type: 'SKIP_WAITING' });
+                                // Recarrega silenciosamente após um pequeno delay para o SW estabilizar
+                                setTimeout(() => window.location.reload(), 500);
+                            }
                         });
-                    }
+                    });
                 })
-                .catch(registrationError => {
-                    console.log('SW falhou: ', registrationError);
-                    
-                    // Para Safari, não tentar fallback para evitar mais erros
-                    if (!isSafari && !isIOS) {
-                        console.log('Tentando service worker minimalista...');
-                        navigator.serviceWorker.register('sw-minimal.js')
-                            .then(registration => {
-                                console.log('SW minimalista registrado: ', registration);
-                            })
-                            .catch(error => {
-                                console.log('SW minimalista também falhou: ', error);
-                            });
-                    }
-                });
+                .catch(err => console.log('SW falhou: ', err));
         });
     }
     
