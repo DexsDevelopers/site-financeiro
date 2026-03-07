@@ -419,11 +419,22 @@ class OrionEngine {
 
         // Detectar CATEGORIA
         try {
-            $cats = $this->pdo->query("SELECT id, nome FROM categorias")->fetchAll(PDO::FETCH_ASSOC);
+            // Primeiro busca categorias do usuário
+            $stmt = $this->pdo->prepare("SELECT id, nome FROM categorias WHERE id_usuario = ? OR id_usuario = 0");
+            $stmt->execute([$this->userId]);
+            $cats = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
             foreach ($cats as $cat) {
                 if (mb_stripos($queryLower, mb_strtolower($cat['nome'])) !== false) {
                     $entities['category'] = $cat;
                     break;
+                }
+            }
+
+            // Se não encontrou categoria, tenta extrair um nome potencial (ex: "em lanche", "para transporte")
+            if (!$entities['category']) {
+                if (preg_match('/\b(?:em|para|no|na|de|com)\s+([a-zà-ú]{3,20})(?:\s+|$)/i', $queryLower, $matches)) {
+                    $entities['potential_category'] = trim($matches[1]);
                 }
             }
         } catch (Exception $e) {
@@ -450,9 +461,31 @@ class OrionEngine {
             $descricao = ucfirst($descricao);
         }
 
-        $idCategoria = $categoria ? $categoria['id'] : 18;
+            $idCategoria = $categoria ? $categoria['id'] : 18;
+            $newCatCreated = false;
 
-        try {
+            // Se não tem categoria mas tem potencial_category, tenta criar
+            if (!$categoria && !empty($entities['potential_category'])) {
+                $nomeCat = ucfirst($entities['potential_category']);
+                
+                // Verifica se já não existe (case-insensitive) para o usuário
+                $stmtCheck = $this->pdo->prepare("SELECT id, nome FROM categorias WHERE id_usuario = ? AND LOWER(nome) = LOWER(?)");
+                $stmtCheck->execute([$this->userId, $nomeCat]);
+                $existingCat = $stmtCheck->fetch(PDO::FETCH_ASSOC);
+
+                if ($existingCat) {
+                    $idCategoria = $existingCat['id'];
+                    $entities['category'] = $existingCat;
+                } else {
+                    // Cria nova categoria
+                    $stmtNew = $this->pdo->prepare("INSERT INTO categorias (id_usuario, nome, tipo) VALUES (?, ?, ?)");
+                    $stmtNew->execute([$this->userId, $nomeCat, $type]);
+                    $idCategoria = $this->pdo->lastInsertId();
+                    $newCatCreated = true;
+                    $entities['category'] = ['id' => $idCategoria, 'nome' => $nomeCat];
+                }
+            }
+
             $stmt = $this->pdo->prepare("
                 INSERT INTO transacoes (id_usuario, tipo, valor, descricao, id_categoria, data_transacao, id_conta) 
                 VALUES (?, ?, ?, ?, ?, CURDATE(), 0)
@@ -461,9 +494,10 @@ class OrionEngine {
             
             $icon = $type == 'receita' ? '💰' : '💸';
             $tipoNome = $type == 'receita' ? 'Receita' : 'Despesa';
-            $catInfo = $categoria ? " em **{$categoria['nome']}**" : "";
+            $catInfo = $entities['category'] ? " em **{$entities['category']['nome']}**" : "";
+            $newCatMsg = $newCatCreated ? " (Nova categoria criada! 🏷️)" : "";
             
-            return "$icon **Registrado!** $tipoNome de **R$ " . number_format($valor, 2, ',', '.') . "**$catInfo - $descricao";
+            return "$icon **Registrado!** $tipoNome de **R$ " . number_format($valor, 2, ',', '.') . "**$catInfo - $descricao$newCatMsg";
         } catch (Exception $e) {
             return "❌ Erro ao salvar transação: " . $e->getMessage();
         }
