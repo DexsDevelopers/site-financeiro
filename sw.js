@@ -4,11 +4,11 @@ const OFFLINE_URL = 'offline.html';
 
 // Recursos essenciais para cache
 const CORE_ASSETS = [
-  '/',
-  '/dashboard.php',
-  '/index.php',
-  '/offline.html',
-  '/manifest.json',
+  './',
+  'dashboard.php',
+  'index.php',
+  'offline.html',
+  'manifest.json',
   'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css',
   'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css',
   'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js',

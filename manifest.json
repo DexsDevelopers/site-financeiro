@@ -120,7 +120,7 @@
   "protocol_handlers": [
     {
       "protocol": "web+painelfinanceiro",
-      "url": "/dashboard.php?action=%s"
+      "url": "dashboard.php?action=%s"
     }
   ],
   "display_override": [
