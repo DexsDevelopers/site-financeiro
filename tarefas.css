@@ -16,13 +16,26 @@
     --danger: #ff453a;
     --radius-premium: 18px;
     --shadow-premium: 0 10px 30px rgba(0, 0, 0, 0.5);
-    --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-normal: 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+    /* Luxury easing */
+    --transition-smooth: 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 
     /* Variáveis do tarefas.php migradas */
     --glass-bg: rgba(26, 26, 26, 0.85);
     --glass-border: rgba(255, 255, 255, 0.08);
     --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+
+    /* Shadow Scale (Tailwind Inspired) */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -2px rgba(0, 0, 0, 0.2);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.4);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+
+    /* Interactive Tokens */
+    --ring-width: 3px;
+    --ring-color: rgba(229, 9, 20, 0.3);
+    --ring-offset: 2px;
 }
 
 body {
@@ -72,15 +85,22 @@ h5,
 }
 
 .header h1 {
-    font-size: 28px;
+    font-size: 32px;
     font-weight: 700;
     margin: 0;
+    letter-spacing: -0.03em;
+    /* Tight typography luxury style */
+    background: linear-gradient(180deg, #fff 0%, #a1a1a1 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 .header-subtitle {
     color: var(--text-muted);
-    font-size: 14px;
-    margin-top: 5px;
+    font-size: 15px;
+    margin-top: 8px;
+    font-weight: 300;
+    letter-spacing: 0.01em;
 }
 
 .stats {
@@ -115,9 +135,10 @@ h5,
 }
 
 .stat:hover {
-    transform: translateY(-3px);
-    box-shadow: var(--shadow-md);
-    border-color: currentColor;
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    border-color: rgba(255, 255, 255, 0.2);
+    background: var(--bg-hover);
 }
 
 .stat-icon {
@@ -620,8 +641,23 @@ h5,
 .subtask-checkbox:checked {
     background: #30d158;
     border-color: #30d158;
-    box-shadow: 0 0 15px rgba(48, 209, 88, 0.6), inset 0 0 5px rgba(255, 255, 255, 0.4);
-    transform: rotate(360deg) scale(1.1);
+    box-shadow: 0 0 20px rgba(48, 209, 88, 0.4), inset 0 0 8px rgba(255, 255, 255, 0.3);
+    transform: rotate(360deg) scale(1.15);
+    animation: pulse-glow 2s infinite ease-in-out;
+}
+
+@keyframes pulse-glow {
+    0% {
+        box-shadow: 0 0 15px rgba(48, 209, 88, 0.4);
+    }
+
+    50% {
+        box-shadow: 0 0 25px rgba(48, 209, 88, 0.6);
+    }
+
+    100% {
+        box-shadow: 0 0 15px rgba(48, 209, 88, 0.4);
+    }
 }
 
 .subtask-checkbox:checked::after {
