@@ -157,6 +157,38 @@ $tempoEstimado = $totalSeries * 2; // 2 minutos por série aproximadamente
     letter-spacing: 0.5px;
 }
 
+.btn-gym { padding: 12px 24px; border-radius: 50px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: none; font-size: 0.9rem; }
+.btn-gym-primary { background: linear-gradient(135deg, var(--gym-primary), #ff2a35); color: white; box-shadow: 0 4px 15px rgba(229, 9, 20, 0.4); }
+.btn-gym-primary:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(229, 9, 20, 0.6); color: white; }
+
+/* Select2 Dark Theme Customization */
+.select2-container--bootstrap-5 .select2-selection {
+    background-color: transparent !important;
+    border: 1px solid rgba(255,255,255,0.15) !important;
+    color: #fff !important;
+    min-height: 48px;
+    padding-top: 5px;
+}
+.select2-container--bootstrap-5 .select2-selection__rendered {
+    color: #fff !important;
+}
+.select2-container--bootstrap-5 .select2-dropdown {
+    background-color: #1a1a1e !important;
+    border: 1px solid var(--border-color, rgba(255,255,255,0.1)) !important;
+    color: #fff !important;
+}
+.select2-container--bootstrap-5 .select2-results__option {
+    color: #fff !important;
+}
+.select2-container--bootstrap-5 .select2-results__option--highlighted {
+    background-color: var(--accent-red, #e50914) !important;
+    color: #fff !important;
+}
+.select2-container--bootstrap-5 .select2-search__field {
+    background-color: transparent !important;
+    border: 1px solid rgba(255,255,255,0.2) !important;
+    color: #fff !important;
+}
 .btn-gym-v2-primary {
     background: var(--gym-primary);
     color: #fff;
@@ -821,6 +853,21 @@ document.addEventListener('DOMContentLoaded', function() {
                             </div>
                         </div>
                     `;
+
+                    // Inicializando Select2 para inserção principal de registro e lidando com evento on change
+                    $('#exercicio_select_rotina').select2({
+                        theme: 'bootstrap-5',
+                        dropdownParent: $('#modalGerenciarExercicios'),
+                        width: '100%',
+                        language: {
+                            noResults: function () {
+                                return "Nenhum exercício encontrado. Escolha 'Outro' para digitar manualmente.";
+                            }
+                        }
+                    }).on('change', function(e) {
+                         toggleCustomExerciseRotina(this.value);
+                    });
+
                 } else {
                     corpoModalGerenciar.innerHTML = `<div class="p-5 text-center text-danger">${data.message}</div>`;
                 }

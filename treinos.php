@@ -59,6 +59,34 @@ try {
 <style>
     .exercise-card { transition: all 0.3s ease; }
     .exercise-card:hover { transform: translateY(-3px); }
+    
+    /* Select2 Dark Theme Customization */
+    .select2-container--bootstrap-5 .select2-selection {
+        background-color: transparent !important;
+        border: 1px solid var(--border-color, rgba(255,255,255,0.1)) !important;
+        color: #fff !important;
+        min-height: 38px;
+    }
+    .select2-container--bootstrap-5 .select2-selection__rendered {
+        color: #fff !important;
+    }
+    .select2-container--bootstrap-5 .select2-dropdown {
+        background-color: #1a1a1e !important;
+        border: 1px solid var(--border-color, rgba(255,255,255,0.1)) !important;
+        color: #fff !important;
+    }
+    .select2-container--bootstrap-5 .select2-results__option {
+        color: #fff !important;
+    }
+    .select2-container--bootstrap-5 .select2-results__option--highlighted {
+        background-color: var(--accent-red, #e50914) !important;
+        color: #fff !important;
+    }
+    .select2-container--bootstrap-5 .select2-search__field {
+        background-color: transparent !important;
+        border: 1px solid rgba(255,255,255,0.2) !important;
+        color: #fff !important;
+    }
 </style>
 
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
@@ -74,7 +102,7 @@ try {
     <div class="d-flex align-items-center gap-2">
         <form id="filtroDataTreino" class="d-flex align-items-center gap-2">
             <label for="data_treino" class="form-label mb-0">Ver treino do dia:</label>
-            <input type="date" class="form-control" id="data_treino" name="data" value="<?php echo $data_selecionada; ?>" style="width: 160px;">
+            <input type="date" class="form-control" id="data_treino" name="data" value="<?php echo $data_selecionada; ?>" style="width: 168px;">
         </form>
         <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#modalNovoExercicio"><i class="bi bi-plus-lg"></i></button>
     </div>
@@ -160,6 +188,23 @@ function toggleCustomExercise(value) {
 
 document.addEventListener('DOMContentLoaded', function() {
     AOS.init({ duration: 600, once: true });
+    
+    // Inicializar Select2 para seleção de exercícios mais buscar
+    $('#exercicio_select').select2({
+        theme: 'bootstrap-5', // Utilizar tema compatível, mas precisamos customizar o css principal
+        dropdownParent: $('#modalNovoExercicio'), // Modal compatibility
+        width: '100%',
+        language: {
+            noResults: function () {
+                return "Nenhum exercício encontrado. Escolha 'Outro' para digitar manualmente.";
+            }
+        }
+    });
+
+    // Como o onchange nativo do select as vezes se perde no Select2
+    $('#exercicio_select').on('change', function (e) {
+        toggleCustomExercise(this.value);
+    });
     
     // --- LÓGICA DO FILTRO DE DATA ---
     const inputData = document.getElementById('data_treino');
