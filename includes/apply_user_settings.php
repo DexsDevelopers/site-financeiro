@@ -1,7 +1,7 @@
 <?php
 // includes/apply_user_settings.php - Aplicar configurações do usuário
 
-require_once 'includes/cache_manager.php';
+require_once __DIR__ . '/cache_manager.php';
 
 if (!isset($_SESSION['user_id']) && !isset($_SESSION['user']['id'])) {
     return;
