@@ -782,7 +782,7 @@ if ($saldoMes > 0) {
         
         // Determina o path da API (tentando ser robusto)
         const apiPath = typeof window.PUSH_API_PATH !== 'undefined' ? 
-                        window.PUSH_API_PATH.replace('api_push_subscribe.php', 'api_push_test.php') : 
+                        "/seu_projeto/api_push_test.php" : 
                         'api_push_test.php';
 
         fetch(apiPath)
