@@ -4,10 +4,10 @@
  * Este script cria as tabelas necessárias para as Notificações Push
  */
 
-require_once 'includes/header.php';
+require_once 'templates/header.php';
 
 // Apenas admins ou usuários logados (ajuste conforme sua segurança)
-if (!isset($_SESSION['user_id'])) {
+if (!isset($_SESSION['user_id']) && !isset($_SESSION['user']['id'])) {
     die("Acesso negado.");
 }
 
@@ -80,4 +80,4 @@ if (isset($_POST['run_setup'])) {
     </div>
 </div>
 
-<?php require_once 'includes/footer.php'; ?>
+<?php require_once 'templates/footer.php'; ?>
