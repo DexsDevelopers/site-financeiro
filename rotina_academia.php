@@ -1,6 +1,7 @@
 <?php
 // rotina_academia.php (Versão Redesenhada - Design Premium)
 require_once 'templates/header.php';
+require_once 'includes/exercicios_padrao.php';
 
 $dias_da_semana = [1 => 'Domingo', 2 => 'Segunda', 3 => 'Terça', 4 => 'Quarta', 5 => 'Quinta', 6 => 'Sexta', 7 => 'Sábado'];
 $dias_abrev = [1 => 'DOM', 2 => 'SEG', 3 => 'TER', 4 => 'QUA', 5 => 'QUI', 6 => 'SEX', 7 => 'SAB'];
@@ -660,6 +661,31 @@ $tempoEstimado = $totalSeries * 2; // 2 minutos por série aproximadamente
 </div>
 
 <script>
+const exerciciosPadrao = <?php echo json_encode($exercicios_padrao); ?>;
+
+function toggleCustomExerciseRotina(val) {
+    const customInput = document.getElementById('exercicio_custom_rotina');
+    if (val === 'outro') {
+        customInput.style.display = 'block';
+        customInput.required = true;
+    } else {
+        customInput.style.display = 'none';
+        customInput.required = false;
+        customInput.value = '';
+    }
+}
+
+function toggleCustomExerciseEditRotina(val) {
+    const customInput = document.getElementById('edit_exercicio_custom_rotina');
+    if (val === 'outro') {
+        customInput.style.display = 'block';
+        customInput.required = true;
+    } else {
+        customInput.style.display = 'none';
+        customInput.required = false;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     AOS.init({ duration: 800, once: true, easing: 'ease-out-back' });
     
@@ -747,6 +773,16 @@ document.addEventListener('DOMContentLoaded', function() {
                         });
                     }
                     
+                    let optsHtml = '<option value="">Selecione um exercício...</option>';
+                    for (const grupo in exerciciosPadrao) {
+                        optsHtml += `<optgroup label="${grupo}">`;
+                        exerciciosPadrao[grupo].forEach(ex => {
+                            optsHtml += `<option value="${ex}">${ex}</option>`;
+                        });
+                        optsHtml += `</optgroup>`;
+                    }
+                    optsHtml += `<optgroup label="Outros"><option value="outro">Outro (Digitar manualmente)</option></optgroup>`;
+                    
                     corpoModalGerenciar.innerHTML = `
                         <div class="p-4" style="background: rgba(255,255,255,0.02);">
                             <div class="mb-4 p-3 gym-glass" style="border-radius: 16px;">
@@ -755,9 +791,13 @@ document.addEventListener('DOMContentLoaded', function() {
                                 </h6>
                                 <form id="formAddExercicioRotina">
                                     <input type="hidden" name="id_rotina_dia" value="${diaId}">
+                                    <input type="hidden" name="nome_exercicio" id="exercicio_final_rotina">
                                     <div class="row g-3">
                                         <div class="col-md-5">
-                                            <input type="text" name="nome_exercicio" class="form-control" placeholder="Nome (Ex: Supino Reto)" required>
+                                            <select id="exercicio_select_rotina" class="form-select" required onchange="toggleCustomExerciseRotina(this.value)">
+                                                ${optsHtml}
+                                            </select>
+                                            <input type="text" id="exercicio_custom_rotina" class="form-control mt-2" placeholder="Digite o nome do exercício" style="display: none;">
                                         </div>
                                         <div class="col-md-2">
                                             <input type="number" name="series_sugeridas" class="form-control text-center" placeholder="Sets" min="1" max="10">
@@ -796,6 +836,14 @@ document.addEventListener('DOMContentLoaded', function() {
         if (event.target.id === 'formAddExercicioRotina') {
             event.preventDefault();
             const form = event.target;
+            
+            const selectValue = document.getElementById('exercicio_select_rotina').value;
+            if(selectValue === 'outro') {
+                document.getElementById('exercicio_final_rotina').value = document.getElementById('exercicio_custom_rotina').value;
+            } else {
+                document.getElementById('exercicio_final_rotina').value = selectValue;
+            }
+
             const formData = new FormData(form);
             const button = form.querySelector('button[type="submit"]');
             button.disabled = true;
@@ -820,7 +868,6 @@ document.addEventListener('DOMContentLoaded', function() {
     corpoModalGerenciar.addEventListener('click', function(event) {
         const deleteButton = event.target.closest('.btn-excluir-exercicio-rotina');
         const editButton = event.target.closest('.btn-editar-exercicio-rotina');
-        const saveButton = event.target.closest('.btn-salvar-exercicio-rotina');
         
         if (deleteButton) {
             Swal.fire({

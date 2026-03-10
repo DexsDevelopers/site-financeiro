@@ -2,6 +2,7 @@
 // treinos.php (Versão Final com Histórico e Seletor de Data)
 
 require_once 'templates/header.php';
+require_once 'includes/exercicios_padrao.php';
 
 // Pega a data da URL (GET), ou usa a data de hoje como padrão.
 $data_selecionada = $_GET['data'] ?? date('Y-m-d');
@@ -140,11 +141,23 @@ try {
     <?php endif; ?>
 </div>
 
-<div class="modal fade" id="modalNovoExercicio" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Adicionar Exercício ao Treino</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><form id="formNovoRegistro"><input type="hidden" name="data_treino" value="<?php echo $data_selecionada; ?>"><div class="modal-body"><div class="mb-3"><label class="form-label">Exercício</label><input type="text" name="exercicio" class="form-control" required><div class="form-text">Se o exercício não existir, será criado.</div></div><div class="row"><div class="col-md-4 mb-3"><label class="form-label">Séries</label><input type="text" name="series" class="form-control"></div><div class="col-md-4 mb-3"><label class="form-label">Repetições</label><input type="text" name="repeticoes" class="form-control"></div><div class="col-md-4 mb-3"><label class="form-label">Carga (Kg)</label><input type="number" step="0.5" name="carga" class="form-control"></div></div><div class="mb-3"><label class="form-label">Observações</label><textarea name="observacoes" class="form-control" rows="2"></textarea></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-danger">Adicionar</button></div></form></div></div></div>
+<div class="modal fade" id="modalNovoExercicio" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Adicionar Exercício ao Treino</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><form id="formNovoRegistro"><input type="hidden" name="data_treino" value="<?php echo $data_selecionada; ?>"><div class="modal-body"><div class="mb-3"><label class="form-label">Exercício</label><select name="exercicio_select" id="exercicio_select" class="form-select" required onchange="toggleCustomExercise(this.value)"><option value="">Selecione um exercício...</option><?php foreach($exercicios_padrao as $grupo => $exercicios): ?><optgroup label="<?php echo $grupo; ?>"><?php foreach($exercicios as $ex): ?><option value="<?php echo $ex; ?>"><?php echo $ex; ?></option><?php endforeach; ?></optgroup><?php endforeach; ?><optgroup label="Outros"><option value="outro">Outro (Digitar manualmente)</option></optgroup></select><input type="text" name="exercicio_custom" id="exercicio_custom" class="form-control mt-2" placeholder="Digite o nome do exercício" style="display: none;"><input type="hidden" name="exercicio" id="exercicio_final"><div class="form-text">Se o exercício não existir, será criado.</div></div><div class="row"><div class="col-md-4 mb-3"><label class="form-label">Séries</label><input type="text" name="series" class="form-control"></div><div class="col-md-4 mb-3"><label class="form-label">Repetições</label><input type="text" name="repeticoes" class="form-control"></div><div class="col-md-4 mb-3"><label class="form-label">Carga (Kg)</label><input type="number" step="0.5" name="carga" class="form-control"></div></div><div class="mb-3"><label class="form-label">Observações</label><textarea name="observacoes" class="form-control" rows="2"></textarea></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-danger">Adicionar</button></div></form></div></div></div>
 
 <div class="modal fade" id="modalEditarExercicio" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Editar Registro</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><form id="formEditarRegistro"><input type="hidden" name="id" id="edit-registro-id"><div class="modal-body"><h6 id="edit-exercicio-nome" class="mb-3"></h6><div class="row"><div class="col-md-4 mb-3"><label class="form-label">Séries</label><input type="text" name="series" id="edit-series" class="form-control"></div><div class="col-md-4 mb-3"><label class="form-label">Repetições</label><input type="text" name="repeticoes" id="edit-repeticoes" class="form-control"></div><div class="col-md-4 mb-3"><label class="form-label">Carga (Kg)</label><input type="number" step="0.5" name="carga" id="edit-carga" class="form-control"></div></div><div class="mb-3"><label class="form-label">Observações</label><textarea name="observacoes" id="edit-observacoes" class="form-control" rows="2"></textarea></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-danger">Salvar</button></div></form></div></div></div>
 
 <script>
+function toggleCustomExercise(value) {
+    const customInput = document.getElementById('exercicio_custom');
+    if (value === 'outro') {
+        customInput.style.display = 'block';
+        customInput.required = true;
+    } else {
+        customInput.style.display = 'none';
+        customInput.required = false;
+        customInput.value = '';
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     AOS.init({ duration: 600, once: true });
     
@@ -178,7 +191,23 @@ document.addEventListener('DOMContentLoaded', function() {
             // Preencher o formulário do modal
             const formNovo = document.getElementById('formNovoRegistro');
             if (formNovo) {
-                formNovo.querySelector('input[name="exercicio"]').value = exercicio;
+                // Selecionar na lista ou fallback para outro
+                const selectEx = document.getElementById('exercicio_select');
+                let optionFound = false;
+                for (let i = 0; i < selectEx.options.length; i++) {
+                    if (selectEx.options[i].value === exercicio) {
+                        selectEx.selectedIndex = i;
+                        optionFound = true;
+                        break;
+                    }
+                }
+                
+                if(!optionFound) {
+                    selectEx.value = 'outro';
+                    document.getElementById('exercicio_custom').value = exercicio;
+                }
+                toggleCustomExercise(selectEx.value);
+                
                 formNovo.querySelector('input[name="series"]').value = series;
                 formNovo.querySelector('input[name="repeticoes"]').value = repeticoes;
                 
@@ -203,6 +232,15 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- LÓGICA PARA ADICIONAR REGISTRO ---
     formNovoRegistro.addEventListener('submit', function(event) {
         event.preventDefault();
+        
+        // Define o valor do input hidden 'exercicio'
+        const selectValue = document.getElementById('exercicio_select').value;
+        if(selectValue === 'outro') {
+            document.getElementById('exercicio_final').value = document.getElementById('exercicio_custom').value;
+        } else {
+            document.getElementById('exercicio_final').value = selectValue;
+        }
+        
         const formData = new FormData(formNovoRegistro);
         const button = formNovoRegistro.querySelector('button[type="submit"]');
         button.disabled = true; button.innerHTML = '<span class="spinner-border spinner-border-sm"></span>...';
