@@ -1,24 +1,41 @@
-// push_manager.js
+// assets/js/push_manager.js
 // Lógica para pedir permissão ao usuário e assinar notificações push nativas VAPID
 
 const PushManager = {
-    // Atenção: A CHAVE PÚBLICA DEVE REPOSITAR DO SEU config_push.php
-    // Esta constante será substituída pelo PHP em tempo de execução 
-    // com base no window.VAPID_PUBLIC_KEY se definida, ou codificada
+    // A chave será passada pelo window.VAPID_PUBLIC_KEY configurado no footer/header
     applicationServerKey: window.VAPID_PUBLIC_KEY || '',
 
+    // Caminho da API (pode ser ajustado se o site estiver em subpasta)
+    apiPath: window.PUSH_API_PATH || 'api_push_subscribe.php',
+
     init: async function () {
-        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-            console.warn('Push messaging is not supported');
+        console.log('Iniciando PushManager...');
+
+        if (!('serviceWorker' in navigator)) {
+            console.warn('Service Worker não suportado neste navegador.');
+            return;
+        }
+
+        if (!('PushManager' in window)) {
+            console.warn('Push Manager não suportado (comum em iOS Safari fora da Home Screen).');
+            // No iOS, Push só funciona se o PWA estiver instalado ("Adicionar à Tela de Início")
+            if (/iPhone|iPad|iPod/.test(navigator.userAgent) && !window.navigator.standalone) {
+                alert('No iPhone, as notificações só funcionam se você instalar o App (clique em Compartilhar > Adicionar à Tela de Início).');
+            }
             return;
         }
 
         try {
             const permission = await Notification.requestPermission();
+            console.log('Status da permissão:', permission);
+
             if (permission === 'granted') {
                 this.subscribeUser();
             } else {
-                console.log('Permissão para notificações negada.');
+                console.warn('Permissão para notificações negada pelo usuário.');
+                if (typeof showToast === 'function') {
+                    showToast('Aviso', 'Você bloqueou as notificações. Ative-as nas configurações do seu navegador.', true);
+                }
             }
         } catch (error) {
             console.error('Erro ao pedir permissão', error);
@@ -42,7 +59,7 @@ const PushManager = {
 
     subscribeUser: async function () {
         if (!this.applicationServerKey) {
-            console.error('Chave VAPID_PUBLIC_KEY não configurada no window.');
+            console.error('Chave VAPID_PUBLIC_KEY não encontrada.');
             return;
         }
 
@@ -55,39 +72,45 @@ const PushManager = {
                 applicationServerKey: applicationServerKey
             });
 
-            console.log('User is subscribed:', subscription);
+            console.log('Usuário inscrito com sucesso:', subscription);
             await this.sendSubscriptionToBackEnd(subscription);
 
         } catch (err) {
-            console.error('Failed to subscribe the user: ', err);
+            console.error('Falha ao inscrever o usuário:', err);
+            if (typeof showToast === 'function') {
+                showToast('Erro', 'Falha técnica ao assinar o serviço de Push.', true);
+            }
         }
     },
 
     sendSubscriptionToBackEnd: async function (subscription) {
+        const subData = subscription.toJSON();
+
         try {
-            const response = await fetch('/api_push_subscribe.php', {
+            // Enviamos o objeto retornado pelo toJSON diretamente, que contém endpoint e keys
+            const response = await fetch(this.apiPath, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    action: 'subscribe',
-                    subscription: subscription.toJSON()
-                })
+                body: JSON.stringify(subData)
             });
 
             if (!response.ok) {
-                throw new Error('Bad status code from server.');
+                throw new Error('Erro na resposta do servidor (' + response.status + ')');
             }
 
             const responseData = await response.json();
             if (!responseData.success) {
-                console.error('Erro salvo banco: ', responseData.message);
+                console.error('Erro ao salvar no banco:', responseData.message);
+                if (typeof showToast === 'function') showToast('Erro', responseData.message, true);
             } else {
-                console.log('Subscription salva com sucesso no BD.');
+                console.log('Token Push salvo no banco com sucesso.');
+                if (typeof showToast === 'function') showToast('Sucesso', 'Notificações ativadas neste dispositivo!');
             }
         } catch (err) {
-            console.error('Erro ao enviar subscription para o backend:', err);
+            console.error('Erro de conexão ao salvar token:', err);
+            if (typeof showToast === 'function') showToast('Erro de Conexão', 'Não foi possível salvar o token de notificação.', true);
         }
     }
 };

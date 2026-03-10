@@ -403,6 +403,24 @@ if ($saldoMes > 0) {
                     <i class="bi bi-pie-chart-fill"></i>
                     <span>Despesas por Categoria</span>
                 </div>
+            <!-- NOTIFICAÇÕES (PWA) -->
+            <div class="dashboard-card notification-card mt-3" style="border: 1px solid rgba(0, 184, 212, 0.2); background: rgba(0, 184, 212, 0.05);">
+                <div class="card-header-compact">
+                    <i class="bi bi-bell-fill text-info"></i>
+                    <span>Notificações Push</span>
+                </div>
+                <div class="p-3">
+                    <p class="small text-white-50 mb-3">Receba alertas em tempo real. Clique abaixo para habilitar.</p>
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-sm btn-info rounded-pill" onclick="if(window.PushManager) { window.PushManager.init(); } else { showToast('Erro', 'Push não suportado.', true); }">
+                            <i class="bi bi-check-circle me-1"></i> Ativar Notificações
+                        </button>
+                        <button type="button" id="btnTestPush" class="btn btn-sm btn-outline-info rounded-pill" onclick="testMyPush()">
+                            <i class="bi bi-send me-1"></i> Testar no Celular
+                        </button>
+                    </div>
+                </div>
+            </div>
                 <div class="grafico-wrapper">
                     <?php if(empty($pieChartData)): ?>
                         <div class="empty-state small">
@@ -755,6 +773,41 @@ if ($saldoMes > 0) {
             });
         }
         
+            // Função para testar Push diretamente do Dashboard
+    function testMyPush() {
+        const btn = document.getElementById('btnTestPush');
+        const original = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Enviando...';
+        
+        // Determina o path da API (tentando ser robusto)
+        const apiPath = typeof window.PUSH_API_PATH !== 'undefined' ? 
+                        window.PUSH_API_PATH.replace('api_push_subscribe.php', 'api_push_test.php') : 
+                        'api_push_test.php';
+
+        fetch(apiPath)
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Sucesso!', 'A notificação foi disparada. Deve chegar em instantes.');
+                } else {
+                    showToast('Atenção', data.message, true);
+                    if (data.message.includes('Acesse agora')) {
+                        // Se não estiver inscrito, tenta iniciar o processo
+                        if(window.PushManager) window.PushManager.init();
+                    }
+                }
+            })
+            .catch(e => {
+                console.error(e);
+                showToast('Erro', 'Falha ao conectar com servidor de notificações.', true);
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerHTML = original;
+            });
+    }
+
         // --- FUNCIONALIDADES DAS TAREFAS ---
         // Marcar tarefa como concluída
         document.querySelectorAll('.task-checkbox').forEach(checkbox => {

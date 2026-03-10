@@ -489,8 +489,8 @@ if (
 </script>
 
 <script>
-    // Carregar Chave Publica VAPID de forma segura
     window.VAPID_PUBLIC_KEY = 'BI4HnND3F3Lw40rcZw3-PBOFCVncyBeHArNl9MP_FNtxy_AQvRkZzZithAVxlfZxczzYgGop01_yYa_QF7xvuDQ';
+    window.PUSH_API_PATH = '<?= asset("api_push_subscribe.php") ?>';
 </script>
 <script src="<?= asset('assets/js/push_manager.js') ?>"></script>
 <script>
