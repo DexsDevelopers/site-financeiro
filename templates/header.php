@@ -931,7 +931,10 @@ if (!isset($_SESSION['dias_uso_cache_time']) ||
             <div class="user-info text-white-50">
                 <div>Logado como:</div>
                 <strong class="text-white"><?php echo htmlspecialchars($userName); ?></strong>
-                <div class="d-grid mt-3">
+                <div class="d-grid gap-2 mt-3">
+                    <button type="button" class="btn btn-sm btn-outline-info" onclick="if(window.PushManager) { window.PushManager.init(); showToast('Tudo Certo', 'Siga o prompt do navegador para continuar.', false); } else { showToast('Erro', 'Notificações não suportadas.', true); }">
+                        <i class="bi bi-bell-fill me-1"></i> Ativar Notificações PWA
+                    </button>
                     <a class="btn btn-sm btn-outline-danger" href="logout.php">
                         <i class="bi bi-box-arrow-right me-1"></i> Sair
                     </a>
