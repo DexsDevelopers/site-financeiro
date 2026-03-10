@@ -75,6 +75,10 @@ try {
         border: 1px solid var(--border-color, rgba(255,255,255,0.1)) !important;
         color: #fff !important;
     }
+    .select2-container--bootstrap-5 .select2-results__options {
+        max-height: 250px !important;
+        overflow-y: auto !important;
+    }
     .select2-container--bootstrap-5 .select2-results__option {
         color: #fff !important;
     }
