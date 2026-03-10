@@ -74,171 +74,238 @@ $stats = [
 ?>
 
 <style>
-    .intro-card {
-        background: linear-gradient(135deg, rgba(30, 30, 30, 0.5) 0%, rgba(50, 30, 30, 0.5) 100%);
+    /* ===== ELITE LUXURY DARK THEME - COURSE NOTES ===== */
+    :root {
+        --glass-bg: rgba(26, 26, 30, 0.65);
+        --glass-border: rgba(255, 255, 255, 0.08);
+        --elite-primary: #ff003c;
+        --elite-gradient: linear-gradient(135deg, #ff003c 0%, #a60027 100%);
+        --elite-surface: #141417;
+        --text-muted: rgba(255, 255, 255, 0.6);
+        --transition-snappy: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
     
+    /* Utilities */
+    .glass-panel {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 16px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+    
+    .intro-card {
+        background: linear-gradient(135deg, rgba(20, 20, 23, 0.8) 0%, rgba(35, 15, 15, 0.8) 100%);
+        border: 1px solid rgba(255, 0, 60, 0.15);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .intro-card::before {
+        content: '';
+        position: absolute;
+        top: -50%; left: -50%; width: 200%; height: 200%;
+        background: radial-gradient(circle, rgba(255,0,60,0.1) 0%, transparent 60%);
+        pointer-events: none;
+    }
+    
+    /* Stats Cards */
     .stats-card {
-        background: linear-gradient(135deg, rgba(229, 9, 20, 0.1) 0%, rgba(229, 9, 20, 0.05) 100%);
-        border: 1px solid rgba(229, 9, 20, 0.3);
-        transition: all 0.3s ease;
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-border);
+        border-radius: 16px;
+        transition: var(--transition-snappy);
     }
     
     .stats-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(229, 9, 20, 0.2);
+        transform: translateY(-5px);
+        border-color: rgba(255, 0, 60, 0.5);
+        box-shadow: 0 10px 25px rgba(255, 0, 60, 0.15), inset 0 0 20px rgba(255, 255, 255, 0.02);
     }
     
-    .note-card {
-        background: var(--card-background, #1a1a1a);
-        border: 1px solid var(--border-color, #333);
-        border-radius: 12px;
-        transition: all 0.3s ease;
-        position: relative;
-        overflow: hidden;
-        color: var(--bs-body-color, #fff);
+    .stats-card .feature-icon {
+        background: -webkit-linear-gradient(135deg, #ff4d4d, #ff003c);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-size: 2rem;
     }
     
-    .note-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-        border-color: var(--accent-red, #dc3545);
-    }
-    
-    .note-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
-        background: linear-gradient(90deg, var(--accent-red, #dc3545), #ff6b6b);
-    }
-    
-    .note-content {
-        max-height: 150px;
-        overflow-y: auto;
-        line-height: 1.6;
-        color: var(--bs-body-color, #fff);
-    }
-    
-    .note-content::-webkit-scrollbar {
-        width: 4px;
-    }
-    
-    .note-content::-webkit-scrollbar-track {
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 2px;
-    }
-    
-    .note-content::-webkit-scrollbar-thumb {
-        background: var(--accent-red, #dc3545);
-        border-radius: 2px;
-    }
-    
-    .category-badge {
-        font-size: 0.75rem;
-        padding: 0.25rem 0.75rem;
-        border-radius: 20px;
-        font-weight: 600;
-    }
-    
-    .search-box {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid var(--border-color, #333);
-        border-radius: 12px;
-        padding: 0.75rem 1rem;
-        transition: all 0.3s ease;
-        color: var(--bs-body-color, #fff);
-    }
-    
-    .search-box:focus {
-        background: rgba(255, 255, 255, 0.1);
-        border-color: var(--accent-red, #dc3545);
-        box-shadow: 0 0 0 0.25rem rgba(229, 9, 20, 0.25);
-        color: var(--bs-body-color, #fff);
-    }
-    
+    /* Filters */
     .filter-card {
-        background: var(--card-background, #1a1a1a);
-        border: 1px solid var(--border-color, #333);
-        border-radius: 12px;
+        background: rgba(20, 20, 23, 0.85);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--glass-border);
+        border-radius: 20px;
         padding: 1.5rem;
+        box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.05);
     }
     
-    .empty-state {
-        text-align: center;
-        padding: 3rem 1rem;
-        color: var(--text-secondary, #999);
-    }
-    
-    .empty-state i {
-        font-size: 4rem;
-        margin-bottom: 1rem;
-        opacity: 0.5;
-    }
-    
-    .note-actions {
-        opacity: 0.6;
+    .modern-input {
+        background: rgba(0, 0, 0, 0.3) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        color: #fff !important;
+        border-radius: 12px;
+        padding: 0.75rem 1.2rem;
         transition: all 0.3s ease;
     }
     
-    .note-card:hover .note-actions {
-        opacity: 1;
-        transform: scale(1.1);
+    .modern-input:focus {
+        border-color: var(--elite-primary) !important;
+        box-shadow: 0 0 0 4px rgba(255, 0, 60, 0.15) !important;
     }
-
     
+    /* Note Cards */
     .note-card {
-        background: rgba(26, 26, 30, 0.6) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: var(--glass-bg) !important;
+        border: 1px solid var(--glass-border);
         border-radius: 16px;
         transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         position: relative;
         backdrop-filter: blur(10px);
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        overflow: hidden;
     }
     
     .note-card:hover {
-        transform: translateY(-8px) scale(1.01);
+        transform: translateY(-6px) scale(1.02);
         box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-        border-color: rgba(229, 9, 20, 0.3);
+        border-color: rgba(255, 0, 60, 0.4);
     }
     
     .note-card::before {
         content: '';
         position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
+        top: 0; left: 0; right: 0;
         height: 3px;
-        background: linear-gradient(90deg, #e50914, #ff4d4d);
-        opacity: 0.8;
+        background: var(--elite-gradient);
+        opacity: 0.6;
+        transition: opacity 0.3s;
     }
+    
+    .note-card:hover::before { opacity: 1; }
     
     .note-priority {
         position: absolute;
-        top: 1rem;
-        right: 1rem;
+        top: 1.2rem;
+        right: 1.2rem;
         width: 10px;
         height: 10px;
         border-radius: 50%;
         box-shadow: 0 0 10px currentColor;
     }
     
-    .priority-alta { color: #dc3545; background: #dc3545; }
-    .priority-media { color: #ffc107; background: #ffc107; }
-    .priority-baixa { color: #28a745; background: #28a745; }
+    .priority-alta { color: #ff003c; background: #ff003c; }
+    .priority-media { color: #f5a623; background: #f5a623; }
+    .priority-baixa { color: #20c997; background: #20c997; }
 
+    .note-content {
+        max-height: 140px;
+        overflow-y: auto;
+        line-height: 1.6;
+        color: var(--text-muted);
+        font-size: 0.95rem;
+        padding-right: 5px;
+    }
+    
+    /* Scrollbar */
+    .note-content::-webkit-scrollbar { width: 4px; }
+    .note-content::-webkit-scrollbar-track { background: transparent; }
+    .note-content::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 10px; }
+    .note-content:hover::-webkit-scrollbar-thumb { background: rgba(255, 0, 60, 0.5); }
+    
+    /* Categories */
     .category-badge {
         font-size: 0.7rem;
-        padding: 4px 12px;
+        padding: 5px 12px;
         border-radius: 50px;
-        font-weight: 600;
+        font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.5px;
+        box-shadow: inset 0 1px 1px rgba(255,255,255,0.1);
     }
+    
+    /* Hover Reveal Actions */
+    .note-hover-actions {
+        position: absolute;
+        bottom: -60px;
+        left: 0; right: 0;
+        background: rgba(15, 15, 18, 0.95);
+        backdrop-filter: blur(10px);
+        padding: 12px;
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border-top: 1px solid var(--glass-border);
+        z-index: 10;
+        opacity: 0;
+    }
+    
+    .note-card:hover .note-hover-actions {
+        bottom: 0;
+        opacity: 1;
+    }
+    
+    .btn-action-circle {
+        width: 38px; height: 38px;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        border: none;
+        background: rgba(255,255,255,0.05);
+        color: white;
+        transition: all 0.2s;
+    }
+    
+    .btn-action-circle:hover {
+        transform: scale(1.1);
+    }
+    
+    .btn-action-view:hover { background: rgba(13, 110, 253, 0.2); color: #0d6efd; }
+    .btn-action-ai:hover { background: rgba(255, 193, 7, 0.2); color: #ffc107; }
+    .btn-action-edit:hover { background: rgba(32, 201, 151, 0.2); color: #20c997; }
+    .btn-action-delete:hover { background: rgba(255, 0, 60, 0.2); color: #ff003c; }
 
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: var(--glass-bg);
+        border: 1px dashed rgba(255, 255, 255, 0.2);
+        border-radius: 20px;
+        display: flex; flex-direction: column; align-items: center;
+    }
+    
+    .empty-state-icon {
+        font-size: 5rem;
+        background: -webkit-linear-gradient(135deg, rgba(255,0,60,0.5), rgba(255,0,60,0.1));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 1.5rem;
+        filter: drop-shadow(0 10px 20px rgba(255,0,60,0.2));
+    }
+    
+    /* Buttons */
+    .btn-elite {
+        padding: 10px 24px;
+        border-radius: 50px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        border: none;
+        transition: all 0.3s;
+    }
+    
+    .btn-elite-primary {
+        background: var(--elite-gradient);
+        color: white;
+        box-shadow: 0 4px 15px rgba(255, 0, 60, 0.3);
+    }
+    
+    .btn-elite-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(255, 0, 60, 0.5);
+        color: white;
+    }
     
     /* Mapa Mental Styles - Canvas Customizado Moderno */
     #mindmap-container {
@@ -419,8 +486,53 @@ $stats = [
         height: 3rem;
         border-width: 0.3em;
     }
+    
+    /* Select2 Elite Dark Theme Customization */
+    .select2-container--default .select2-selection--single {
+        background-color: rgba(0, 0, 0, 0.3) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 12px !important;
+        height: auto !important;
+        padding: 0.75rem 1.2rem !important;
+        color: #fff !important;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        color: #fff !important;
+        line-height: normal !important;
+        padding-left: 0 !important;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 100% !important;
+        right: 15px !important;
+    }
+    .select2-dropdown {
+        background-color: var(--elite-surface) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 12px !important;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important;
+        backdrop-filter: blur(10px);
+    }
+    .select2-container--default .select2-results__option {
+        color: rgba(255, 255, 255, 0.8) !important;
+        padding: 10px 15px !important;
+    }
+    .select2-container--default .select2-results__option--highlighted[aria-selected],
+    .select2-container--default .select2-results__option:hover {
+        background-color: rgba(255, 0, 60, 0.2) !important;
+        color: #fff !important;
+    }
+    .select2-search--dropdown .select2-search__field {
+        background-color: rgba(0,0,0,0.4) !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+        color: #fff !important;
+        border-radius: 8px !important;
+        padding: 8px 12px !important;
+    }
+    .select2-container--default .select2-results>.select2-results__options {
+        max-height: 250px;
+        overflow-y: auto;
+    }
 </style>
-
 <div class="card card-custom intro-card border-0" data-aos="fade-up">
     <div class="card-body p-4 p-md-5 text-center">
         <i class="bi bi-journal-text display-1 text-danger mb-4"></i>
@@ -543,15 +655,15 @@ $stats = [
         </div>
 
         <!-- Botão Nova Nota -->
-        <div class="row mt-4">
+        <div class="row mt-4 mb-2">
             <div class="col-12">
                 <div class="d-flex justify-content-between align-items-center">
-                    <h4 class="mb-0">
-                        <i class="bi bi-journal-text me-2"></i>Suas Anotações
-                        <span class="badge bg-secondary ms-2"><?php echo count($notas); ?></span>
+                    <h4 class="mb-0 fw-bold text-white">
+                        <i class="bi bi-journal-text me-2 text-danger" style="text-shadow: 0 0 10px rgba(255,0,60,0.5);"></i>Suas Anotações
+                        <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-25 rounded-pill ms-2" style="font-size:0.8rem; vertical-align:middle; padding: 5px 12px;"><?php echo count($notas); ?></span>
                     </h4>
-                    <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#modalNovaNota">
-                        <i class="bi bi-plus-circle me-2"></i>Nova Anotação
+                    <button class="btn btn-elite btn-elite-primary" data-bs-toggle="modal" data-bs-target="#modalNovaNota">
+                        <i class="bi bi-plus-lg me-2"></i>Nova Anotação
                     </button>
                 </div>
             </div>
@@ -560,69 +672,39 @@ $stats = [
         <!-- Lista de Notas -->
         <div class="row g-4 mt-3">
             <?php if (empty($notas)): ?>
-                <div class="col-12">
-                    <div class="card" style="background: rgba(30, 30, 30, 0.4); border: 2px dashed rgba(255, 255, 255, 0.1);">
-                        <div class="card-body empty-state p-5">
-                            <div class="mb-4">
-                                <i class="bi bi-journal-x display-1 text-muted opacity-25"></i>
-                            </div>
-                            <h4 class="fw-bold">Nenhuma anotação encontrada</h4>
-                            <p class="text-muted mb-4 mx-auto" style="max-width: 400px;">Capture seus aprendizados hoje mesmo! Suas notas ficarão organizadas por curso e categoria.</p>
-                            <button class="btn btn-danger px-4 py-2" data-bs-toggle="modal" data-bs-target="#modalNovaNota">
-                                <i class="bi bi-plus-circle me-2"></i>Começar Minha Primeira Nota
-                            </button>
-                        </div>
+                <div class="col-12" data-aos="fade-up" data-aos-delay="100">
+                    <div class="empty-state">
+                        <i class="bi bi-journal-x empty-state-icon"></i>
+                        <h3 class="fw-bold text-white mb-3">Sua base de conhecimento está pronta</h3>
+                        <p class="text-muted mb-4 lead" style="max-width: 500px;">Capture seus aprendizados, estude com eficiência e crie conexões usando ferramentas de IA e mapas mentais.</p>
+                        <button class="btn btn-elite btn-elite-primary px-4 py-3 shadow-lg" data-bs-toggle="modal" data-bs-target="#modalNovaNota">
+                            <i class="bi bi-pencil-square me-2"></i>Começar Minha Primeira Nota
+                        </button>
                     </div>
                 </div>
             <?php else: ?>
                 <?php foreach ($notas as $nota): ?>
-                    <div class="col-md-6 col-lg-4">
-                        <div class="card note-card h-100">
-                            <div class="note-priority priority-<?php echo $nota['prioridade'] ?? 'baixa'; ?>"></div>
-                            <div class="card-body p-4">
+                    <div class="col-md-6 col-lg-4" data-aos="fade-up">
+                        <div class="card note-card h-100 border-0">
+                            <!-- priority dot -->
+                            <div class="note-priority priority-<?php echo $nota['prioridade'] ?? 'baixa'; ?>" title="Prioridade: <?php echo ucfirst($nota['prioridade'] ?? 'baixa'); ?>"></div>
+                            
+                            <div class="card-body p-4 position-relative z-1 d-flex flex-column">
                                 <div class="d-flex justify-content-between align-items-start mb-3">
-                                    <h6 class="card-title mb-0 fw-bold text-white text-truncate pe-3" title="<?php echo htmlspecialchars($nota['titulo']); ?>">
+                                    <h5 class="fw-bold text-white mb-0 text-truncate pe-4" title="<?php echo htmlspecialchars($nota['titulo']); ?>" style="font-size: 1.15rem;">
                                         <?php echo htmlspecialchars($nota['titulo']); ?>
-                                    </h6>
-                                    <div class="note-actions">
-                                        <div class="dropdown">
-                                            <button class="btn btn-sm btn-link text-white-50 p-0" data-bs-toggle="dropdown">
-                                                <i class="bi bi-three-dots-vertical fs-5"></i>
-                                            </button>
-                                            <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end shadow-lg border-secondary">
-                                                <li><a class="dropdown-item" href="#" onclick="visualizarNota(<?php echo $nota['id']; ?>); return false;">
-                                                    <i class="bi bi-eye me-2 text-primary"></i>Visualizar
-                                                </a></li>
-                                                <li><a class="dropdown-item" href="#" onclick="resumirComIA(<?php echo $nota['id']; ?>); return false;">
-                                                    <i class="bi bi-stars me-2 text-warning"></i>Resumir com IA
-                                                </a></li>
-                                                <li><a class="dropdown-item" href="#" onclick="editarNota(<?php echo $nota['id']; ?>); return false;">
-                                                    <i class="bi bi-pencil me-2 text-info"></i>Editar
-                                                </a></li>
-                                                <li><a class="dropdown-item" href="#" onclick="duplicarNota(<?php echo $nota['id']; ?>); return false;">
-                                                    <i class="bi bi-files me-2 text-white-50"></i>Duplicar
-                                                </a></li>
-                                                <li><a class="dropdown-item" href="#" onclick="criarMapaMental(<?php echo $nota['id']; ?>); return false;">
-                                                    <i class="bi bi-diagram-3 me-2 text-success"></i>Transformar em Mapa
-                                                </a></li>
-                                                <li><hr class="dropdown-divider border-secondary"></li>
-                                                <li><a class="dropdown-item text-danger" href="#" onclick="excluirNota(<?php echo $nota['id']; ?>); return false;">
-                                                    <i class="bi bi-trash me-2"></i>Excluir
-                                                </a></li>
-                                            </ul>
-                                        </div>
-                                    </div>
+                                    </h5>
                                 </div>
                                 
-                                <div class="note-content mb-3" style="font-size: 0.9rem; opacity: 0.85;">
+                                <div class="note-content mb-4 pe-2 flex-grow-1">
                                     <?php 
-                                        $conteudo_curto = htmlspecialchars(substr($nota['conteudo'], 0, 180));
+                                        $conteudo_curto = htmlspecialchars(substr($nota['conteudo'], 0, 160));
                                         echo nl2br($conteudo_curto); 
-                                        if (strlen($nota['conteudo']) > 180) echo '<span class="text-danger fw-bold">... ler mais</span>';
+                                        if (strlen($nota['conteudo']) > 160) echo ' <span class="text-danger fw-bold" style="cursor: pointer; font-size:0.85rem;" onclick="visualizarNota('.$nota['id'].')">... ler mais</span>';
                                     ?>
                                 </div>
                                 
-                                <div class="mt-auto pt-3 border-top border-secondary border-opacity-25">
+                                <div class="mt-auto border-top border-secondary border-opacity-25 pt-3">
                                     <div class="d-flex justify-content-between align-items-center mb-2">
                                         <span class="category-badge" style="background: rgba(<?php 
                                             echo ($nota['categoria'] === 'conceitos' ? '13, 110, 253' : 
@@ -632,30 +714,43 @@ $stats = [
                                             echo ($nota['categoria'] === 'conceitos' ? '#0d6efd' : 
                                                  ($nota['categoria'] === 'exercicios' ? '#198754' : 
                                                  ($nota['categoria'] === 'dicas' ? '#ffc107' : '#adb5bd'))); 
-                                            ?>; border: 1px solid rgba(255,255,255,0.05);">
+                                            ?>;">
                                             <?php echo htmlspecialchars($categorias[$nota['categoria']] ?? 'Outros'); ?>
                                         </span>
-                                        <small class="text-muted" style="font-size: 0.75rem;">
-                                            <?php echo date('d M, Y', strtotime($nota['data_criacao'])); ?>
-                                        </small>
+                                        <span class="text-muted" style="font-size: 0.75rem;">
+                                            <i class="bi bi-calendar-event me-1 opacity-75"></i><?php echo date('d M', strtotime($nota['data_criacao'])); ?>
+                                        </span>
                                     </div>
                                     
                                     <?php if ($nota['nome_curso']): ?>
-                                        <div class="d-flex align-items-center">
-                                            <div class="flex-shrink-0 bg-danger bg-opacity-10 rounded-circle p-1 me-2" style="width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;">
-                                                <i class="bi bi-book text-danger" style="font-size: 0.75rem;"></i>
+                                        <div class="d-flex align-items-center mt-3 bg-dark bg-opacity-50 p-2 rounded-3 border border-secondary border-opacity-10">
+                                            <div class="bg-danger bg-opacity-25 rounded d-flex align-items-center justify-content-center me-2 flex-shrink-0" style="width: 24px; height: 24px;">
+                                                <i class="bi bi-book text-danger" style="font-size: 0.7rem;"></i>
                                             </div>
-                                            <small class="text-white-50 text-truncate" style="font-size: 0.8rem;">
+                                            <small class="text-white-50 text-truncate fw-semibold" style="font-size: 0.8rem;">
                                                 <?php echo htmlspecialchars($nota['nome_curso']); ?>
                                             </small>
                                         </div>
                                     <?php endif; ?>
                                 </div>
                             </div>
-                            <div class="card-footer p-0 border-0 bg-transparent">
-                                <button class="btn btn-link w-100 text-decoration-none text-white-50 py-2 border-top border-secondary border-opacity-10" 
-                                        onclick="visualizarNota(<?php echo $nota['id']; ?>)" style="font-size: 0.8rem;">
-                                    Ver Detalhes <i class="bi bi-arrow-right ms-1"></i>
+                            
+                            <!-- Hover Actions Bar -->
+                            <div class="note-hover-actions">
+                                <button class="btn-action-circle btn-action-view" onclick="visualizarNota(<?php echo $nota['id']; ?>)" title="Visualizar">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                                <button class="btn-action-circle btn-action-ai" onclick="resumirComIA(<?php echo $nota['id']; ?>)" title="Resumo IA">
+                                    <i class="bi bi-stars"></i>
+                                </button>
+                                <button class="btn-action-circle btn-action-edit" onclick="editarNota(<?php echo $nota['id']; ?>)" title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn-action-circle bg-dark bg-opacity-50 text-white-50" onclick="duplicarNota(<?php echo $nota['id']; ?>)" title="Duplicar">
+                                    <i class="bi bi-files"></i>
+                                </button>
+                                <button class="btn-action-circle btn-action-delete" onclick="excluirNota(<?php echo $nota['id']; ?>)" title="Excluir">
+                                    <i class="bi bi-trash"></i>
                                 </button>
                             </div>
                         </div>
@@ -694,23 +789,26 @@ $stats = [
 <!-- Modal Nova Nota -->
 <div class="modal fade" id="modalNovaNota" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title">
-                    <i class="bi bi-plus-circle me-2"></i>Nova Anotação
+        <div class="modal-content glass-panel border-0 shadow-lg" style="background: var(--elite-surface);">
+            <div class="modal-header border-bottom border-secondary border-opacity-25 pb-3 pt-4 px-4">
+                <h5 class="modal-title fw-bold text-white d-flex align-items-center">
+                    <div class="bg-danger bg-opacity-10 rounded p-2 me-3 d-flex align-items-center justify-content-center">
+                        <i class="bi bi-plus-lg text-danger" style="text-shadow: 0 0 10px rgba(255,0,60,0.5);"></i>
+                    </div>
+                    Nova Anotação
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close btn-close-white opacity-75" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body p-4">
                 <form id="formNovaNota">
-                    <div class="row g-3">
+                    <div class="row g-4">
                         <div class="col-md-8">
-                            <label class="form-label fw-semibold">Título da Anotação</label>
-                            <input type="text" name="titulo" class="form-control" placeholder="Ex: Conceitos de JavaScript" required>
+                            <label class="form-label fw-semibold text-white-50 mb-2">Título da Anotação</label>
+                            <input type="text" name="titulo" class="form-control modern-input" placeholder="Ex: Conceitos de JavaScript" required>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-semibold">Categoria</label>
-                            <select name="categoria" class="form-select" required>
+                            <label class="form-label fw-semibold text-white-50 mb-2">Categoria</label>
+                            <select name="categoria" class="form-select modern-input" required>
                                 <option value="">Selecione</option>
                                 <?php foreach ($categorias as $key => $nome): ?>
                                     <?php if ($key !== 'todas'): ?>
@@ -720,8 +818,8 @@ $stats = [
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Curso Relacionado</label>
-                            <select name="id_curso" class="form-select">
+                            <label class="form-label fw-semibold text-white-50 mb-2">Curso Relacionado</label>
+                            <select name="id_curso" class="form-select modern-input">
                                 <option value="">Selecione um curso (opcional)</option>
                                 <?php foreach ($cursos as $curso): ?>
                                     <option value="<?php echo $curso['id']; ?>">
@@ -731,25 +829,25 @@ $stats = [
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Prioridade</label>
-                            <select name="prioridade" class="form-select">
+                            <label class="form-label fw-semibold text-white-50 mb-2">Prioridade</label>
+                            <select name="prioridade" class="form-select modern-input">
                                 <option value="baixa">Baixa</option>
                                 <option value="media">Média</option>
                                 <option value="alta">Alta</option>
                             </select>
                         </div>
                         <div class="col-12">
-                            <label class="form-label fw-semibold">Conteúdo</label>
-                            <textarea name="conteudo" class="form-control" rows="8" 
+                            <label class="form-label fw-semibold text-white-50 mb-2">Conteúdo</label>
+                            <textarea name="conteudo" class="form-control modern-input" rows="8" 
                                       placeholder="Digite sua anotação aqui..." required></textarea>
                         </div>
                     </div>
                 </form>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-danger" id="btnSalvarNota">
-                    <i class="bi bi-check-lg me-2"></i>Salvar Anotação
+            <div class="modal-footer border-top border-secondary border-opacity-25 px-4 py-3">
+                <button type="button" class="btn btn-link text-white-50 text-decoration-none" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-elite btn-elite-primary" id="btnSalvarNota">
+                    <i class="bi bi-check2-circle me-2"></i>Salvar Anotação
                 </button>
             </div>
         </div>
@@ -759,24 +857,27 @@ $stats = [
 <!-- Modal Editar Nota -->
 <div class="modal fade" id="modalEditarNota" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title">
-                    <i class="bi bi-pencil me-2"></i>Editar Anotação
+        <div class="modal-content glass-panel border-0 shadow-lg" style="background: var(--elite-surface);">
+            <div class="modal-header border-bottom border-secondary border-opacity-25 pb-3 pt-4 px-4">
+                <h5 class="modal-title fw-bold text-white d-flex align-items-center">
+                    <div class="bg-primary bg-opacity-10 rounded p-2 me-3 d-flex align-items-center justify-content-center">
+                        <i class="bi bi-pencil-square text-primary" style="text-shadow: 0 0 10px rgba(13,110,253,0.5);"></i>
+                    </div>
+                    Editar Anotação
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close btn-close-white opacity-75" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body p-4">
                 <form id="formEditarNota">
                     <input type="hidden" name="id" id="edit-nota-id">
-                    <div class="row g-3">
+                    <div class="row g-4">
                         <div class="col-md-8">
-                            <label class="form-label fw-semibold">Título da Anotação</label>
-                            <input type="text" name="titulo" id="edit-nota-titulo" class="form-control" required>
+                            <label class="form-label fw-semibold text-white-50 mb-2">Título da Anotação</label>
+                            <input type="text" name="titulo" id="edit-nota-titulo" class="form-control modern-input" required>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-semibold">Categoria</label>
-                            <select name="categoria" id="edit-nota-categoria" class="form-select" required>
+                            <label class="form-label fw-semibold text-white-50 mb-2">Categoria</label>
+                            <select name="categoria" id="edit-nota-categoria" class="form-select modern-input" required>
                                 <option value="">Selecione</option>
                                 <?php foreach ($categorias as $key => $nome): ?>
                                     <?php if ($key !== 'todas'): ?>
@@ -786,8 +887,8 @@ $stats = [
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Curso Relacionado</label>
-                            <select name="id_curso" id="edit-nota-curso" class="form-select">
+                            <label class="form-label fw-semibold text-white-50 mb-2">Curso Relacionado</label>
+                            <select name="id_curso" id="edit-nota-curso" class="form-select modern-input">
                                 <option value="">Selecione um curso (opcional)</option>
                                 <?php foreach ($cursos as $curso): ?>
                                     <option value="<?php echo $curso['id']; ?>">
@@ -797,24 +898,24 @@ $stats = [
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Prioridade</label>
-                            <select name="prioridade" id="edit-nota-prioridade" class="form-select">
+                            <label class="form-label fw-semibold text-white-50 mb-2">Prioridade</label>
+                            <select name="prioridade" id="edit-nota-prioridade" class="form-select modern-input">
                                 <option value="baixa">Baixa</option>
                                 <option value="media">Média</option>
                                 <option value="alta">Alta</option>
                             </select>
                         </div>
                         <div class="col-12">
-                            <label class="form-label fw-semibold">Conteúdo</label>
-                            <textarea name="conteudo" id="edit-nota-conteudo" class="form-control" rows="8" required></textarea>
+                            <label class="form-label fw-semibold text-white-50 mb-2">Conteúdo</label>
+                            <textarea name="conteudo" id="edit-nota-conteudo" class="form-control modern-input" rows="8" required></textarea>
                         </div>
                     </div>
                 </form>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-danger" id="btnAtualizarNota">
-                    <i class="bi bi-check-lg me-2"></i>Atualizar Anotação
+            <div class="modal-footer border-top border-secondary border-opacity-25 px-4 py-3">
+                <button type="button" class="btn btn-link text-white-50 text-decoration-none" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-elite btn-elite-primary" id="btnAtualizarNota">
+                    <i class="bi bi-check2-circle me-2"></i>Atualizar Anotação
                 </button>
             </div>
         </div>
@@ -824,52 +925,58 @@ $stats = [
 <!-- Modal Novo Mapa Mental -->
 <div class="modal fade" id="modalNovoMapa" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-xl">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title">
-                    <i class="bi bi-diagram-3 me-2"></i>Novo Mapa Mental
+        <div class="modal-content glass-panel border-0 shadow-lg" style="background: var(--elite-surface);">
+            <div class="modal-header border-bottom border-secondary border-opacity-25 pb-3 pt-4 px-4">
+                <h5 class="modal-title fw-bold text-white d-flex align-items-center">
+                    <div class="bg-danger bg-opacity-10 rounded p-2 me-3 d-flex align-items-center justify-content-center">
+                        <i class="bi bi-diagram-3 text-danger" style="text-shadow: 0 0 10px rgba(255,0,60,0.5);"></i>
+                    </div>
+                    Novo Mapa Mental
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close btn-close-white opacity-75" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Título do Mapa Mental</label>
-                    <input type="text" id="mapa-titulo" class="form-control" placeholder="Ex: Estrutura de Dados">
+            <div class="modal-body p-4">
+                <div class="mb-4">
+                    <label class="form-label fw-semibold text-white-50 mb-2">Título do Mapa Mental</label>
+                    <input type="text" id="mapa-titulo" class="form-control modern-input" placeholder="Ex: Estrutura de Dados">
                 </div>
-                <div class="alert alert-info mb-3 border-0" style="background: linear-gradient(135deg, rgba(13, 110, 253, 0.1) 0%, rgba(13, 110, 253, 0.05) 100%); border-left: 4px solid #0d6efd !important;">
+                <div class="alert alert-info mb-4 border-0 rounded-4" style="background: linear-gradient(135deg, rgba(13, 110, 253, 0.1) 0%, rgba(13, 110, 253, 0.02) 100%);">
                     <div class="d-flex align-items-start">
-                        <i class="bi bi-info-circle me-2 fs-5"></i>
+                        <i class="bi bi-info-circle me-3 fs-5 text-primary"></i>
                         <div>
-                            <strong class="d-block mb-1">Como usar:</strong>
-                            <small class="d-block mb-1">• <strong>Duplo clique</strong> no canvas para adicionar nó</small>
-                            <small class="d-block mb-1">• <strong>Duplo clique</strong> no nó para editar texto</small>
-                            <small class="d-block mb-1">• <strong>Arraste</strong> para mover nós</small>
-                            <small class="d-block">• <strong>Botão direito</strong> para excluir nó</small>
+                            <strong class="d-block mb-2 text-white">Como usar o mapa mental:</strong>
+                            <div class="text-white-50" style="font-size: 0.9rem;">
+                                <span class="me-3"><b class="text-white">Dica: </b></span>
+                                <span class="me-3">• Duplo clique para adicionar nó</span>
+                                <span class="me-3">• Duplo clique no nó para editar</span>
+                                <span class="me-3">• Arraste para mover</span>
+                                <span>• Botão direito para excluir</span>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div id="mindmap-container">
+                <div id="mindmap-container" class="rounded-4 border border-secondary border-opacity-25 overflow-hidden">
                     <canvas id="mindmap-canvas"></canvas>
-                    <div class="zoom-indicator" id="zoom-indicator" style="display: none;">
-                        <i class="bi bi-zoom-in me-1"></i><span id="zoom-value">100%</span>
+                    <div class="zoom-indicator shadow-sm" id="zoom-indicator" style="display: none; background: var(--glass-bg); border-color: rgba(255,255,255,0.1);">
+                        <i class="bi bi-zoom-in me-1 text-primary"></i><span id="zoom-value">100%</span>
                     </div>
                 </div>
-                <div class="mindmap-controls">
-                    <button type="button" class="btn btn-sm btn-primary" id="btn-adicionar-no-mapa" title="Adicionar Nó">
-                        <i class="bi bi-plus-circle me-1"></i><span>Adicionar</span>
+                <div class="mindmap-controls mt-3 d-flex gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-primary border-0 bg-primary bg-opacity-10" id="btn-adicionar-no-mapa" title="Adicionar Nó">
+                        <i class="bi bi-plus-circle me-1"></i><span class="fw-semibold">Adicionar</span>
                     </button>
-                    <button type="button" class="btn btn-sm btn-warning" id="btn-limpar-mapa" title="Limpar">
-                        <i class="bi bi-arrow-counterclockwise me-1"></i><span>Limpar</span>
+                    <button type="button" class="btn btn-sm btn-outline-warning border-0 bg-warning bg-opacity-10" id="btn-limpar-mapa" title="Limpar">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i><span class="fw-semibold">Limpar</span>
                     </button>
-                    <button type="button" class="btn btn-sm btn-success" id="btn-salvar-mapa-toolbar" title="Salvar">
-                        <i class="bi bi-save me-1"></i><span>Salvar</span>
+                    <button type="button" class="btn btn-sm btn-outline-success border-0 bg-success bg-opacity-10" id="btn-salvar-mapa-toolbar" title="Salvar Rascunho">
+                        <i class="bi bi-save me-1"></i><span class="fw-semibold">Rascunho</span>
                     </button>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-danger" id="btn-salvar-mapa-footer">
-                    <i class="bi bi-save me-2"></i>Salvar Mapa Mental
+            <div class="modal-footer border-top border-secondary border-opacity-25 px-4 py-3">
+                <button type="button" class="btn btn-link text-white-50 text-decoration-none" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-elite btn-elite-primary px-4" id="btn-salvar-mapa-footer">
+                    <i class="bi bi-check2-circle me-2"></i>Salvar Mapa Mental
                 </button>
             </div>
         </div>
@@ -879,47 +986,46 @@ $stats = [
 <!-- Modal Visualizar Nota -->
 <div class="modal fade" id="modalVisualizarNota" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content border-0 shadow-lg overflow-hidden" style="background: #111114;">
-            <div class="modal-header border-0 p-4 pb-0">
+        <div class="modal-content glass-panel border-0 shadow-lg overflow-hidden" style="background: var(--elite-surface);">
+            <div class="modal-header border-bottom border-secondary border-opacity-10 p-4 pb-3">
                 <div class="d-flex align-items-center">
-                    <div class="bg-danger bg-opacity-10 rounded-3 p-2 me-3">
-                        <i class="bi bi-journal-text text-danger fs-4"></i>
+                    <div class="bg-danger bg-opacity-10 rounded p-2 me-3 d-flex align-items-center justify-content-center">
+                        <i class="bi bi-journal-text text-danger fs-4" style="text-shadow: 0 0 10px rgba(255,0,60,0.5);"></i>
                     </div>
                     <div>
-                        <h5 class="modal-title fw-bold text-white mb-0" id="view-nota-titulo-header">Título</h5>
-                        <small class="text-muted" id="view-nota-data-header"></small>
+                        <h5 class="modal-title fw-bold text-white mb-1" id="view-nota-titulo-header" style="font-size: 1.3rem;">Título</h5>
+                        <small class="text-white-50" id="view-nota-data-header"><i class="bi bi-calendar-event me-1"></i>Data</small>
                     </div>
                 </div>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close btn-close-white opacity-75 align-self-start mt-2" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body p-4">
+            <div class="modal-body p-4 pt-3">
                 <div class="d-flex flex-wrap gap-2 mb-4">
                     <span class="badge rounded-pill bg-dark border border-secondary border-opacity-25 px-3 py-2 text-white-50" id="view-nota-categoria"></span>
                     <span class="badge rounded-pill bg-dark border border-secondary border-opacity-25 px-3 py-2 text-white-50" id="view-nota-curso"></span>
                     <span class="badge rounded-pill bg-dark border border-secondary border-opacity-25 px-3 py-2 text-white-50" id="view-nota-prioridade"></span>
                 </div>
                 
-                <div class="bg-dark bg-opacity-40 p-4 rounded-4 border border-secondary border-opacity-10 text-white-50 shadow-inner" id="view-nota-conteudo" style="min-height: 250px; line-height: 1.8; overflow-y: auto; max-height: 400px; white-space: pre-wrap;">
+                <div class="bg-dark bg-opacity-40 p-4 rounded-4 border border-secondary border-opacity-10 text-white-50 shadow-inner" id="view-nota-conteudo" style="min-height: 250px; line-height: 1.8; overflow-y: auto; max-height: 50vh; white-space: pre-wrap; font-size: 1.05rem;">
                 </div>
             </div>
-            <div class="modal-footer border-0 p-4 pt-0">
+            <div class="modal-footer border-top border-secondary border-opacity-25 px-4 py-3">
                 <div class="me-auto d-flex gap-2">
-                    <button class="btn btn-outline-warning btn-sm border-0 bg-warning bg-opacity-10" id="btn-ia-resumir-view">
-                        <i class="bi bi-stars me-1"></i>IA Resumo
+                    <button class="btn btn-outline-warning btn-sm border-0 bg-warning bg-opacity-10 px-3 fw-semibold" id="btn-ia-resumir-view">
+                        <i class="bi bi-stars me-1"></i>Resumo IA
                     </button>
-                    <button class="btn btn-outline-success btn-sm border-0 bg-success bg-opacity-10" id="btn-ia-mapa-view">
-                        <i class="bi bi-diagram-3 me-1"></i>IA Mapa
+                    <button class="btn btn-outline-success btn-sm border-0 bg-success bg-opacity-10 px-3 fw-semibold" id="btn-ia-mapa-view">
+                        <i class="bi bi-diagram-3 me-1"></i>Gerar Mapa
                     </button>
                 </div>
-                <button type="button" class="btn btn-link text-danger text-decoration-none me-2" id="btn-excluir-from-view">
-                    <i class="bi bi-trash me-1"></i>Apagar
+                <button type="button" class="btn btn-link text-white-50 text-decoration-none" id="btn-excluir-from-view">
+                    <i class="bi bi-trash me-1"></i>Excluir
                 </button>
-                <button type="button" class="btn btn-dark border border-secondary border-opacity-25" data-bs-dismiss="modal">Fechar</button>
-                <button type="button" class="btn btn-danger px-4" id="btn-edit-from-view">
+                <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Fechar</button>
+                <button type="button" class="btn btn-elite btn-elite-primary px-4" id="btn-edit-from-view">
                     <i class="bi bi-pencil me-2"></i>Editar
                 </button>
             </div>
-
         </div>
     </div>
 </div>
@@ -928,20 +1034,26 @@ $stats = [
 <!-- Modal Visualizar Mapa Mental -->
 <div class="modal fade" id="modalVisualizarMapa" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-xl">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title" id="mapa-visualizar-titulo">
-                    <i class="bi bi-diagram-3 me-2"></i>Mapa Mental
+        <div class="modal-content glass-panel border-0 shadow-lg" style="background: var(--elite-surface);">
+            <div class="modal-header border-bottom border-secondary border-opacity-25 pb-3 pt-4 px-4">
+                <h5 class="modal-title fw-bold text-white d-flex align-items-center" id="mapa-visualizar-titulo">
+                    <div class="bg-info bg-opacity-10 rounded p-2 me-3 d-flex align-items-center justify-content-center">
+                        <i class="bi bi-diagram-3 text-info" style="text-shadow: 0 0 10px rgba(13,202,240,0.5);"></i>
+                    </div>
+                    Visualizar Mapa Mental
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close btn-close-white opacity-75" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">
-                <div id="mindmap-visualizar-container" style="width: 100%; height: 600px; min-height: 400px; border: 2px solid var(--border-color, #333); border-radius: 16px; background: linear-gradient(135deg, #1a1a1a 0%, #2d1b1b 100%); position: relative; overflow: hidden; cursor: grab;">
+            <div class="modal-body p-4">
+                <div id="mindmap-visualizar-container" class="rounded-4 border border-secondary border-opacity-25 shadow-inner" style="width: 100%; height: 60vh; min-height: 400px; background: linear-gradient(135deg, rgba(20,20,23,0.9) 0%, rgba(10,10,15,0.95) 100%); position: relative; overflow: hidden; cursor: grab;">
                     <!-- Canvas será criado dinamicamente -->
+                    <div class="position-absolute top-50 start-50 translate-middle text-white-50" id="visualizar-canvas-empty" style="pointer-events: none;">
+                        <div class="spinner-border spinner-border-sm me-2" role="status"></div>Carregando mapa mental...
+                    </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            <div class="modal-footer border-top border-secondary border-opacity-25 px-4 py-3">
+                <button type="button" class="btn btn-dark px-4" data-bs-dismiss="modal">Fechar</button>
             </div>
         </div>
     </div>
@@ -2755,6 +2867,32 @@ function visualizarNota(id) {
         });
 }
 
+// Inicializa Select2 para Inputs Modernos
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof jQuery !== 'undefined' && typeof jQuery.fn.select2 !== 'undefined') {
+        $('select.modern-input, select.form-select').select2({
+            theme: 'default',
+            width: '100%',
+            dropdownAutoWidth: true,
+            minimumResultsForSearch: 5
+        });
+
+        // Resolve bug do Select2 em Modals do Bootstrap
+        $('#modalNovaNota').on('shown.bs.modal', function () {
+            $(this).find('select').select2({
+                dropdownParent: $(this),
+                width: '100%'
+            });
+        });
+        
+        $('#modalEditarNota').on('shown.bs.modal', function () {
+            $(this).find('select').select2({
+                dropdownParent: $(this),
+                width: '100%'
+            });
+        });
+    }
+});
 
 </script>
 
