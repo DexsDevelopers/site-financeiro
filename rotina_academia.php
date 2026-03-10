@@ -898,12 +898,61 @@ document.addEventListener('DOMContentLoaded', function() {
             fetch('adicionar_exercicio_rotina.php', { method: 'POST', body: formData })
             .then(res => res.json())
             .then(data => {
-                if (data.success) {
+                if (data.success && data.exercicio) {
                     showToast('Ótimo!', 'Exercício adicionado à sua ficha.');
                     form.reset();
-                    setTimeout(() => window.location.reload(), 1000);
+                    // Limpar e resetar o Select2
+                    $('#exercicio_select_rotina').val('').trigger('change');
+                    toggleCustomExerciseRotina('');
+
+                    const ex = data.exercicio;
+                    
+                    // Criar o card do novo exercício
+                    const novoExercicioHtml = `
+                        <div class="modal-exercise-item gym-glass mb-3 p-3 d-flex align-items-center justify-content-between" id="rot-ex-row-${ex.id}" style="border-radius: 14px; animation: gentleGlow 1s ease-in;">
+                            <div style="flex-grow: 1;">
+                                <div style="font-weight: 600; color: #fff; font-size: 1rem;">${escapeHTML(ex.nome_exercicio || 'Exercício')}</div>
+                                <div style="font-size: 0.85rem; color: var(--gym-text-sub); font-family: 'JetBrains Mono', monospace; margin-top: 2px;">
+                                    <span class="series-text badge bg-dark text-white">${escapeHTML(ex.series_sugeridas || '0')}</span> séries × 
+                                    <span class="reps-text badge bg-dark text-white">${escapeHTML(ex.repeticoes_sugeridas || '0')}</span> reps
+                                </div>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-sm btn-dark border-0 p-2 rounded-circle btn-editar-exercicio-rotina" data-id="${ex.id}" style="width: 36px; height: 36px;">
+                                    <i class="bi bi-pencil-fill text-primary"></i>
+                                </button>
+                                <button class="btn btn-sm btn-dark border-0 p-2 rounded-circle btn-excluir-exercicio-rotina" data-id="${ex.id}" style="width: 36px; height: 36px;">
+                                    <i class="bi bi-trash3-fill text-danger"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Adicionar na lista visual do modal
+                    const listContainer = document.querySelector('.modal-exercise-list');
+                    if (listContainer) {
+                        // Remove o placeholder global "Nenhum exercício" se existir
+                        const emptyPlaceholder = listContainer.querySelector('.bi-clipboard-x');
+                        if (emptyPlaceholder) {
+                            listContainer.innerHTML = '';
+                        }
+                        
+                        listContainer.insertAdjacentHTML('beforeend', novoExercicioHtml);
+                        
+                        // Atualizamos a o contador no título
+                        const titleEl = document.querySelector('h6:contains("FICHA ATUAL")');
+                        if (titleEl) {
+                           let text = titleEl.textContent;
+                           let match = text.match(/\((\d+)\)/);
+                           if(match) {
+                               let currentCount = parseInt(match[1]) + 1;
+                               titleEl.textContent = `FICHA ATUAL (${currentCount})`;
+                           }
+                        }
+                    }
+
                 } else {
-                    showToast('Oops!', data.message, true);
+                    showToast('Oops!', data.message || 'Erro desconhecido', true);
                 }
             })
             .catch(error => showToast('Erro!', 'Falha ao salvar exercício.', true))

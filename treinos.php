@@ -290,7 +290,47 @@ document.addEventListener('DOMContentLoaded', function() {
         const button = formNovoRegistro.querySelector('button[type="submit"]');
         button.disabled = true; button.innerHTML = '<span class="spinner-border spinner-border-sm"></span>...';
         fetch('salvar_registro_treino.php', { method: 'POST', body: formData }).then(res => res.json()).then(data => {
-            if(data.success) { showToast('Sucesso!', data.message); setTimeout(() => window.location.reload(), 1000); }
+            if(data.success && data.registro) { 
+                showToast('Sucesso!', data.message); 
+                formNovoRegistro.reset();
+                $('#exercicio_select').val('').trigger('change');
+                toggleCustomExercise('');
+
+                // Montar o novo card de treino
+                const reg = data.registro;
+                const registroJson = JSON.stringify(reg).replace(/"/g, '&quot;');
+                
+                const novoCardHtml = `
+                    <div class="col-md-6 col-lg-4" id="registro-card-${reg.id}" data-aos="fade-up">
+                        <div class="card card-custom h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <h5 class="card-title mb-1">${escapeHTML(reg.nome_exercicio)}</h5>
+                                    <div>
+                                        <button class="btn btn-sm btn-outline-primary border-0 btn-editar-registro" data-registro="${registroJson}"><i class="bi bi-pencil-fill"></i></button>
+                                        <button class="btn btn-sm btn-outline-danger border-0 btn-excluir-registro" data-id="${reg.id}" data-nome="${escapeHTML(reg.nome_exercicio)}"><i class="bi bi-trash-fill"></i></button>
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-around text-center mt-3 mb-2">
+                                    <div><small class="text-muted d-block">Séries</small><strong>${escapeHTML(reg.series || '-')}</strong></div>
+                                    <div><small class="text-muted d-block">Reps</small><strong>${escapeHTML(reg.repeticoes || '-')}</strong></div>
+                                    <div><small class="text-muted d-block">Carga</small><strong>${reg.carga ? escapeHTML(reg.carga) + ' Kg' : '-'}</strong></div>
+                                </div>
+                                ${reg.observacoes ? '<p class="card-text text-muted small fst-italic mt-2"><i class="bi bi-chat-left-text"></i> ' + escapeHTML(reg.observacoes) + '</p>' : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                const listContainer = document.getElementById('lista-registros-treino');
+                const noRecordsRow = document.getElementById('no-records-row');
+                
+                if (noRecordsRow) {
+                    noRecordsRow.remove();
+                }
+                
+                listContainer.insertAdjacentHTML('beforeend', novoCardHtml);
+            }
             else { showToast('Erro!', data.message, true); }
         }).finally(() => { button.disabled = false; button.innerHTML = 'Adicionar'; modalNovoExercicio.hide(); });
     });
