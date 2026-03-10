@@ -492,7 +492,7 @@ if (
     // Carregar Chave Publica VAPID de forma segura
     window.VAPID_PUBLIC_KEY = 'BI4HnND3F3Lw40rcZw3-PBOFCVncyBeHArNl9MP_FNtxy_AQvRkZzZithAVxlfZxczzYgGop01_yYa_QF7xvuDQ';
 </script>
-<script src="assets/js/push_manager.js"></script>
+<script src="<?= asset('assets/js/push_manager.js') ?>"></script>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         // Opcional: Auto-init se as permissões já existirem
