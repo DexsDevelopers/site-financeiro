@@ -280,18 +280,23 @@ if (
     // Registrar service worker apropriado (sw-advanced.js tem suporte a Push API)
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
-            // Desregistrar SWs antigos que possam estar em conflito (sw.php, etc.)
+            // iOS standalone (PWA instalado na tela inicial) suporta push desde iOS 16.4
+            // Apenas iOS no browser normal usa sw-minimal.js (sem suporte a push)
+            const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+            const swFile = (isIOS && !isStandalone) ? 'sw-minimal.js' : 'sw-advanced.js';
+
+            // Desregistrar SWs incompatíveis (sw.php, e sw-minimal.js quando deve usar sw-advanced.js)
             try {
                 const regs = await navigator.serviceWorker.getRegistrations();
                 for (const reg of regs) {
-                    if (reg.active && reg.active.scriptURL && reg.active.scriptURL.includes('sw.php')) {
+                    const url = (reg.active && reg.active.scriptURL) || (reg.installing && reg.installing.scriptURL) || '';
+                    const isOld = url.includes('sw.php') || (swFile === 'sw-advanced.js' && url.includes('sw-minimal.js'));
+                    if (isOld) {
                         await reg.unregister();
-                        console.log('[SW] Desregistrado SW antigo:', reg.active.scriptURL);
+                        console.log('[SW] Desregistrado SW incompatível:', url);
                     }
                 }
             } catch (e) { /* silencioso */ }
-
-            const swFile = (isSafari || isIOS) ? 'sw-minimal.js' : 'sw-advanced.js';
             
             navigator.serviceWorker.register(swFile)
                 .then(registration => {
