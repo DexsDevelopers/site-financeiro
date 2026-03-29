@@ -398,32 +398,11 @@ if ($saldoMes > 0) {
             </div>
             
             <!-- GRÁFICO PIZZA -->
-            <div class="dashboard-card grafico-card">
                 <div class="card-header-compact">
                     <i class="bi bi-pie-chart-fill"></i>
                     <span>Despesas por Categoria</span>
                 </div>
-            <!-- NOTIFICAÇÕES (PWA) -->
-            <div class="dashboard-card notification-card mt-3" style="border: 1px solid rgba(0, 184, 212, 0.2); background: rgba(0, 184, 212, 0.05);">
-                <div class="card-header-compact">
-                    <i class="bi bi-bell-fill text-info"></i>
-                    <span>Notificações de Elite</span>
-                </div>
-                <div class="p-3">
-                    <p class="small text-white-50 mb-2">Configure (3 passos):</p>
-                    <div class="d-grid gap-2">
-                        <button type="button" class="btn btn-sm btn-info rounded-pill" onclick="if(window.PushManager) { window.PushManager.init(); } else { showToast('Erro', 'Push não suportado.', true); }">
-                            <i class="bi bi-check-circle me-1"></i> 1. Ativar Aparelho
-                        </button>
-                        <button type="button" class="btn btn-sm btn-outline-warning rounded-pill" onclick="quickBrowserTest()">
-                            <i class="bi bi-laptop me-1"></i> 2. Teste Rápido
-                        </button>
-                        <button type="button" id="btn-test-push" class="btn btn-sm btn-outline-info rounded-pill" onclick="testMyPush()">
-                            <i class="bi bi-send me-1"></i> 3. Teste Real
-                        </button>
-                    </div>
-                </div>
-            </div>
+
                 <div class="grafico-wrapper">
                     <?php if(empty($pieChartData)): ?>
                         <div class="empty-state small">
@@ -776,42 +755,7 @@ if ($saldoMes > 0) {
             });
         }
         
-            // Função para testar Push diretamente do Dashboard
-    function testMyPush() {
-        const btn = document.getElementById('btnTestPush');
-        const original = btn.innerHTML;
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Enviando...';
-        
-        // Determina o path da API (tentando ser robusto)
-        const apiPath = typeof window.PUSH_API_PATH !== 'undefined' ? 
-                        "/seu_projeto/api_push_test.php" : 
-                        'api_push_test.php';
-
-        fetch(apiPath)
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) {
-                    showToast('Sucesso!', 'A notificação foi disparada. Deve chegar em instantes.');
-                } else {
-                    showToast('Atenção', data.message, true);
-                    if (data.message.includes('Acesse agora')) {
-                        // Se não estiver inscrito, tenta iniciar o processo
-                        if(window.PushManager) window.PushManager.init();
-                    }
-                }
-            })
-            .catch(e => {
-                console.error(e);
-                showToast('Erro', 'Falha ao conectar com servidor de notificações.', true);
-            })
-            .finally(() => {
-                btn.disabled = false;
-                btn.innerHTML = original;
-            });
-    }
-
-        // --- FUNCIONALIDADES DAS TAREFAS ---
+            // --- FUNCIONALIDADES DAS TAREFAS ---
         // Marcar tarefa como concluída
         document.querySelectorAll('.task-checkbox').forEach(checkbox => {
             checkbox.addEventListener('change', function() {
@@ -1132,7 +1076,6 @@ if ($saldoMes > 0) {
     align-items: center;
     justify-content: center;
     font-size: 1.5rem;
-    flex-shrink: 0;
 }
 
 .kpi-receitas .kpi-icon {
@@ -1993,39 +1936,3 @@ body.saldo-oculto .valor-sensivel {
 <?php
 require_once 'templates/footer.php';
 ?>
-
-<!-- Push Notification Scripts v2.3.0 -->
-<script>
-async function quickBrowserTest() {
-    if (!('serviceWorker' in navigator)) { showToast('Erro', 'SW não suportado.', true); return; }
-    try {
-        const reg = await navigator.serviceWorker.ready;
-        await reg.showNotification('Ghost Pix PWA', {
-            body: 'Alerta Local: Seu aparelho está conectado!',
-            icon: 'images/icon-192x192.png',
-            badge: 'images/icon-192x192.png',
-            data: { url: 'dashboard.php' }
-        });
-        showToast('Sucesso!', 'Alerta local disparado.');
-    } catch (e) {
-        console.error('[Push] Erro:', e);
-        showToast('Erro', 'Permita notificações primeiro.', true);
-    }
-}
-
-function testMyPush() {
-    const btn = document.getElementById('btn-test-push');
-    if (!btn) return;
-    const o = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = 'Enviando...';
-    fetch('api_push_test.php')
-        .then(r => r.json())
-        .then(d => {
-            if (d.success) showToast('Enviado!', 'Notificação real enviada.');
-            else showToast('Erro', d.message, true);
-        })
-        .catch(e => showToast('Erro', 'Servidor offline.', true))
-        .finally(() => { btn.disabled = false; btn.innerHTML = o; });
-}
-</script>

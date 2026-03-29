@@ -23,10 +23,14 @@ function sendWebPush($pdo, $user_id, $title, $body, $url = 'dashboard.php', $opt
 
     if (!defined('VAPID_PUBLIC_KEY')) return false;
 
-    // Tentar descobrir a URL base do site para os ícones (evitar caminhos quebrados no mobile)
-    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https://" : "http://";
-    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-    $baseUrl = $protocol . $host . '/seu_projeto/'; // Ajuste manual se necessário ou automatize
+    // URL base dinâmica do site para ícones absolutos nas notificações
+    if (defined('PUSH_BASE_URL')) {
+        $baseUrl = rtrim(PUSH_BASE_URL, '/') . '/';
+    } else {
+        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https://" : "http://";
+        $host = $_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? 'localhost';
+        $baseUrl = $protocol . $host . '/';
+    }
 
     $auth = [
         'VAPID' => [
@@ -79,9 +83,39 @@ function sendWebPush($pdo, $user_id, $title, $body, $url = 'dashboard.php', $opt
             $results[] = $report->isSuccess();
         }
 
+        $sent = count(array_filter($results));
+
+        // Logar no histórico in-app se pelo menos um push foi enviado
+        if ($sent > 0) {
+            try {
+                $pdo->exec("CREATE TABLE IF NOT EXISTS notificacoes_historico (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    user_id INT NOT NULL,
+                    titulo VARCHAR(255) NOT NULL,
+                    mensagem TEXT NOT NULL,
+                    url VARCHAR(500) DEFAULT 'dashboard.php',
+                    tipo VARCHAR(50) DEFAULT 'info',
+                    lida TINYINT(1) DEFAULT 0,
+                    enviada_push TINYINT(1) DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    INDEX idx_user_id (user_id)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+                $notifUrl = strpos($url, 'http') === 0 ? $url : ltrim($url, '/');
+                $tipo = $options['tipo'] ?? 'info';
+                $stmt = $pdo->prepare("
+                    INSERT INTO notificacoes_historico (user_id, titulo, mensagem, url, tipo, enviada_push)
+                    VALUES (?, ?, ?, ?, ?, 1)
+                ");
+                $stmt->execute([$user_id, $title, $body, $notifUrl, $tipo]);
+            } catch (Exception $logErr) {
+                error_log("[Push] Aviso: não foi possível salvar histórico: " . $logErr->getMessage());
+            }
+        }
+
         return [
             'success' => in_array(true, $results),
-            'sent' => count(array_filter($results)),
+            'sent' => $sent,
             'failed' => count(array_filter($results, fn($v) => !$v))
         ];
 

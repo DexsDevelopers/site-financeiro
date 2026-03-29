@@ -277,10 +277,10 @@ if (
     const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     
-    // Registrar service worker apropriado (Versão Automática sw.php)
+    // Registrar service worker apropriado (sw-advanced.js tem suporte a Push API)
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            const swFile = (isSafari || isIOS) ? 'sw-minimal.js' : 'sw.php';
+            const swFile = (isSafari || isIOS) ? 'sw-minimal.js' : 'sw-advanced.js';
             
             navigator.serviceWorker.register(swFile)
                 .then(registration => {
@@ -490,16 +490,10 @@ if (
 
 <script>
     window.VAPID_PUBLIC_KEY = 'BI4HnND3F3Lw40rcZw3-PBOFCVncyBeHArNl9MP_FNtxy_AQvRkZzZithAVxlfZxczzYgGop01_yYa_QF7xvuDQ';
-    window.PUSH_API_PATH = "/seu_projeto/api_push_subscribe.php";
+    window.PUSH_API_PATH = "<?= rtrim(str_replace(basename($_SERVER['SCRIPT_NAME'] ?? '/index.php'), '', $_SERVER['SCRIPT_NAME'] ?? '/'), '/') ?>/api_push_subscribe.php";
+    window.PUSH_TEST_PATH = "<?= rtrim(str_replace(basename($_SERVER['SCRIPT_NAME'] ?? '/index.php'), '', $_SERVER['SCRIPT_NAME'] ?? '/'), '/') ?>/api_push_test.php";
+    window.NOTIF_API_PATH = "<?= rtrim(str_replace(basename($_SERVER['SCRIPT_NAME'] ?? '/index.php'), '', $_SERVER['SCRIPT_NAME'] ?? '/'), '/') ?>/api_notificacoes.php";
 </script>
 <script src="<?= asset('assets/js/push_manager.js') ?>"></script>
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        // Opcional: Auto-init se as permissões já existirem
-        if (Notification.permission === 'granted' && window.PushManager) {
-            window.PushManager.init();
-        }
-    });
-</script>
 </body>
 </html>

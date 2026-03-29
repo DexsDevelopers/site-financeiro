@@ -923,54 +923,57 @@ if (!isset($_SESSION['dias_uso_cache_time']) ||
                                     </ul>
                                 </div>
                             </div>
-                        </div>
-                    <?php endif; ?>
-                <?php endforeach; ?>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
+                </div>
+                <div class="user-info text-white-50">
+                    <div>Logado como:</div>
+                    <strong class="text-white"><?php echo htmlspecialchars($userName); ?></strong>
+                    <div class="d-grid gap-2 mt-3">
+                        <button type="button" id="push-toggle-btn" class="btn btn-sm btn-outline-info" onclick="if(window.AppPush) { window.AppPush.toggle(); } else { showToast('Erro', 'Notificações não suportadas.', true); }" title="Ativar notificações push">
+                            <i id="push-toggle-icon" class="bi bi-bell me-1"></i>
+                            <span id="push-toggle-label">Ativar Notificações</span>
+                        </button>
+                        <a class="btn btn-sm btn-outline-danger" href="logout.php">
+                            <i class="bi bi-box-arrow-right me-1"></i> Sair
+                        </a>
+                    </div>
+                </div>
             </div>
+        </aside>
 
-            <div class="user-info text-white-50">
-                <div>Logado como:</div>
-                <strong class="text-white"><?php echo htmlspecialchars($userName); ?></strong>
-                <div class="d-grid gap-2 mt-3">
-                    <button type="button" class="btn btn-sm btn-outline-info" onclick="if(window.PushManager) { window.PushManager.init(); showToast('Tudo Certo', 'Siga o prompt do navegador para continuar.', false); } else { showToast('Erro', 'Notificações não suportadas.', true); }">
-                        <i class="bi bi-bell-fill me-1"></i> Ativar Notificações PWA
-                    </button>
-                    <a class="btn btn-sm btn-outline-danger" href="logout.php">
-                        <i class="bi bi-box-arrow-right me-1"></i> Sair
-                    </a>
+        <!-- PWA Install Prompt -->
+        <div class="install-prompt" id="installPrompt">
+            <div class="install-prompt-content">
+                <div class="install-prompt-icon">
+                    <i class="bi bi-download"></i>
+                </div>
+                <div class="install-prompt-text">
+                    <div class="install-prompt-title">Instalar App</div>
+                    <div class="install-prompt-desc">Adicione o Painel Financeiro à sua tela inicial para acesso rápido</div>
+                </div>
+                <div class="install-prompt-buttons">
+                    <button class="install-btn" id="installBtn">Instalar</button>
+                    <button class="install-dismiss" id="dismissBtn">Agora não</button>
                 </div>
             </div>
         </div>
-    </aside>
-    
-    <!-- PWA Install Prompt -->
-    <div class="install-prompt" id="installPrompt">
-        <div class="install-prompt-content">
-            <div class="install-prompt-icon">
-                <i class="bi bi-download"></i>
-            </div>
-            <div class="install-prompt-text">
-                <div class="install-prompt-title">Instalar App</div>
-                <div class="install-prompt-desc">Adicione o Painel Financeiro à sua tela inicial para acesso rápido</div>
-            </div>
-            <div class="install-prompt-buttons">
-                <button class="install-btn" id="installBtn">Instalar</button>
-                <button class="install-dismiss" id="dismissBtn">Agora não</button>
-            </div>
-        </div>
-    </div>
 
     <div class="main-content">
-        <nav class="navbar d-lg-none navbar-dark topbar-glass" style="padding: 0;">
+        <nav class="navbar d-lg-none navbar-dark topbar-glass" style="padding:0; justify-content:flex-start;">
             <button class="btn navbar-toggler-custom" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-label="Abrir menu">
                 <i class="bi bi-list"></i>
                 <span class="menu-text">Menu</span>
+            </button>
+            <button id="notif-bell-btn" class="btn position-relative ms-auto me-2" onclick="window.AppPush && window.AppPush.openPanel()" style="color:rgba(255,255,255,0.75);padding:0.4rem 0.6rem;" title="Notificações">
+                <i class="bi bi-bell-fill" style="font-size:1.15rem;"></i>
+                <span id="notif-badge" style="display:none;"></span>
             </button>
         </nav>
 
         <?php if (isset($dias_de_uso) && $dias_de_uso > 0): ?>
         <div class="streak-bar mb-4">
-            <i class="bi bi-award-fill text-warning"></i> 
+            <i class="bi bi-award-fill text-warning"></i>
             A <strong><?php echo $dias_de_uso; ?></strong> dia<?php echo ($dias_de_uso > 1) ? 's' : ''; ?> otimizando sua vida financeira.
         </div>
         <?php endif; ?>

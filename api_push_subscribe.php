@@ -4,6 +4,22 @@ require_once 'includes/db_connect.php';
 
 session_start();
 
+// Auto-criar tabela push_subscriptions se não existir
+if ($pdo) {
+    try {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS push_subscriptions (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            endpoint TEXT NOT NULL,
+            p256dh TEXT NOT NULL,
+            auth VARCHAR(100) NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY unique_endpoint (endpoint(500)),
+            INDEX idx_user_id (user_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    } catch (PDOException $e) { /* tabela já existe ou permissão negada */ }
+}
+
 // Pegar o ID do usuário da sessão (seja qual for o padrão do projeto)
 $userId = $_SESSION['user_id'] ?? $_SESSION['user']['id'] ?? 0;
 

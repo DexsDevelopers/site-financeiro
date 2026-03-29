@@ -15,8 +15,11 @@ const STATIC_ASSETS = [
 ];
 
 self.addEventListener('install', e => {
-    e.waitUntil(caches.open(STATIC_CACHE).then(c => c.addAll(STATIC_ASSETS)));
-    self.skipWaiting();
+    e.waitUntil(
+        caches.open(STATIC_CACHE).then(c =>
+            Promise.allSettled(STATIC_ASSETS.map(url => c.add(url).catch(() => {})))
+        ).then(() => self.skipWaiting())
+    );
 });
 
 self.addEventListener('activate', e => {
