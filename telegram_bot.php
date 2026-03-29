@@ -179,11 +179,9 @@ try {
     $orion = new OrionTelegram($pdo, $userId, $chatId, $fromName);
 
     if ($isCallback) {
-        // Responder ao callback imediatamente (remove o "relógio" do Telegram)
         tgAnswer($BOT_TOKEN, $callbackId);
         $resultado = $orion->processar('', $callbackData);
-        // Edita a mensagem original com a nova resposta + teclado atualizado
-        tgEdit($BOT_TOKEN, $chatId, $msgId, $resultado['texto'], $resultado['teclado'] ?? null);
+        tgSend($BOT_TOKEN, $chatId, $resultado['texto'], $resultado['teclado'] ?? null);
     } else {
         $resultado = $orion->processar($inputText);
         tgSend($BOT_TOKEN, $chatId, $resultado['texto'], $resultado['teclado'] ?? null);
@@ -191,9 +189,8 @@ try {
 
 } catch (Throwable $e) {
     error_log('[OrionTelegramBot] ' . $e->getMessage() . ' | ' . $e->getFile() . ':' . $e->getLine());
-    if (!$isCallback) {
-        tgSend($BOT_TOKEN, $chatId, '❌ Erro interno. Tente novamente em instantes.');
-    }
+    if ($isCallback) tgAnswer($BOT_TOKEN, $callbackId ?? '', '❌ Erro ao processar');
+    tgSend($BOT_TOKEN, $chatId, '❌ Erro interno: ' . $e->getMessage());
 }
 
 http_response_code(200);

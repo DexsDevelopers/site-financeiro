@@ -340,7 +340,7 @@ class OrionTelegram
 
             $tipoDb = ($tipo === 'receita') ? 'receita' : 'despesa';
             $this->pdo->prepare("
-                INSERT INTO transacoes (id_usuario, descricao, valor, tipo, data, id_categoria, id_conta)
+                INSERT INTO transacoes (id_usuario, descricao, valor, tipo, data_transacao, id_categoria, id_conta)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
             ")->execute([$this->userId, $descricao, $valor, $tipoDb, $data, $catId, $contaId]);
 
@@ -380,7 +380,7 @@ class OrionTelegram
                 FROM transacoes t
                 JOIN categorias c ON c.id = t.id_categoria
                 WHERE t.id_usuario = ? AND t.id_categoria = ? AND t.tipo = 'despesa'
-                AND YEAR(t.data) = YEAR(CURDATE()) AND MONTH(t.data) = MONTH(CURDATE())
+                AND YEAR(t.data_transacao) = YEAR(CURDATE()) AND MONTH(t.data_transacao) = MONTH(CURDATE())
             ");
             $stmt->execute([$this->userId, $catId]);
             $row = $stmt->fetch();
@@ -401,7 +401,7 @@ class OrionTelegram
     {
         $stmt = $this->pdo->prepare("
             SELECT id, descricao, valor, tipo FROM transacoes
-            WHERE id_usuario = ? ORDER BY created_at DESC LIMIT 1
+            WHERE id_usuario = ? ORDER BY id DESC LIMIT 1
         ");
         $stmt->execute([$this->userId]);
         $ultima = $stmt->fetch();
@@ -454,7 +454,7 @@ class OrionTelegram
               COALESCE(SUM(CASE WHEN tipo='receita' THEN valor ELSE 0 END),0) as receitas,
               COALESCE(SUM(CASE WHEN tipo='despesa' THEN valor ELSE 0 END),0) as despesas
             FROM transacoes
-            WHERE id_usuario = ? AND YEAR(data) = YEAR(CURDATE()) AND MONTH(data) = MONTH(CURDATE())
+            WHERE id_usuario = ? AND YEAR(data_transacao) = YEAR(CURDATE()) AND MONTH(data_transacao) = MONTH(CURDATE())
         ");
         $stmt->execute([$this->userId]);
         $row = $stmt->fetch();
@@ -471,9 +471,9 @@ class OrionTelegram
     private function consultarPeriodo(string $periodo): array
     {
         [$label, $where] = match($periodo) {
-            'hoje'   => ['Hoje',            "DATE(data) = CURDATE()"],
-            'semana' => ['Esta semana',     "YEARWEEK(data,1) = YEARWEEK(CURDATE(),1)"],
-            default  => ['Este mês',        "YEAR(data) = YEAR(CURDATE()) AND MONTH(data) = MONTH(CURDATE())"],
+            'hoje'   => ['Hoje',            "DATE(data_transacao) = CURDATE()"],
+            'semana' => ['Esta semana',     "YEARWEEK(data_transacao,1) = YEARWEEK(CURDATE(),1)"],
+            default  => ['Este mês',        "YEAR(data_transacao) = YEAR(CURDATE()) AND MONTH(data_transacao) = MONTH(CURDATE())"],
         };
         $stmt = $this->pdo->prepare("
             SELECT tipo, SUM(valor) as total, COUNT(*) as qtd
@@ -503,7 +503,7 @@ class OrionTelegram
             FROM transacoes t
             LEFT JOIN categorias c ON c.id = t.id_categoria
             WHERE t.id_usuario = ? AND t.tipo = 'despesa'
-            AND YEAR(t.data) = YEAR(CURDATE()) AND MONTH(t.data) = MONTH(CURDATE())
+            AND YEAR(t.data_transacao) = YEAR(CURDATE()) AND MONTH(t.data_transacao) = MONTH(CURDATE())
             GROUP BY t.id_categoria ORDER BY total DESC LIMIT 8
         ");
         $stmt->execute([$this->userId]);
