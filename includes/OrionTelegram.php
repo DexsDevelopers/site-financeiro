@@ -110,6 +110,19 @@ class OrionTelegram
         // ── Estado atual (state machine) ────────────────────────────────────
         $estado = $this->getEstado();
 
+        // Escape: se há estado pendente mas o usuário enviou um novo comando claro,
+        // limpa o estado e processa como nova intenção
+        if ($estado['estado'] !== 'idle') {
+            $intencaoNova = $this->detectarIntencao($textoNorm);
+            $isEscape = in_array($intencaoNova, ['tarefa','meta','consulta','correcao'], true)
+                || str_starts_with($textoNorm, '/')
+                || in_array($textoNorm, ['cancelar','cancela','sair','voltar','pare','para'], true);
+            if ($isEscape) {
+                $this->limparEstado();
+                $estado = ['estado' => 'idle', 'dados' => []];
+            }
+        }
+
         if ($estado['estado'] === 'aguardando_categoria') {
             return $this->processarEscolhaCategoria($textoNorm, $estado['dados']);
         }
