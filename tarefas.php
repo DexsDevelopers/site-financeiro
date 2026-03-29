@@ -194,12 +194,12 @@ $progresso       = $totalTarefas > 0 ? round(($tarefas_concluidas_hoje / max($to
 
                 <!-- Footer do Card com Subtarefas Toggle -->
                 <?php $hasSubtasks = !empty($tarefa['subtarefas']); ?>
-                <button class="btn-toggle-sub" type="button" data-bs-toggle="collapse" data-bs-target="#subtasks-<?php echo $tarefa['id']; ?>" aria-expanded="<?php echo $hasSubtasks ? 'true' : 'false'; ?>">
-                    <i class="bi bi-chevron-down"></i> <?php echo $hasSubtasks ? 'Ver Subtarefas' : 'Adicionar Subtarefas'; ?>
+                <button class="btn-toggle-sub" type="button" data-bs-toggle="collapse" data-bs-target="#subtasks-<?php echo $tarefa['id']; ?>" aria-expanded="false">
+                    <i class="bi bi-chevron-down"></i> <?php echo $hasSubtasks ? 'Ver Subtarefas ('. count($tarefa['subtarefas']) .')' : 'Adicionar Subtarefas'; ?>
                 </button>
 
                 <!-- Área de Subtarefas -->
-                <div class="collapse <?php echo $hasSubtasks ? 'show' : ''; ?>" id="subtasks-<?php echo $tarefa['id']; ?>">
+                <div class="collapse" id="subtasks-<?php echo $tarefa['id']; ?>">
                     <div class="subtasks-container">
                         <div class="lista-subs">
                             <?php foreach ($tarefa['subtarefas'] ?? [] as $sub): ?>
