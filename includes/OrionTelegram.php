@@ -533,23 +533,59 @@ class OrionTelegram
 
     private function processarTarefa(string $texto): array
     {
-        $desc = preg_replace('/\b(criar tarefa|nova tarefa|lembrete|to do|tarefa para|adicionar tarefa|preciso fazer|não esquecer|anotar)\b/i', '', $texto);
+        // Remove palavras-chave de intenção
+        $desc = preg_replace('/\b(criar tarefa|nova tarefa|lembrete|to do|tarefa para|adicionar tarefa|preciso fazer|não esquecer|anotar|me lembre|me lembra|lembrar de|lembrar|anota ai|anota aí|por favor anota|adicionar lembrete)\b/iu', '', $texto);
         $desc = trim($desc);
         if (empty($desc)) return $this->resp("💬 Qual é a tarefa? Me diz o que precisa fazer.");
         try {
+            // Prioridade
             $prioridade = 'Média';
-            if (preg_match('/\b(urgente|urgência|alta|importante|prioridade alta)\b/i', $desc)) $prioridade = 'Alta';
-            if (preg_match('/\b(baixa|depois|quando der|sem pressa)\b/i', $desc))              $prioridade = 'Baixa';
-            $dataPrazo = null;
-            if (preg_match('/\b(amanhã)\b/i', $desc)) { $dataPrazo = date('Y-m-d', strtotime('+1 day')); $desc = preg_replace('/\bamanhã\b/i', '', $desc); }
-            if (preg_match('/\b(hoje)\b/i', $desc))   { $dataPrazo = date('Y-m-d');                       $desc = preg_replace('/\bhoje\b/i', '', $desc); }
-            $desc = trim($desc);
+            if (preg_match('/\b(urgente|urgência|alta|importante|prioridade alta)\b/iu', $desc)) $prioridade = 'Alta';
+            if (preg_match('/\b(baixa|depois|quando der|sem pressa)\b/iu', $desc))              $prioridade = 'Baixa';
+
+            // Data
+            $dataLimite = null;
+            if (preg_match('/\bamanhã\b/iu', $desc)) {
+                $dataLimite = date('Y-m-d', strtotime('+1 day'));
+                $desc = preg_replace('/\bamanhã\b/iu', '', $desc);
+            } elseif (preg_match('/\bhoje\b/iu', $desc)) {
+                $dataLimite = date('Y-m-d');
+                $desc = preg_replace('/\bhoje\b/iu', '', $desc);
+            }
+
+            // Horário — "às 22h", "as 22h", "22:00", "22h30", "às 9h"
+            $horaLembrete = null;
+            if (preg_match('/\b(?:às?|as)\s*(\d{1,2})h(\d{2})?\b/iu', $desc, $mH)) {
+                $h = str_pad($mH[1], 2, '0', STR_PAD_LEFT);
+                $m = str_pad($mH[2] ?? '00', 2, '0', STR_PAD_LEFT);
+                $horaLembrete = "{$h}:{$m}:00";
+                $desc = preg_replace('/\b(?:às?|as)\s*\d{1,2}h\d*\b/iu', '', $desc);
+                if (!$dataLimite) $dataLimite = date('Y-m-d'); // se tem hora, assume hoje
+            } elseif (preg_match('/\b(\d{1,2}):(\d{2})\b/', $desc, $mH)) {
+                $h = str_pad($mH[1], 2, '0', STR_PAD_LEFT);
+                $m = str_pad($mH[2], 2, '0', STR_PAD_LEFT);
+                $horaLembrete = "{$h}:{$m}:00";
+                $desc = preg_replace('/\b\d{1,2}:\d{2}\b/', '', $desc);
+                if (!$dataLimite) $dataLimite = date('Y-m-d');
+            }
+
+            $desc = trim(preg_replace('/\s+/', ' ', $desc));
+            if (empty($desc)) $desc = $texto;
+
+            // Garantir coluna hora_lembrete existe
+            try { $this->pdo->exec("ALTER TABLE tarefas ADD COLUMN hora_lembrete TIME NULL DEFAULT NULL"); } catch (Throwable $e) {}
+            try { $this->pdo->exec("ALTER TABLE tarefas ADD COLUMN tg_notificado TINYINT(1) NOT NULL DEFAULT 0"); } catch (Throwable $e) {}
+
             $this->pdo->prepare("
-                INSERT INTO tarefas (id_usuario, descricao, prioridade, data_prazo, status)
-                VALUES (?, ?, ?, ?, 'pendente')
-            ")->execute([$this->userId, $desc, $prioridade, $dataPrazo]);
-            $prazoText = $dataPrazo ? ' · 📅 ' . date('d/m', strtotime($dataPrazo)) : '';
-            return $this->resp("✅ <b>Tarefa criada!</b>\n\n📝 <i>{$desc}</i>\n🏷️ {$prioridade}{$prazoText}");
+                INSERT INTO tarefas (id_usuario, descricao, prioridade, data_limite, hora_lembrete, tg_notificado, status)
+                VALUES (?, ?, ?, ?, ?, 0, 'pendente')
+            ")->execute([$this->userId, $desc, $prioridade, $dataLimite, $horaLembrete]);
+
+            $prazoText = $dataLimite ? ' · 📅 ' . date('d/m', strtotime($dataLimite)) : '';
+            $horaText  = $horaLembrete ? ' · ⏰ ' . substr($horaLembrete, 0, 5) : '';
+            $notifText = $horaLembrete ? "\n🔔 <i>Vou te lembrar às " . substr($horaLembrete, 0, 5) . " via Telegram!</i>" : '';
+
+            return $this->resp("✅ <b>Tarefa criada!</b>\n\n📝 <i>{$desc}</i>\n🏷️ {$prioridade}{$prazoText}{$horaText}{$notifText}");
         } catch (Throwable $e) {
             return $this->resp("❌ Erro ao criar tarefa: " . $e->getMessage());
         }
