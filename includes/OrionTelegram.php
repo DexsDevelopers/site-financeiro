@@ -580,8 +580,8 @@ class OrionTelegram
                 )
             ';
             if (preg_match('/' . $horaPattern . '/ixu', $desc, $mH)) {
-                $h = str_pad((int)$mH[1], 2, '0', STR_PAD_LEFT);
-                $m = str_pad((int)($mH[2] ?? 0), 2, '0', STR_PAD_LEFT);
+                $h = sprintf('%02d', (int)$mH[1]);
+                $m = sprintf('%02d', (int)($mH[2] ?? 0));
                 $horaLembrete = "{$h}:{$m}:00";
                 // Remove o trecho de hora da descrição
                 $desc = preg_replace('/' . $horaPattern . '/ixu', '', $desc);
