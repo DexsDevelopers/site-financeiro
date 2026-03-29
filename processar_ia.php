@@ -31,6 +31,51 @@ if (empty($texto)) {
 $textoNorm = mb_strtolower($texto, 'UTF-8');
 
 // ══════════════════════════════════════════════════════════════════
+// ROUTER — detecta intent e decide: NLP local (financeiro) ou OrionEngine (todo o resto)
+// ══════════════════════════════════════════════════════════════════
+$keywordsOrion = [
+    // Tarefas
+    'tarefa','lembrete','to do','to-do','lista de tarefas',
+    'criar tarefa','nova tarefa','adicionar tarefa','concluir tarefa',
+    'finalizar tarefa','marcar como feita','marcar como concluída',
+    // Metas
+    'criar meta','nova meta','definir meta','objetivo de',
+    // Consultas financeiras
+    'quanto gastei','quanto ganhei','quanto tenho','meu saldo','ver saldo',
+    'resumo','relatório','relatorio','visão geral','overview',
+    'meus gastos','minhas despesas','minhas receitas','total do mês',
+    // Orçamento
+    'definir orçamento','criar orçamento','limite de gasto',
+    // Configurações
+    'criar categoria','nova categoria','criar conta','nova conta',
+    // Cursos
+    'adicionar curso','novo curso','anotação do curso',
+    // Rotinas
+    'rotina','hábito','habito',
+    // Ajuda
+    'ajuda','help','o que você faz','comandos disponíveis',
+];
+
+$rotearParaOrion = false;
+foreach ($keywordsOrion as $kw) {
+    if (str_contains($textoNorm, $kw)) { $rotearParaOrion = true; break; }
+}
+
+// Se não há nenhum indício de valor monetário → certamente não é transação
+if (!$rotearParaOrion && !preg_match('/r\$|\b\d{2,}\b|\d+[.,]\d{2}|reais|real/i', $texto)) {
+    $rotearParaOrion = true;
+}
+
+if ($rotearParaOrion) {
+    require_once 'includes/OrionEngine.php';
+    $orion   = new OrionEngine($pdo, $userId);
+    $resposta = $orion->processQuery($texto);
+    $isError  = str_contains($resposta, '❌') || str_contains($resposta, 'Não consegui') || str_contains($resposta, 'não encontrei');
+    echo json_encode(['success' => !$isError, 'message' => $resposta, 'engine' => 'orion']);
+    exit;
+}
+
+// ══════════════════════════════════════════════════════════════════
 // 2. DETECÇÃO DE TIPO (despesa / receita)
 // ══════════════════════════════════════════════════════════════════
 $tipo = 'despesa'; // padrão

@@ -290,6 +290,7 @@ if ($saldoMes > 0) {
                 </button>
             </div>
         </form>
+        <div id="iaResponse" class="ia-response" style="display:none"></div>
     </div>
         
     <!-- ========================================= -->
@@ -603,7 +604,7 @@ if ($saldoMes > 0) {
         if(barChartCanvas && <?php echo json_encode(!empty($barChartData)); ?>){ new Chart(barChartCanvas.getContext('2d'), { type: 'bar', data: { labels: <?php echo json_encode($barChartLabels); ?>, datasets: [{ label: 'Total Gasto (R$)', data: <?php echo json_encode($barChartData); ?>, backgroundColor: 'rgba(229, 9, 20, 0.6)', borderColor: 'rgba(229, 9, 20, 1)', borderWidth: 1, borderRadius: 5 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.1)' }, ticks: { color: '#adb5bd' } }, x: { grid: { display: false }, ticks: { color: '#adb5bd' } } } } }); }
         
         const pieChartCanvas = document.getElementById('pieChart');
-        if(pieChartCanvas && <?php echo json_encode(!empty($pieChartData)); ?>){ new Chart(pieChartCanvas.getContext('2d'), { type: 'doughnut', data: { labels: <?php echo json_encode($pieChartLabels); ?>, datasets: [{ data: <?php echo json_encode($pieChartData); ?>, backgroundColor: <?php echo json_encode($pieChartColors); ?>, borderColor: '#1f1f1f', borderWidth: 3 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#f5f5f1' } }, tooltip: { callbacks: { label: function(c) { let l = c.label || ''; if(l) l += ': '; let v = c.parsed || 0; l += 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 2 }); return l; } } } } } }); }
+        if(pieChartCanvas && <?php echo json_encode(!empty($pieChartData)); ?>){ new Chart(pieChartCanvas.getContext('2d'), { type: 'doughnut', data: { labels: <?php echo json_encode($pieChartLabels); ?>, datasets: [{ data: <?php echo json_encode($pieChartData); ?>, backgroundColor: <?php echo json_encode($pieChartColors); ?>, borderColor: '#1f1f1f', borderWidth: 3 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#f5f5f1' } }, tooltip: { callbacks: { label: function(c) { let l = c.label || ''; if(l) l += ': '; let v = c.parsed || 0; l += 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 2 }); return l; } } } } }); }
         
         // --- CORRIGIR MODAL: Remover overlays ao abrir ---
         const modalNovoLancamento = document.getElementById('modalNovoLancamento');
@@ -627,7 +628,7 @@ if ($saldoMes > 0) {
         }
         
         const formNovoLancamento = document.getElementById('formNovoLancamento');
-        if(formNovoLancamento){ formNovoLancamento.addEventListener('submit', function(e){ e.preventDefault(); const d = new FormData(formNovoLancamento); const b = formNovoLancamento.querySelector('button[type="submit"]'); b.disabled = true; b.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Salvando...'; fetch('salvar_transacao.php', { method: 'POST', body: d }).then(r => r.ok ? r.json() : r.json().then(e => { throw new Error(e.message || 'Ocorreu um erro.') })).then(d => { if(d.success){ showToast('Sucesso!', d.message); setTimeout(() => { const contaSel = (document.getElementById('selectConta')?.value || 'all'); window.location.href = `dashboard.php?mes=${selectMes.value}&ano=${selectAno.value}&conta=${encodeURIComponent(contaSel)}`; }, 1000); } else { showToast('Erro!', d.message, true); b.disabled = false; b.innerHTML = 'Salvar Lançamento'; } }).catch(e => { console.error('Erro:', e); showToast('Erro!', e.message, true); b.disabled = false; b.innerHTML = 'Salvar Lançamento'; }); }); }
+        if(formNovoLancamento){ formNovoLancamento.addEventListener('submit', function(e){ e.preventDefault(); const d = new FormData(formNovoLancamento); const b = formNovoLancamento.querySelector('button[type="submit"]'); b.disabled = true; b.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Salvando...'; fetch('salvar_transacao.php', { method: 'POST', body: d }).then(r => r.ok ? r.json() : r.json().then(e => { throw new Error(e.message || 'Ocorreu um erro.') })).then(d => { if(d.success){ showToast('Sucesso!', d.message); setTimeout(() => { const contaSel = (document.getElementById('selectConta')?.value || 'all'); window.location.href = `dashboard.php?mes=${selectMes.value}&ano=${selectAno.value}&conta=${encodeURIComponent(contaSel)}`; }, 1000); } else { showToast('Erro!', d.message, true); b.disabled = false; b.innerHTML = 'Salvar Lançamento'; } }).catch(e => { console.error('Erro:', e); showToast('Erro de Rede', 'Não foi possível se conectar ao servidor.', true); b.disabled = false; b.innerHTML = 'Salvar Lançamento'; }); }); }
 
         // --- LANÇAMENTO RÁPIDO COM IA ---
         const formIaRapida = document.getElementById('formIaRapida');
@@ -664,94 +665,42 @@ if ($saldoMes > 0) {
                     }));
                 })
                 .then(data => {
-                    if(data.success) {
-                        showToast('Sucesso!', data.message || 'Lançamento adicionado pela IA com sucesso!');
-                        inputIa.value = '';
-                        setTimeout(() => {
-                            window.location.href = `dashboard.php?mes=${selectMes.value}&ano=${selectAno.value}&conta=${encodeURIComponent(contaSel)}`;
-                        }, 1500);
-                    } else {
-                        // Tratar erro 429 (Rate Limit ou Cota Excedida)
-                        if(data.isRateLimit || data.status === 429) {
-                            const retryAfter = data.retry_after || 60;
-                            const rateLimitInfo = data.rate_limit_info || {};
-                            let message = data.message || 'Limite de requisições excedido.';
-                            const isQuotaExceeded = data.quota_exceeded === true;
-                            const isInternalRateLimit = data.internal_rate_limit === true;
-                            
-                            // Se for rate limit interno, mensagem diferente
-                            if(isInternalRateLimit) {
-                                showToast('Limite Interno do Sistema', message, true);
-                                btnIaSubmit.disabled = true;
-                                let countdown = Math.ceil(retryAfter);
-                                const countdownInterval = setInterval(() => {
-                                    countdown--;
-                                    if(countdown > 0) {
-                                        btnIaSubmit.innerHTML = `Aguarde ${countdown}s (interno)`;
-                                    } else {
-                                        clearInterval(countdownInterval);
-                                        btnIaSubmit.disabled = false;
-                                        btnIaSubmit.innerHTML = originalText;
-                                    }
-                                }, 1000);
-                                btnIaSubmit.innerHTML = `Aguarde ${countdown}s (interno)`;
-                                
-                                // Adicionar informação
-                                if(data.note) {
-                                    console.log('Nota:', data.note);
-                                }
-                            }
-                            // Se for cota excedida, não mostrar contador (é um problema mais grave)
-                            else if(isQuotaExceeded) {
-                                showToast('Cota da API Excedida', message, true);
-                                btnIaSubmit.disabled = true;
-                                btnIaSubmit.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i> Cota Excedida';
-                                btnIaSubmit.style.opacity = '0.6';
-                                
-                                // Adicionar mensagem informativa abaixo do botão
-                                const formText = document.querySelector('#formIaRapida .form-text');
-                                if(formText) {
-                                    formText.innerHTML = '<span class="text-warning"><i class="bi bi-info-circle me-1"></i>A cota da API foi excedida. Use o formulário manual abaixo para adicionar transações.</span>';
-                                }
-                            } else {
-                                // Rate limit temporário da API
-                                // Adicionar informações sobre o limite
-                                if(rateLimitInfo.requests_last_minute !== undefined) {
-                                    message += ` (${rateLimitInfo.requests_last_minute}/${rateLimitInfo.limit_per_minute} por minuto)`;
-                                }
-                                
-                                showToast('Limite Temporário da API', message, true);
-                                
-                                // Desabilitar botão e mostrar contador
-                                btnIaSubmit.disabled = true;
-                                let countdown = Math.ceil(retryAfter);
-                                const countdownInterval = setInterval(() => {
-                                    countdown--;
-                                    if(countdown > 0) {
-                                        btnIaSubmit.innerHTML = `Aguarde ${countdown}s`;
-                                    } else {
-                                        clearInterval(countdownInterval);
-                                        btnIaSubmit.disabled = false;
-                                        btnIaSubmit.innerHTML = originalText;
-                                    }
-                                }, 1000);
-                                
-                                // Atualizar mensagem inicial
-                                btnIaSubmit.innerHTML = `Aguarde ${countdown}s`;
-                            }
+                    btnIaSubmit.disabled = false;
+                    btnIaSubmit.innerHTML = originalText;
+
+                    const iaResponse = document.getElementById('iaResponse');
+
+                    if (data.success) {
+                        if (data.engine === 'orion') {
+                            // Resposta do Orion (tarefa, consulta, meta, etc.) — exibe inline
+                            inputIa.value = '';
+                            const html = (data.message || '')
+                                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                                .replace(/\n/g, '<br>');
+                            iaResponse.innerHTML = `<span class="ia-resp-icon">🤖</span><span>${html}</span>`;
+                            iaResponse.className = 'ia-response ia-response--success';
+                            iaResponse.style.display = 'flex';
                         } else {
-                            // Outros erros
-                            showToast('Erro da IA', data.message || 'Ocorreu um erro ao processar sua solicitação.', true);
-                            btnIaSubmit.disabled = false;
-                            btnIaSubmit.innerHTML = originalText;
+                            // Transação financeira salva — toast + reload
+                            iaResponse.style.display = 'none';
+                            showToast('Sucesso!', data.message || 'Lançamento salvo!');
+                            inputIa.value = '';
+                            setTimeout(() => {
+                                window.location.href = `dashboard.php?mes=${selectMes.value}&ano=${selectAno.value}&conta=${encodeURIComponent(contaSel)}`;
+                            }, 1400);
                         }
+                    } else {
+                        const msg = data.message || 'Não entendi. Tente: "Comprei pizza R$ 25" ou "Criar tarefa pagar conta".';
+                        iaResponse.innerHTML = `<span class="ia-resp-icon">⚠️</span><span>${msg}</span>`;
+                        iaResponse.className = 'ia-response ia-response--error';
+                        iaResponse.style.display = 'flex';
                     }
                 })
                 .catch(error => {
                     console.error('Erro de rede:', error);
-                    showToast('Erro de Rede', 'Não foi possível se conectar ao servidor. Verifique sua conexão.', true);
                     btnIaSubmit.disabled = false;
                     btnIaSubmit.innerHTML = originalText;
+                    showToast('Erro de Rede', 'Não foi possível se conectar ao servidor.', true);
                 });
             });
         }
@@ -1234,6 +1183,41 @@ if ($saldoMes > 0) {
 .ia-submit:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 15px rgba(229, 9, 20, 0.4);
+}
+
+.ia-response {
+    display: none;
+    align-items: flex-start;
+    gap: 0.6rem;
+    margin-top: 0.85rem;
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-md);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    animation: fadeInUp 0.25s ease;
+}
+
+.ia-response--success {
+    background: rgba(0, 214, 143, 0.08);
+    border: 1px solid rgba(0, 214, 143, 0.25);
+    color: #a8f0d8;
+}
+
+.ia-response--error {
+    background: rgba(229, 9, 20, 0.08);
+    border: 1px solid rgba(229, 9, 20, 0.25);
+    color: #ffaaaa;
+}
+
+.ia-resp-icon {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
 /* ================================================== */
