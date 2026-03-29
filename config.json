@@ -15,6 +15,7 @@
   "COMPROVANTES_DIR": "uploads/comprovantes/",
   "TIMEZONE": "America/Sao_Paulo",
   "TELEGRAM_BOT_TOKEN": "8713966449:AAHRNlxFvVWsOKyJ-VVIXOd_Zl092kUc45s",
-  "TELEGRAM_BOT_ENABLED": true
+  "TELEGRAM_BOT_ENABLED": true,
+  "CRON_SECRET": "orion_cron_7k_2026_xZ9qR"
 }
 

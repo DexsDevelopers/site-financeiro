@@ -45,7 +45,7 @@ if (!$menu_config) {
             'produtividade' => ['tarefas.php', 'calendario.php', 'pomodoro.php'],
             'personalizacao' => ['temas_customizaveis.php', 'layouts_flexiveis.php', 'preferencias_avancadas.php', 'personalizar_menu.php'],
             'gestao_empresas' => ['gestao_empresas.php'],
-            'sistema' => ['perfil.php', 'contas.php', 'configurar_notificacoes.php', 'vincular_telegram.php', 'whatsapp_admin.php', 'whatsapp_qr.php', 'integracoes_google.php', 'debug_google_integration.php', 'verificar_apis_google.php', 'debug_ia.php', 'debug_ia_whatsapp.php']
+            'sistema' => ['perfil.php', 'contas.php', 'configurar_notificacoes.php', 'vincular_telegram.php', 'setup_cron.php', 'whatsapp_admin.php', 'whatsapp_qr.php', 'integracoes_google.php', 'debug_google_integration.php', 'verificar_apis_google.php', 'debug_ia.php', 'debug_ia_whatsapp.php']
         ],
         'ordem_secoes' => ['academy', 'financeiro', 'produtividade', 'gestao_empresas', 'personalizacao', 'sistema'],
         'ordem_paginas' => [
@@ -54,7 +54,7 @@ if (!$menu_config) {
             'produtividade' => ['tarefas.php', 'calendario.php', 'pomodoro.php'],
             'personalizacao' => ['temas_customizaveis.php', 'layouts_flexiveis.php', 'preferencias_avancadas.php', 'personalizar_menu.php'],
             'gestao_empresas' => ['gestao_empresas.php'],
-            'sistema' => ['perfil.php', 'contas.php', 'configurar_notificacoes.php', 'vincular_telegram.php', 'whatsapp_admin.php', 'whatsapp_qr.php', 'integracoes_google.php', 'debug_google_integration.php', 'verificar_apis_google.php', 'debug_ia.php', 'debug_ia_whatsapp.php']
+            'sistema' => ['perfil.php', 'contas.php', 'configurar_notificacoes.php', 'vincular_telegram.php', 'setup_cron.php', 'whatsapp_admin.php', 'whatsapp_qr.php', 'integracoes_google.php', 'debug_google_integration.php', 'verificar_apis_google.php', 'debug_ia.php', 'debug_ia_whatsapp.php']
         ]
     ];
 }
@@ -291,6 +291,7 @@ $paginasInfo = [
     'alertas_inteligentes.php' => ['nome' => 'Alertas Inteligentes', 'icone' => 'bi-bell-fill'],
     'tarefas.php' => ['nome' => 'Tarefas', 'icone' => 'bi-check2-square'],
     'vincular_telegram.php' => ['nome' => 'Telegram Bot', 'icone' => 'bi-telegram'],
+    'setup_cron.php'         => ['nome' => 'Notificações Automáticas', 'icone' => 'bi-alarm'],
     'rotinas.php' => ['nome' => 'Hábitos (Antigo)', 'icone' => 'bi-calendar-check'],
     'calendario.php' => ['nome' => 'Calendário', 'icone' => 'bi-calendar3'],
     'pomodoro.php' => ['nome' => 'Pomodoro Timer', 'icone' => 'bi-stopwatch'],
