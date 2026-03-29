@@ -90,8 +90,20 @@
                     this.loadUnreadCount();
                 }
             } catch (err) {
-                console.error('[Push] Erro ao assinar:', err);
-                if (window.showToast) showToast('Erro', 'Não foi possível ativar as notificações.', true);
+                console.error('[Push] Erro ao assinar:', err.name, err.message, err);
+                let msg = 'Não foi possível ativar as notificações.';
+                if (err.name === 'AbortError') {
+                    msg = 'Servidor push inacessível. Tente novamente ou use outro navegador.';
+                } else if (err.name === 'NotAllowedError') {
+                    msg = 'Permissão negada. Verifique as configurações do navegador.';
+                } else if (err.name === 'InvalidStateError') {
+                    msg = 'Service Worker não está ativo ainda. Recarregue a página e tente de novo.';
+                } else if (err.message) {
+                    msg = err.message;
+                }
+                if (window.showToast) showToast('Erro (' + err.name + ')', msg, true);
+                // Dispara evento para página de configuração capturar
+                window.dispatchEvent(new CustomEvent('push-subscribe-error', { detail: { name: err.name, message: msg } }));
             }
         },
 

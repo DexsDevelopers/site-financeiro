@@ -279,27 +279,41 @@ if (
     
     // Registrar service worker apropriado (sw-advanced.js tem suporte a Push API)
     if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
+        window.addEventListener('load', async () => {
+            // Desregistrar SWs antigos que possam estar em conflito (sw.php, etc.)
+            try {
+                const regs = await navigator.serviceWorker.getRegistrations();
+                for (const reg of regs) {
+                    if (reg.active && reg.active.scriptURL && reg.active.scriptURL.includes('sw.php')) {
+                        await reg.unregister();
+                        console.log('[SW] Desregistrado SW antigo:', reg.active.scriptURL);
+                    }
+                }
+            } catch (e) { /* silencioso */ }
+
             const swFile = (isSafari || isIOS) ? 'sw-minimal.js' : 'sw-advanced.js';
             
             navigator.serviceWorker.register(swFile)
                 .then(registration => {
-                    console.log('SW registrado (Auto): ', registration);
+                    console.log('[SW] Registrado:', registration.scope);
+
+                    // Forçar ativação imediata se estiver em waiting
+                    if (registration.waiting) {
+                        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+                    }
                     
                     // Lógica de auto-update: recarrega se o SW mudar e tomar o controle
                     registration.addEventListener('updatefound', () => {
                         const newWorker = registration.installing;
                         newWorker.addEventListener('statechange', () => {
                             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                // Envia comando para o novo SW pular a espera e atualizar agora
                                 newWorker.postMessage({ type: 'SKIP_WAITING' });
-                                // Recarrega silenciosamente após um pequeno delay para o SW estabilizar
                                 setTimeout(() => window.location.reload(), 500);
                             }
                         });
                     });
                 })
-                .catch(err => console.log('SW falhou: ', err));
+                .catch(err => console.log('[SW] Falhou:', err));
         });
     }
     

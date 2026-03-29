@@ -232,6 +232,9 @@ require_once 'templates/header.php';
         </button>
     </div>
 
+    <!-- ERRO DE INSCRIÇÃO -->
+    <div id="subscribe-error-box" style="display:none; background:rgba(229,9,20,.1); border:1px solid rgba(229,9,20,.3); border-radius:10px; padding:.9rem 1.1rem; margin-bottom:1rem; color:#ff6b6b; font-size:.87rem;"></div>
+
     <!-- TESTAR -->
     <div class="test-card" id="test-section" style="display:none;">
         <h3><i class="bi bi-send me-2 text-success"></i>Testar notificações</h3>
@@ -472,6 +475,18 @@ async function loadHistory() {
         list.innerHTML = '<div class="text-center py-3 text-white-50 small">Erro ao carregar histórico.</div>';
     }
 }
+
+// ─── ERRO DETALHADO ───────────────────────────────────────────────────────────
+window.addEventListener('push-subscribe-error', (e) => {
+    const result = document.getElementById('test-result');
+    const errBox = document.getElementById('subscribe-error-box');
+    if (errBox) {
+        errBox.style.display = 'block';
+        errBox.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-2"></i><b>${e.detail.name}:</b> ${e.detail.message}`;
+    }
+    // Re-checar status após erro
+    setTimeout(checkStatus, 500);
+});
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
