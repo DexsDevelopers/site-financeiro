@@ -22,7 +22,7 @@ $url = "https://api.telegram.org/bot{$token}/setWebhook";
 $ch  = curl_init($url);
 curl_setopt_array($ch, [
     CURLOPT_POST           => true,
-    CURLOPT_POSTFIELDS     => json_encode(['url' => $webhookUrl, 'max_connections' => 40, 'allowed_updates' => ['message']]),
+    CURLOPT_POSTFIELDS     => json_encode(['url' => $webhookUrl, 'max_connections' => 40, 'allowed_updates' => ['message', 'callback_query', 'edited_message']]),
     CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_TIMEOUT        => 15,
