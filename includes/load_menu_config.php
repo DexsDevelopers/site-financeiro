@@ -45,7 +45,7 @@ if (!$menu_config) {
             'produtividade' => ['tarefas.php', 'calendario.php', 'pomodoro.php'],
             'personalizacao' => ['temas_customizaveis.php', 'layouts_flexiveis.php', 'preferencias_avancadas.php', 'personalizar_menu.php'],
             'gestao_empresas' => ['gestao_empresas.php'],
-            'sistema' => ['perfil.php', 'contas.php', 'configurar_notificacoes.php', 'whatsapp_admin.php', 'whatsapp_qr.php', 'integracoes_google.php', 'debug_google_integration.php', 'verificar_apis_google.php', 'debug_ia.php', 'debug_ia_whatsapp.php']
+            'sistema' => ['perfil.php', 'contas.php', 'configurar_notificacoes.php', 'vincular_telegram.php', 'whatsapp_admin.php', 'whatsapp_qr.php', 'integracoes_google.php', 'debug_google_integration.php', 'verificar_apis_google.php', 'debug_ia.php', 'debug_ia_whatsapp.php']
         ],
         'ordem_secoes' => ['academy', 'financeiro', 'produtividade', 'gestao_empresas', 'personalizacao', 'sistema'],
         'ordem_paginas' => [
@@ -54,7 +54,7 @@ if (!$menu_config) {
             'produtividade' => ['tarefas.php', 'calendario.php', 'pomodoro.php'],
             'personalizacao' => ['temas_customizaveis.php', 'layouts_flexiveis.php', 'preferencias_avancadas.php', 'personalizar_menu.php'],
             'gestao_empresas' => ['gestao_empresas.php'],
-            'sistema' => ['perfil.php', 'contas.php', 'configurar_notificacoes.php', 'whatsapp_admin.php', 'whatsapp_qr.php', 'integracoes_google.php', 'debug_google_integration.php', 'verificar_apis_google.php', 'debug_ia.php', 'debug_ia_whatsapp.php']
+            'sistema' => ['perfil.php', 'contas.php', 'configurar_notificacoes.php', 'vincular_telegram.php', 'whatsapp_admin.php', 'whatsapp_qr.php', 'integracoes_google.php', 'debug_google_integration.php', 'verificar_apis_google.php', 'debug_ia.php', 'debug_ia_whatsapp.php']
         ]
     ];
 }
@@ -116,6 +116,24 @@ if (!in_array('configurar_notificacoes.php', $menu_config['ordem_paginas']['sist
         array_splice($menu_config['ordem_paginas']['sistema'], $idx + 1, 0, ['configurar_notificacoes.php']);
     } else {
         $menu_config['ordem_paginas']['sistema'][] = 'configurar_notificacoes.php';
+    }
+}
+
+// Garante que 'vincular_telegram.php' apareça em Sistema
+if (!in_array('vincular_telegram.php', $menu_config['paginas_visiveis']['sistema'], true)) {
+    $idx = array_search('configurar_notificacoes.php', $menu_config['paginas_visiveis']['sistema'], true);
+    if ($idx !== false) {
+        array_splice($menu_config['paginas_visiveis']['sistema'], $idx + 1, 0, ['vincular_telegram.php']);
+    } else {
+        $menu_config['paginas_visiveis']['sistema'][] = 'vincular_telegram.php';
+    }
+}
+if (!in_array('vincular_telegram.php', $menu_config['ordem_paginas']['sistema'], true)) {
+    $idx = array_search('configurar_notificacoes.php', $menu_config['ordem_paginas']['sistema'], true);
+    if ($idx !== false) {
+        array_splice($menu_config['ordem_paginas']['sistema'], $idx + 1, 0, ['vincular_telegram.php']);
+    } else {
+        $menu_config['ordem_paginas']['sistema'][] = 'vincular_telegram.php';
     }
 }
 
@@ -271,7 +289,8 @@ $paginasInfo = [
     'categorias.php' => ['nome' => 'Categorias', 'icone' => 'bi-tags'],
     'regras_categorizacao.php' => ['nome' => 'Regras de Categorização', 'icone' => 'bi-robot'],
     'alertas_inteligentes.php' => ['nome' => 'Alertas Inteligentes', 'icone' => 'bi-bell-fill'],
-    'tarefas.php' => ['nome' => 'Tarefas & Hábitos', 'icone' => 'bi-check2-square'],
+    'tarefas.php' => ['nome' => 'Tarefas', 'icone' => 'bi-check2-square'],
+    'vincular_telegram.php' => ['nome' => 'Telegram Bot', 'icone' => 'bi-telegram'],
     'rotinas.php' => ['nome' => 'Hábitos (Antigo)', 'icone' => 'bi-calendar-check'],
     'calendario.php' => ['nome' => 'Calendário', 'icone' => 'bi-calendar3'],
     'pomodoro.php' => ['nome' => 'Pomodoro Timer', 'icone' => 'bi-stopwatch'],

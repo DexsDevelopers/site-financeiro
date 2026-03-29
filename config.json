@@ -13,6 +13,8 @@
   ],
   "LIMITE_UPLOAD_MB": 10,
   "COMPROVANTES_DIR": "uploads/comprovantes/",
-  "TIMEZONE": "America/Sao_Paulo"
+  "TIMEZONE": "America/Sao_Paulo",
+  "TELEGRAM_BOT_TOKEN": "8713966449:AAHRNlxFvVWsOKyJ-VVIXOd_Zl092kUc45s",
+  "TELEGRAM_BOT_ENABLED": true
 }
 
