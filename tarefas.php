@@ -1,22 +1,15 @@
 <?php
-// tarefas.php - Design Premium & Funcionalidade Aprimorada
+// tarefas.php — Gerenciador de Tarefas
 require_once 'templates/header.php';
 require_once 'includes/db_connect.php';
 
-// CSS para esta página com cache buster inteligente
 echo '<link rel="stylesheet" href="' . asset('tarefas.css') . '">';
 
 $tarefas_pendentes = [];
 $tarefas_concluidas = [];
 
 try {
-    // Garante que a coluna data_conclusao exista
     $pdo->exec("ALTER TABLE tarefas ADD COLUMN data_conclusao DATETIME DEFAULT NULL");
-} catch (PDOException $e) { /* Já existe */ }
-
-try {
-    // FORÇAR CRIAÇÃO DA COLUNA DIAS_SEMANA
-    $pdo->exec("ALTER TABLE rotinas_fixas ADD COLUMN dias_semana VARCHAR(20) DEFAULT NULL");
 } catch (PDOException $e) { /* Já existe */ }
 
 try {
@@ -54,49 +47,23 @@ try {
         }
     }
 
-    // --- Buscar rotinas (Hábitos) ---
+    // Stats extras
     $dataHoje = date('Y-m-d');
-    $rotinasFixas = [];
-    $rotinasConcluidasCount = 0;
-    
-    $stmtHabitos = $pdo->prepare("
-        SELECT rf.*, 
-               rcd.status as status_hoje,
-               rcd.id as controle_id
-        FROM rotinas_fixas rf
-        LEFT JOIN rotina_controle_diario rcd 
-            ON rf.id = rcd.id_rotina_fixa 
-            AND rcd.id_usuario = rf.id_usuario 
-            AND rcd.data_execucao = ?
-        WHERE rf.id_usuario = ? AND rf.ativo = TRUE
-        ORDER BY 
-            CASE 
-                WHEN rf.prioridade = 'Alta' THEN 1 
-                WHEN rf.prioridade = 'Média' THEN 2 
-                ELSE 3 
-            END,
-            COALESCE(rf.horario_sugerido, '23:59:59'), 
-            rf.nome
-    ");
-    $stmtHabitos->execute([$dataHoje, $userId]);
-    $rotinasFixas = $stmtHabitos->fetchAll(PDO::FETCH_ASSOC);
-
-    foreach ($rotinasFixas as $rotina) {
-        if ($rotina['status_hoje'] === 'concluido') {
-            $rotinasConcluidasCount++;
-        }
-    }
-    // Conta tarefas concluídas HOJE
     $stmt_hoje = $pdo->prepare("SELECT COUNT(*) FROM tarefas WHERE id_usuario = ? AND status = 'concluida' AND DATE(data_conclusao) = ?");
     $stmt_hoje->execute([$userId, $dataHoje]);
-    $tarefas_concluidas_hoje = $stmt_hoje->fetchColumn();
-    
+    $tarefas_concluidas_hoje = (int)$stmt_hoje->fetchColumn();
+
+    $stmt_alta = $pdo->prepare("SELECT COUNT(*) FROM tarefas WHERE id_usuario = ? AND status = 'pendente' AND prioridade = 'Alta'");
+    $stmt_alta->execute([$userId]);
+    $tarefas_alta = (int)$stmt_alta->fetchColumn();
+
 } catch (PDOException $e) {
     die("Erro ao buscar tarefas: " . $e->getMessage());
 }
 
-$totalPendentes = count($tarefas_pendentes);
-$totalConcluidasHoje = $tarefas_concluidas_hoje + $rotinasConcluidasCount;
+$totalPendentes  = count($tarefas_pendentes);
+$totalTarefas    = $totalPendentes + count($tarefas_concluidas);
+$progresso       = $totalTarefas > 0 ? round(($tarefas_concluidas_hoje / max($totalTarefas, 1)) * 100) : 0;
 
 ?>
 
@@ -104,99 +71,67 @@ $totalConcluidasHoje = $tarefas_concluidas_hoje + $rotinasConcluidasCount;
     <!-- Cabeçalho -->
     <div class="page-header">
         <div>
-            <h1 class="page-title">Tarefas & Hábitos</h1>
-            <p class="text-white-50 mb-0" style="font-size: 15px; margin-top: 5px;">Gerencie seu dia e construa sua melhor versão</p>
+            <h1 class="page-title">Tarefas</h1>
+            <p class="page-subtitle"><?php echo date('l, d \d\e F', strtotime($dataHoje)); ?></p>
         </div>
         <div class="header-actions">
-            <button class="btn-elite-outline" onclick="new bootstrap.Modal(document.getElementById('modalRotina')).show()">
-                <i class="bi bi-calendar-heart"></i> Novo Hábito
-            </button>
             <button class="btn-elite-primary" data-bs-toggle="modal" data-bs-target="#modalNovaTarefa">
-                <i class="bi bi-list-check"></i> Nova Tarefa
+                <i class="bi bi-plus-lg"></i> Nova Tarefa
             </button>
         </div>
     </div>
 
-    <!-- Estatísticas Rápidas -->
+    <!-- Estatísticas -->
     <div class="stats-grid">
-        <div class="stat-card">
-            <span class="stat-value"><?php echo $totalPendentes; ?></span>
-            <span class="stat-label">Tarefas Pendentes</span>
-        </div>
-        <div class="stat-card">
-            <span class="stat-value"><?php echo $totalConcluidasHoje; ?></span>
-            <span class="stat-label">Concluídas Hoje</span>
-        </div>
-    </div>
-
-    <!-- Seção: Hábitos (Rotina Diária) -->
-    <div class="section-heading mt-4">
-        <i class="bi bi-calendar-heart"></i> Hábitos Diários (<?php echo $rotinasConcluidasCount . '/' . count($rotinasFixas); ?> concluídos)
-    </div>
-
-    <?php if (empty($rotinasFixas)): ?>
-        <div class="empty-state mb-4 py-4">
-            <i class="bi bi-calendar-event"></i>
-            <h5>Nenhum hábito configurado</h5>
-            <p class="text-muted small">Crie hábitos para acompanhar seu progresso diário.</p>
-        </div>
-    <?php else: ?>
-        <div class="grid-lux-habitos">
-            <?php 
-                $diaSemanaHoje = date('w') + 1; // MySQL DAYOFWEEK: 1=Sun...7=Sat
-                foreach ($rotinasFixas as $rotina):
-                    $isConcluido = ($rotina['status_hoje'] === 'concluido');
-                    $hojeAgendado = (empty($rotina['dias_semana']) || strpos($rotina['dias_semana'], (string)$diaSemanaHoje) !== false);
-            ?>
-            <div class="card-lux-habit <?= $isConcluido ? 'concluido' : '' ?> <?= !$hojeAgendado ? 'opacity-50' : '' ?>" 
-                 data-id="<?= $rotina['id']; ?>" 
-                 data-controle-id="<?= $rotina['controle_id'] ?? ''; ?>">
-                
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                    <div class="d-flex gap-2 align-items: center;">
-                        <span class="prio-pill prio-<?= $rotina['prioridade'] ?>">
-                            <?= $rotina['prioridade'] ?>
-                        </span>
-                        <?php if (!$hojeAgendado): ?>
-                            <span class="badge rounded-pill bg-secondary text-white-50" style="font-size: 0.65rem; padding: 0.4rem 0.6rem;">Fora da Agenda</span>
-                        <?php endif; ?>
-                    </div>
-                    <?php if ($rotina['horario_sugerido']): ?>
-                        <span style="color: var(--text-secondary); font-size: 0.85rem;">
-                            <i class="bi bi-clock me-1"></i> <?= date('H:i', strtotime($rotina['horario_sugerido'])) ?>
-                        </span>
-                    <?php endif; ?>
-                </div>
-
-                <h4 style="margin: 0 0 0.5rem 0; font-size: 1.15rem; color: var(--text-primary); <?= !$hojeAgendado ? 'font-style: italic;' : ''?>">
-                    <?= htmlspecialchars($rotina['nome']) ?>
-                </h4>
-                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.5rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 40px; opacity: 0.7;">
-                    <?= htmlspecialchars($rotina['descricao']) ?>
-                </p>
-
-                <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-bottom:0.5rem;">
-                     <button class="btn-icon edit" onclick="window.location.href='editar_rotina_fixa.php?id=<?= $rotina['id'] ?>'" title="Editar"><i class="bi bi-pencil"></i></button>
-                     <button class="btn-icon delete" onclick="excluirRotina(<?= $rotina['id'] ?>, '<?= addslashes($rotina['nome']) ?>')" title="Excluir"><i class="bi bi-trash"></i></button>
-                </div>
-
-                <?php if ($hojeAgendado): ?>
-                    <button class="btn-complete-lux <?= $isConcluido ? 'is-done' : '' ?>" onclick="toggleRotina(<?= $rotina['id'] ?>, '<?= $rotina['status_hoje'] ?? 'pendente' ?>')">
-                        <?= $isConcluido ? '<i class="bi bi-check-circle-fill me-2"></i> Concluído' : 'Marcar como feito' ?>
-                    </button>
-                <?php else: ?>
-                    <button class="btn-complete-lux border-white-5 opacity-25" disabled title="Não agendado para hoje">
-                        Indisponível hoje
-                    </button>
-                <?php endif; ?>
+        <div class="stat-card stat-pendentes">
+            <div class="stat-icon-wrap"><i class="bi bi-hourglass-split"></i></div>
+            <div>
+                <span class="stat-value"><?php echo $totalPendentes; ?></span>
+                <span class="stat-label">Pendentes</span>
             </div>
-            <?php endforeach; ?>
         </div>
-    <?php endif; ?>
+        <div class="stat-card stat-alta">
+            <div class="stat-icon-wrap"><i class="bi bi-exclamation-circle-fill"></i></div>
+            <div>
+                <span class="stat-value"><?php echo $tarefas_alta; ?></span>
+                <span class="stat-label">Alta Prioridade</span>
+            </div>
+        </div>
+        <div class="stat-card stat-concluidas">
+            <div class="stat-icon-wrap"><i class="bi bi-check-circle-fill"></i></div>
+            <div>
+                <span class="stat-value"><?php echo $tarefas_concluidas_hoje; ?></span>
+                <span class="stat-label">Concluídas Hoje</span>
+            </div>
+        </div>
+        <div class="stat-card stat-progresso">
+            <div class="stat-icon-wrap"><i class="bi bi-bar-chart-fill"></i></div>
+            <div>
+                <span class="stat-value"><?php echo $progresso; ?>%</span>
+                <span class="stat-label">Progresso</span>
+            </div>
+            <div class="stat-progress-bar"><div class="stat-progress-fill" style="width:<?php echo $progresso; ?>%"></div></div>
+        </div>
+    </div>
+
+    <!-- Busca e Filtros -->
+    <div class="filter-bar">
+        <div class="search-wrap">
+            <i class="bi bi-search"></i>
+            <input type="text" id="searchInput" class="search-field" placeholder="Buscar tarefa...">
+        </div>
+        <div class="filter-pills">
+            <button class="pill active" data-filter="todas">Todas</button>
+            <button class="pill" data-filter="Alta"><span class="dot dot-alta"></span>Alta</button>
+            <button class="pill" data-filter="Média"><span class="dot dot-media"></span>Média</button>
+            <button class="pill" data-filter="Baixa"><span class="dot dot-baixa"></span>Baixa</button>
+        </div>
+    </div>
 
     <!-- Seção: Pendentes -->
     <div class="section-heading">
-        <i class="bi bi-clock-history"></i> A Fazer (<?php echo $totalPendentes; ?>)
+        <i class="bi bi-list-check"></i> A Fazer
+        <span class="section-count"><?php echo $totalPendentes; ?></span>
     </div>
 
     <div id="lista-tarefas-pendentes" class="task-list mb-5">
@@ -291,8 +226,9 @@ $totalConcluidasHoje = $tarefas_concluidas_hoje + $rotinasConcluidasCount;
     </div>
 
     <!-- Seção: Concluídas -->
-    <div class="section-heading mt-5">
+    <div class="section-heading mt-4">
         <i class="bi bi-check2-all"></i> Concluídas Recentemente
+        <span class="section-count"><?php echo count($tarefas_concluidas); ?></span>
     </div>
     
     <div id="lista-tarefas-concluidas" class="task-list opacity-75">
@@ -315,91 +251,6 @@ $totalConcluidasHoje = $tarefas_concluidas_hoje + $rotinasConcluidasCount;
             </div>
         </div>
         <?php endforeach; ?>
-    </div>
-</div>
-
-<!-- Modal Novo Hábito -->
-<div class="modal fade" id="modalRotina" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="bi bi-calendar-heart text-danger me-2"></i>Novo Hábito</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form id="formNovaRotina">
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Nome do Hábito</label>
-                        <input type="text" name="nome" class="form-control" required>
-                    </div>
-                    <div class="row mb-3">
-                        <div class="col-6">
-                            <label class="form-label">Horário (Opcional)</label>
-                            <input type="time" name="horario" class="form-control">
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label">Prioridade</label>
-                            <select name="prioridade" class="form-select">
-                                <option value="Baixa">🟢 Baixa</option>
-                                <option value="Média" selected>🟡 Média</option>
-                                <option value="Alta">🔴 Alta</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Dias da Semana</label>
-                        <style>
-                            .dias-selecao .btn-check:checked + .btn {
-                                background-color: #e50914 !important;
-                                border-color: #e50914 !important;
-                                color: white !important;
-                                font-weight: bold;
-                                box-shadow: 0 0 15px rgba(229, 9, 20, 0.6);
-                            }
-                            .dias-selecao .btn-outline-light {
-                                border-color: rgba(255,255,255,0.3) !important;
-                                color: #ffffff !important;
-                                background-color: rgba(255,255,255,0.05);
-                            }
-                            .dias-selecao .btn-outline-light:hover {
-                                background-color: rgba(255,255,255,0.1);
-                            }
-                            .dia-item {
-                                min-width: 48px;
-                                flex: 1;
-                            }
-                            #novaRotinaModal .form-label {
-                                color: #ffffff !important;
-                                font-weight: 600 !important;
-                                opacity: 1 !important;
-                                margin-bottom: 8px;
-                            }
-                        </style>
-                        <div class="d-flex flex-wrap gap-2 dias-selecao">
-                            <?php 
-                            $diasNome = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-                            for($i=1; $i<=7; $i++): 
-                            ?>
-                            <div class="dia-item text-center">
-                                <input type="checkbox" class="btn-check" name="dias_semana[]" id="dia_<?= $i ?>" value="<?= $i ?>">
-                                <label class="btn btn-outline-light w-100 py-2 px-0" for="dia_<?= $i ?>" style="font-size: 0.85rem; transition: all 0.2s;"><?= $diasNome[$i-1] ?></label>
-                            </div>
-                            <?php endfor; ?>
-                        </div>
-                        <small class="text-white-50 d-block mt-1">Se nenhum for selecionado, aparecerá todos os dias.</small>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Descrição</label>
-                        <textarea name="descricao" class="form-control" rows="2"></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn-cancel-elite" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn-elite-primary">Salvar</button>
-                </div>
-            </form>
-        </div>
     </div>
 </div>
 
@@ -495,65 +346,32 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // --- Rotinas Javascript ---
-    document.getElementById('formNovaRotina')?.addEventListener('submit', function(e) {
-        e.preventDefault();
-        const btn = this.querySelector('button[type="submit"]');
-        const original = btn.innerHTML;
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
-        
-        fetch('adicionar_rotina_fixa.php', {
-            method: 'POST',
-            body: new FormData(this)
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                Toast.fire({icon:'success', title:'Hábito criado!'});
-                setTimeout(() => location.reload(), 800);
-            } else {
-                Toast.fire({icon:'error', title:data.message});
-                btn.disabled = false;
-                btn.innerHTML = original;
-            }
+    // --- Busca e Filtros ---
+    const searchInput = document.getElementById('searchInput');
+    const filterPills = document.querySelectorAll('.pill[data-filter]');
+    let currentFilter = 'todas';
+
+    function applyFilters() {
+        const q = (searchInput?.value || '').toLowerCase();
+        document.querySelectorAll('#lista-tarefas-pendentes .task-card').forEach(card => {
+            const title = card.querySelector('.task-title')?.textContent.toLowerCase() || '';
+            const prio  = (card.dataset.prio || '').trim();
+            const matchSearch = !q || title.includes(q);
+            const matchFilter = currentFilter === 'todas' || prio === currentFilter;
+            card.style.display = (matchSearch && matchFilter) ? '' : 'none';
+        });
+    }
+
+    searchInput?.addEventListener('input', applyFilters);
+
+    filterPills.forEach(btn => {
+        btn.addEventListener('click', () => {
+            filterPills.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentFilter = btn.dataset.filter;
+            applyFilters();
         });
     });
-
-    window.toggleRotina = function(rotinaId, statusAtual) {
-        const card = document.querySelector(`.card-lux-habit[data-id="${rotinaId}"]`);
-        const controleId = card.dataset.controleId;
-        const novoStatus = statusAtual === 'concluido' ? 'pendente' : 'concluido';
-        
-        const body = !controleId 
-            ? `rotina_id=${rotinaId}&status=${novoStatus}&criar_controle=1`
-            : `controle_id=${controleId}&status=${novoStatus}`;
-
-        fetch('processar_rotina_diaria.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: body
-        }).then(r => r.json()).then(d => { if(d.success) location.reload(); });
-    };
-
-    window.excluirRotina = function(id, nome) {
-        Swal.fire({
-            title: 'Excluir hábito?',
-            text: `O hábito "${nome}" será apagado permanentemente.`,
-            icon: 'warning',
-            background: '#161618', color: '#fff',
-            showCancelButton: true, confirmButtonColor: '#e50914', cancelButtonColor: '#2c2c2e',
-            confirmButtonText: 'Sim', cancelButtonText: 'Não'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                fetch('excluir_rotina_fixa.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id: id })
-                }).then(r => r.json()).then(d => { if(d.success) location.reload(); });
-            }
-        });
-    };
 
     // --- Nova Tarefa ---
     document.getElementById('formNovaTarefa')?.addEventListener('submit', function(e) {
