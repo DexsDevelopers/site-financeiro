@@ -193,7 +193,7 @@ $botId = explode(':', $botToken)[0] ?? '';
                     <div class="step-num">2</div>
                     <div class="step-text">
                         Abra o Telegram e inicie uma conversa com o bot:<br>
-                        <b>t.me/OrionPainelBot</b> <small style="color:#8e8e93">(ou pesquise pelo nome)</small>
+                        <a href="https://t.me/financeiro7kbot" target="_blank" style="color:#4da6ff;font-weight:700;">t.me/financeiro7kbot</a> <small style="color:#8e8e93">(ou pesquise @financeiro7kbot)</small>
                     </div>
                 </div>
                 <div class="step">
