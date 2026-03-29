@@ -385,7 +385,7 @@ class OrionTelegram
             $stmt->execute([$this->userId, $catId]);
             $row = $stmt->fetch();
             if ($row && $row['total'] > 0) {
-                $total = number_format($row['total'], 2, ',', '.');
+                $total = number_format((float)$row['total'], 2, ',', '.');
                 $vezes = $row['qtd'];
                 return "📊 <i>Este mês você gastou <b>R$ {$total}</b> em {$row['cat_nome']} ({$vezes}x)</i>";
             }
@@ -410,7 +410,7 @@ class OrionTelegram
         }
         $this->setEstado('aguardando_correcao', ['ultima_transacao' => $ultima]);
         return $this->respComTeclado(
-            "↩️ Último lançamento:\n<b>{$ultima['descricao']}</b> — R$ " . number_format($ultima['valor'], 2, ',', '.') . "\n\nO que quer fazer?",
+            "↩️ Último lançamento:\n<b>{$ultima['descricao']}</b> — R$ " . number_format((float)$ultima['valor'], 2, ',', '.') . "\n\nO que quer fazer?",
             [
                 [['text' => '🗑️ Excluir este lançamento', 'callback_data' => 'corr:excluir']],
                 [['text' => '✏️ Digitar o correto agora', 'callback_data' => 'corr:redigitar']],
@@ -458,13 +458,13 @@ class OrionTelegram
         ");
         $stmt->execute([$this->userId]);
         $row = $stmt->fetch();
-        $saldo  = $row['receitas'] - $row['despesas'];
+        $saldo  = (float)$row['receitas'] - (float)$row['despesas'];
         $icon   = $saldo >= 0 ? '🟢' : '🔴';
         $texto  = "💳 <b>Resumo deste mês</b>\n\n";
-        $texto .= "💚 Receitas: <b>R$ " . number_format($row['receitas'], 2, ',', '.') . "</b>\n";
-        $texto .= "🔴 Despesas: <b>R$ " . number_format($row['despesas'], 2, ',', '.') . "</b>\n";
+        $texto .= "💚 Receitas: <b>R$ " . number_format((float)$row['receitas'], 2, ',', '.') . "</b>\n";
+        $texto .= "🔴 Despesas: <b>R$ " . number_format((float)$row['despesas'], 2, ',', '.') . "</b>\n";
         $texto .= "─────────────────\n";
-        $texto .= "{$icon} Saldo: <b>R$ " . number_format($saldo, 2, ',', '.') . "</b>";
+        $texto .= "{$icon} Saldo: <b>R$ " . number_format((float)$saldo, 2, ',', '.') . "</b>";
         return $this->respComTeclado($texto, $this->tecladoRelatorio());
     }
 
@@ -483,16 +483,16 @@ class OrionTelegram
         $stmt->execute([$this->userId]);
         $rec = $desp = 0; $qRec = $qDesp = 0;
         foreach ($stmt->fetchAll() as $r) {
-            if ($r['tipo'] === 'receita') { $rec  = $r['total']; $qRec  = $r['qtd']; }
-            else                          { $desp = $r['total']; $qDesp = $r['qtd']; }
+            if ($r['tipo'] === 'receita') { $rec  = (float)$r['total']; $qRec  = (int)$r['qtd']; }
+            else                          { $desp = (float)$r['total']; $qDesp = (int)$r['qtd']; }
         }
         $saldo = $rec - $desp;
         $icon  = $saldo >= 0 ? '🟢' : '🔴';
         $t  = "📅 <b>{$label}</b>\n\n";
-        $t .= "💚 Receitas: R$ " . number_format($rec, 2, ',', '.') . " ({$qRec}x)\n";
-        $t .= "🔴 Despesas: R$ " . number_format($desp, 2, ',', '.') . " ({$qDesp}x)\n";
+        $t .= "💚 Receitas: R$ " . number_format((float)$rec, 2, ',', '.') . " ({$qRec}x)\n";
+        $t .= "🔴 Despesas: R$ " . number_format((float)$desp, 2, ',', '.') . " ({$qDesp}x)\n";
         $t .= "─────────────────\n";
-        $t .= "{$icon} <b>R$ " . number_format($saldo, 2, ',', '.') . "</b>";
+        $t .= "{$icon} <b>R$ " . number_format((float)$saldo, 2, ',', '.') . "</b>";
         return $this->respComTeclado($t, $this->tecladoRelatorio());
     }
 
@@ -514,7 +514,7 @@ class OrionTelegram
         foreach ($rows as $i => $r) {
             $icon   = $icons[$i] ?? '📌';
             $nome   = $r['nome'] ?? 'Sem categoria';
-            $total  = number_format($r['total'], 2, ',', '.');
+            $total  = number_format((float)$r['total'], 2, ',', '.');
             $texto .= "{$icon} <b>{$nome}</b>: R$ {$total} ({$r['qtd']}x)\n";
         }
         return $this->resp($texto);
@@ -673,7 +673,7 @@ class OrionTelegram
             $bar = str_repeat('█', (int)($pct / 10)) . str_repeat('░', 10 - (int)($pct / 10));
             $t  .= "🏆 <b>{$r['nome']}</b>\n";
             $t  .= "{$bar} {$pct}%\n";
-            $t  .= "R$ " . number_format($r['valor_atual'], 2, ',', '.') . " / R$ " . number_format($r['valor_objetivo'], 2, ',', '.') . "\n\n";
+            $t  .= "R$ " . number_format((float)$r['valor_atual'], 2, ',', '.') . " / R$ " . number_format((float)$r['valor_objetivo'], 2, ',', '.') . "\n\n";
         }
         return $this->resp($t);
     }
