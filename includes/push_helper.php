@@ -124,3 +124,76 @@ function sendWebPush($pdo, $user_id, $title, $body, $url = 'dashboard.php', $opt
         return false;
     }
 }
+
+/**
+ * Envia push apenas para um endpoint específico (dispositivo atual)
+ */
+function sendWebPushToEndpoint($pdo, $user_id, $endpoint, $title, $body, $url = 'dashboard.php', $options = []) {
+    $configFile = __DIR__ . '/config_push.php';
+    if (!file_exists($configFile)) return false;
+    require_once $configFile;
+    if (!defined('VAPID_PUBLIC_KEY')) return false;
+
+    if (defined('PUSH_BASE_URL')) {
+        $baseUrl = rtrim(PUSH_BASE_URL, '/') . '/';
+    } else {
+        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https://" : "http://";
+        $host = $_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? 'localhost';
+        $baseUrl = $protocol . $host . '/';
+    }
+
+    $auth = [
+        'VAPID' => [
+            'subject'    => VAPID_SUBJECT,
+            'publicKey'  => VAPID_PUBLIC_KEY,
+            'privateKey' => VAPID_PRIVATE_KEY,
+        ],
+    ];
+
+    try {
+        $stmt = $pdo->prepare("SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = ? AND endpoint = ? LIMIT 1");
+        $stmt->execute([$user_id, $endpoint]);
+        $subData = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$subData) {
+            return ['success' => false, 'sent' => 0, 'failed' => 0, 'message' => 'Endpoint não encontrado. Ative as notificações neste dispositivo primeiro.'];
+        }
+
+        $webPush = new WebPush($auth);
+        $payload = json_encode([
+            'title'       => $title,
+            'body'        => $body,
+            'url'         => strpos($url, 'http') === 0 ? $url : $baseUrl . ltrim($url, '/'),
+            'icon'        => $baseUrl . 'assets/img/icon_192.png',
+            'badge_icon'  => $baseUrl . 'assets/img/badge_96.png',
+            'badge_count' => $options['badge'] ?? 1,
+            'actions'     => $options['actions'] ?? [['action' => 'open', 'title' => 'Ver Agora']],
+            'timestamp'   => time() * 1000
+        ]);
+
+        $subscription = Subscription::create([
+            'endpoint'  => $subData['endpoint'],
+            'publicKey' => $subData['p256dh'],
+            'authToken' => $subData['auth'],
+        ]);
+        $webPush->queueNotification($subscription, $payload);
+
+        $sent = 0;
+        foreach ($webPush->flush() as $report) {
+            if ($report->isSuccess()) {
+                $sent++;
+            } else {
+                if ($report->isSubscriptionExpired()) {
+                    $pdo->prepare("DELETE FROM push_subscriptions WHERE endpoint = ?")->execute([$report->getEndpoint()]);
+                }
+                error_log('[Push] Endpoint erro: ' . $report->getReason());
+            }
+        }
+
+        return ['success' => $sent > 0, 'sent' => $sent, 'failed' => $sent === 0 ? 1 : 0];
+
+    } catch (Exception $e) {
+        error_log('[Push] Erro endpoint: ' . $e->getMessage());
+        return false;
+    }
+}

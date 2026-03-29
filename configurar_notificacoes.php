@@ -419,11 +419,23 @@ async function sendTestPush() {
     result.style.display = 'none';
 
     try {
-        const res = await fetch(PUSH_TEST);
+        // Obter o endpoint do dispositivo atual para enviar só aqui
+        let body = {};
+        try {
+            const sw = await navigator.serviceWorker.ready;
+            const sub = await sw.pushManager.getSubscription();
+            if (sub) body = { endpoint: sub.endpoint };
+        } catch (_) {}
+
+        const res = await fetch(PUSH_TEST, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
         const data = await res.json();
         result.style.display = 'inline';
         if (data.success) {
-            result.innerHTML = '<i class="bi bi-check-circle-fill text-success me-1"></i>Notificação enviada! Verifique seu dispositivo.';
+            result.innerHTML = '<i class="bi bi-check-circle-fill text-success me-1"></i>Notificação enviada para este dispositivo!';
         } else {
             result.innerHTML = '<i class="bi bi-exclamation-circle-fill text-warning me-1"></i>' + (data.message || 'Falha ao enviar.');
         }
