@@ -9,6 +9,13 @@ ini_set('display_errors', '0');
 ini_set('log_errors', '1');
 error_reporting(E_ALL);
 
+// ── Debug: gravar raw input ───────────────────────────────────────────────────
+$rawInput = file_get_contents('php://input');
+file_put_contents(__DIR__ . '/tg_debug.log',
+    date('[Y-m-d H:i:s] ') . $rawInput . "\n---\n",
+    FILE_APPEND | LOCK_EX
+);
+
 require_once __DIR__ . '/includes/db_connect.php';
 require_once __DIR__ . '/includes/OrionTelegram.php';
 
@@ -74,7 +81,7 @@ $pdo->exec("CREATE TABLE IF NOT EXISTS telegram_vincular_codes (
 
 // ─── Parsear update ───────────────────────────────────────────────────────────
 
-$update = json_decode(file_get_contents('php://input'), true);
+$update = json_decode($rawInput, true);
 if (empty($update)) { http_response_code(200); exit; }
 
 // Suporte: message normal + callback_query (botões inline)
@@ -98,9 +105,32 @@ $stmt = $pdo->prepare("SELECT user_id FROM telegram_usuarios WHERE chat_id = ?")
 $stmt->execute([$chatId]);
 $linkedUserId = $stmt->fetchColumn();
 
-// ─── /start — vinculação de conta ────────────────────────────────────────────
+// ─── Comandos de diagnóstico (sem OrionTelegram) ─────────────────────────────
 
 $inputText = $isCallback ? '' : trim($message['text'] ?? '');
+
+if (!$isCallback && strtolower($inputText) === '/teste') {
+    tgSend($BOT_TOKEN, $chatId,
+        "✅ <b>Bot funcionando!</b>\n\n" .
+        "PHP " . PHP_VERSION . "\n" .
+        "DB: " . ($pdo ? 'OK' : 'ERRO') . "\n" .
+        "isCallback: " . ($isCallback ? 'sim' : 'não') . "\n" .
+        "chatId: {$chatId}\n" .
+        "linkedUserId: " . ($linkedUserId ?: 'não vinculado')
+    );
+    http_response_code(200); exit;
+}
+
+if (!$isCallback && strtolower($inputText) === '/log') {
+    $logFile = __DIR__ . '/tg_debug.log';
+    $tail = file_exists($logFile)
+        ? implode('', array_slice(file($logFile), -30))
+        : 'Sem log';
+    tgSend($BOT_TOKEN, $chatId, '<pre>' . htmlspecialchars(substr($tail, -3000)) . '</pre>');
+    http_response_code(200); exit;
+}
+
+// ─── /start — vinculação de conta ────────────────────────────────────────────
 
 if (!$isCallback && str_starts_with($inputText, '/start')) {
     $code = trim(explode(' ', $inputText, 2)[1] ?? '');
