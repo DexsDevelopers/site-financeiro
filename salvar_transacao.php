@@ -85,7 +85,18 @@ try {
     
     $newTransactionId = $pdo->lastInsertId();
 
-    // --- 5. Resposta de Sucesso com Dados Completos ---
+    // --- 5. Push por evento (não bloqueia resposta em caso de erro) ---
+    try {
+        require_once __DIR__ . '/includes/push_eventos.php';
+        $evento = ($tipo === 'despesa') ? 'nova_despesa' : 'nova_receita';
+        dispararPushEvento($pdo, $id_usuario, $evento, [
+            'valor'     => (float)$valor,
+            'categoria' => $categoria_info['nome'],
+            'descricao' => $descricao,
+        ]);
+    } catch (Exception $pushErr) { /* silencioso */ }
+
+    // --- 6. Resposta de Sucesso com Dados Completos ---
     $response['success'] = true;
     $response['message'] = 'Lançamento salvo com sucesso!';
     // Retorna os dados do novo lançamento para o frontend

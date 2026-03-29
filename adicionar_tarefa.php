@@ -60,6 +60,16 @@ try {
     
     $newTaskId = $pdo->lastInsertId();
 
+    // Push: avisar se tarefa tem prazo urgente
+    try {
+        require_once __DIR__ . '/includes/push_eventos.php';
+        dispararPushEvento($pdo, $userId, 'tarefa_urgente', [
+            'descricao'   => $descricao,
+            'data_limite' => $data_limite,
+            'prioridade'  => $prioridade,
+        ]);
+    } catch (Exception $pushErr) { /* silencioso */ }
+
     // Resposta de sucesso com os dados da nova tarefa
     $response['success'] = true;
     $response['message'] = 'Tarefa adicionada com sucesso!';

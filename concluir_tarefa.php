@@ -21,11 +21,22 @@ $userId = $_SESSION['user_id'];
 
 // 3. ATUALIZAR NO BANCO DE DADOS (COM SEGURANÇA)
 try {
+    // Busca o nome da tarefa para o push
+    $stmtNome = $pdo->prepare("SELECT descricao FROM tarefas WHERE id = ? AND id_usuario = ? LIMIT 1");
+    $stmtNome->execute([$tarefaId, $userId]);
+    $descricaoTarefa = $stmtNome->fetchColumn() ?: 'Tarefa';
+
     // Prepara a query para atualizar o status da tarefa para 'concluida'
     // Novamente, usamos "AND id_usuario = ?" pela mesma razão de segurança de antes.
     $stmt = $pdo->prepare("UPDATE tarefas SET status = 'concluida', data_conclusao = NOW() WHERE id = ? AND id_usuario = ?");
     
     $stmt->execute([$tarefaId, $userId]);
+
+    // Push motivacional
+    try {
+        require_once __DIR__ . '/includes/push_eventos.php';
+        dispararPushEvento($pdo, $userId, 'tarefa_concluida', ['descricao' => $descricaoTarefa]);
+    } catch (Exception $pushErr) { /* silencioso */ }
 
 } catch (PDOException $e) {
     die("Erro ao concluir tarefa: " . $e->getMessage());

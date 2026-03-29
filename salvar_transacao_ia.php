@@ -47,6 +47,17 @@ try {
     $stmt = $pdo->prepare($sql);
     $stmt->execute([$id_usuario, $id_categoria, $descricao, $valor, $tipo, $data_transacao]);
 
+    // Push por evento
+    try {
+        require_once __DIR__ . '/includes/push_eventos.php';
+        $evento = ($tipo === 'despesa') ? 'nova_despesa' : 'nova_receita';
+        dispararPushEvento($pdo, $id_usuario, $evento, [
+            'valor'     => (float)$valor,
+            'categoria' => $categoria_nome,
+            'descricao' => $descricao,
+        ]);
+    } catch (Exception $pushErr) { /* silencioso */ }
+
     $response['success'] = true;
     $response['message'] = 'Lançamento salvo com sucesso!';
     echo json_encode($response);
