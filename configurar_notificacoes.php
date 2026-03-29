@@ -196,6 +196,16 @@ require_once 'templates/header.php';
             <div class="status-label">Inscrito para receber push</div>
             <div class="status-value" id="val-sub">Verificando...</div>
         </div>
+        <div class="status-row">
+            <div class="status-dot" id="dot-sw-file"></div>
+            <div class="status-label">Service Worker ativo</div>
+            <div class="status-value" id="val-sw-file">Verificando...</div>
+        </div>
+        <div class="status-row">
+            <div class="status-dot" id="dot-standalone"></div>
+            <div class="status-label">Modo instalado (PWA)</div>
+            <div class="status-value" id="val-standalone">Verificando...</div>
+        </div>
     </div>
 
     <!-- PASSO A PASSO -->
@@ -344,6 +354,34 @@ async function checkStatus() {
             setDot('sub', 'bad', 'Erro');
             setActionState('default');
         }
+
+        // SW file ativo
+        try {
+            const regs = await navigator.serviceWorker.getRegistrations();
+            let swUrl = '';
+            for (const r of regs) {
+                const u = (r.active && r.active.scriptURL) || (r.installing && r.installing.scriptURL) || '';
+                if (u) { swUrl = u; break; }
+            }
+            if (swUrl.includes('sw-advanced')) {
+                setDot('sw-file', 'ok', 'sw-advanced.js ✓');
+            } else if (swUrl.includes('sw-minimal')) {
+                setDot('sw-file', 'bad', 'sw-minimal.js ✗ (sem push)');
+            } else {
+                setDot('sw-file', 'warn', swUrl ? swUrl.split('/').pop() : 'Desconhecido');
+            }
+        } catch (_) { setDot('sw-file', 'warn', 'Não detectado'); }
+    }
+
+    // Standalone (PWA instalado)
+    const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    if (isStandalone) {
+        setDot('standalone', 'ok', 'Sim — app instalado ✓');
+    } else if (isIOS) {
+        setDot('standalone', 'bad', 'Não — abra pelo ícone na tela inicial!');
+    } else {
+        setDot('standalone', 'warn', 'Não (não obrigatório no Android/PC)');
     }
 }
 
