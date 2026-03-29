@@ -173,9 +173,10 @@ class OrionTelegram
             }
         }
         // Se tem valor monetário explícito (R$, reais, valor solto), provavelmente é despesa
-        // Mas ignora padrões de hora: 22h, 10h30, 15:30
-        $textoSemHora = preg_replace('/\b\d{1,2}h(?:\d{2})?\b/', '', $texto);
+        // Mas ignora padrões de hora: 22h, 22h30, 22:00, 22 horas
+        $textoSemHora = preg_replace('/\b\d{1,2}h(?:\d{2})?\b/i', '', $texto);
         $textoSemHora = preg_replace('/\b\d{1,2}:\d{2}\b/', '', $textoSemHora);
+        $textoSemHora = preg_replace('/\b\d{1,2}\s+horas?\b/i', '', $textoSemHora);
         if (preg_match('/r\$|reais|\breais\b/i', $textoSemHora)) return 'despesa';
         if (preg_match('/\b\d+[,.]\d{2}\b/', $textoSemHora)) return 'despesa';
         return 'desconhecido';
@@ -189,9 +190,10 @@ class OrionTelegram
     {
         $entidades = ['valor' => null, 'descricao' => '', 'data' => date('Y-m-d'), 'categoria_id' => null];
 
-        // Valor — strip padrões de hora (22h, 10h30, 15:30) antes de extrair
-        $textoValor = preg_replace('/\b\d{1,2}h(?:\d{2})?\b/', '', $texto);
+        // Valor — strip padrões de hora (22h, 22h30, 22:00, 22 horas) antes de extrair
+        $textoValor = preg_replace('/\b\d{1,2}h(?:\d{2})?\b/i', '', $texto);
         $textoValor = preg_replace('/\b\d{1,2}:\d{2}\b/', '', $textoValor);
+        $textoValor = preg_replace('/\b\d{1,2}\s+horas?\b/i', '', $textoValor);
         if (preg_match('/r?\$?\s*(\d{1,3}(?:\.\d{3})*(?:,\d{2})?|\d+(?:[.,]\d{2})?)/i', $textoValor, $m)) {
             $entidades['valor'] = (float) str_replace(['.', ','], ['', '.'], $m[1]);
         }
@@ -553,19 +555,23 @@ class OrionTelegram
                 $desc = preg_replace('/\bhoje\b/iu', '', $desc);
             }
 
-            // Horário — "às 22h", "as 22h", "22:00", "22h30", "às 9h"
+            // Horário — suporta: 22h · 22h30 · 22:00 · 22 horas · às/as 22h · às/as 22:00 · às/as 22 horas
             $horaLembrete = null;
-            if (preg_match('/\b(?:às?|as)\s*(\d{1,2})h(\d{2})?\b/iu', $desc, $mH)) {
-                $h = str_pad($mH[1], 2, '0', STR_PAD_LEFT);
-                $m = str_pad($mH[2] ?? '00', 2, '0', STR_PAD_LEFT);
+            $horaPattern  = '
+                (?:às?|as|a|\b)      # prefixo opcional: às, as, a (ou início de palavra)
+                \s*
+                (\d{1,2})            # hora
+                (?:
+                    [h:]\s*(\d{2})?   # 22h · 22h30 · 22:00
+                    |\s+horas?         # 22 horas · 22 hora
+                )
+            ';
+            if (preg_match('/' . $horaPattern . '/ixu', $desc, $mH)) {
+                $h = str_pad((int)$mH[1], 2, '0', STR_PAD_LEFT);
+                $m = str_pad((int)($mH[2] ?? 0), 2, '0', STR_PAD_LEFT);
                 $horaLembrete = "{$h}:{$m}:00";
-                $desc = preg_replace('/\b(?:às?|as)\s*\d{1,2}h\d*\b/iu', '', $desc);
-                if (!$dataLimite) $dataLimite = date('Y-m-d'); // se tem hora, assume hoje
-            } elseif (preg_match('/\b(\d{1,2}):(\d{2})\b/', $desc, $mH)) {
-                $h = str_pad($mH[1], 2, '0', STR_PAD_LEFT);
-                $m = str_pad($mH[2], 2, '0', STR_PAD_LEFT);
-                $horaLembrete = "{$h}:{$m}:00";
-                $desc = preg_replace('/\b\d{1,2}:\d{2}\b/', '', $desc);
+                // Remove o trecho de hora da descrição
+                $desc = preg_replace('/' . $horaPattern . '/ixu', '', $desc);
                 if (!$dataLimite) $dataLimite = date('Y-m-d');
             }
 
