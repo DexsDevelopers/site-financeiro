@@ -21,7 +21,10 @@ class OrionTelegram
                                   'transferência','depositaram','caiu na conta','recebimento','pagamento recebido'];
     private const CONSULTA_KW = ['quanto gastei','quanto ganhei','meu saldo','ver saldo','saldo atual',
                                   'quanto tenho','resumo','relatório','extrato','minhas despesas',
-                                  'minhas receitas','total do mês','gasto do mês','overview'];
+                                  'minhas receitas','total do mês','gasto do mês','overview',
+                                  'minhas tarefas','ver tarefas','listar tarefas','quais tarefas',
+                                  'tarefas pendentes','o que tenho pra fazer','o que tenho que fazer',
+                                  'minhas metas','ver metas','listar metas'];
     private const TAREFA_KW   = ['criar tarefa','nova tarefa','lembrete','to do','tarefa para','adicionar tarefa',
                                   'preciso fazer','não esquecer','anotar','me lembre','me lembra','lembrar','lembrar de',
                                   'anota ai','anota aí','por favor anota','adicionar lembrete'];
@@ -454,6 +457,12 @@ class OrionTelegram
 
     private function processarConsulta(string $texto): array
     {
+        if (str_contains($texto, 'tarefa') || str_contains($texto, 'pra fazer') || str_contains($texto, 'que fazer')) {
+            return $this->listarTarefas();
+        }
+        if (str_contains($texto, 'meta')) {
+            return $this->listarMetas();
+        }
         if (str_contains($texto, 'saldo') || str_contains($texto, 'tenho')) {
             return $this->consultarSaldo();
         }
@@ -467,6 +476,67 @@ class OrionTelegram
             return $this->consultarPorCategoria();
         }
         return $this->consultarPeriodo('mes');
+    }
+
+    private function listarTarefas(): array
+    {
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT descricao, prioridade, data_limite, hora_lembrete, status
+                FROM tarefas
+                WHERE id_usuario = ? AND status = 'pendente'
+                ORDER BY FIELD(prioridade,'Alta','Média','Baixa'), data_limite ASC
+                LIMIT 10
+            ");
+            $stmt->execute([$this->userId]);
+            $tarefas = $stmt->fetchAll();
+        } catch (Throwable $e) {
+            return $this->resp('❌ Erro ao buscar tarefas: ' . $e->getMessage());
+        }
+        if (empty($tarefas)) {
+            return $this->resp("✅ Nenhuma tarefa pendente! Você está em dia. 🎉");
+        }
+        $iconePrio = ['Alta' => '🔴', 'Média' => '🟡', 'Baixa' => '🟢'];
+        $texto = "📋 <b>Suas tarefas pendentes</b>\n\n";
+        foreach ($tarefas as $t) {
+            $ic   = $iconePrio[$t['prioridade']] ?? '⚪';
+            $data = $t['data_limite'] ? ' · 📅 ' . date('d/m', strtotime($t['data_limite'])) : '';
+            $hora = $t['hora_lembrete'] ? ' · ⏰ ' . substr($t['hora_lembrete'], 0, 5) : '';
+            $texto .= "{$ic} {$t['descricao']}{$data}{$hora}\n";
+        }
+        $texto .= "\n<i>" . count($tarefas) . " tarefa(s) pendente(s)</i>";
+        return $this->respComTeclado($texto, $this->tecladoRelatorio());
+    }
+
+    private function listarMetas(): array
+    {
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT nome, valor_alvo, valor_atual, prazo
+                FROM metas
+                WHERE id_usuario = ? AND status = 'ativa'
+                ORDER BY prazo ASC LIMIT 5
+            ");
+            $stmt->execute([$this->userId]);
+            $metas = $stmt->fetchAll();
+        } catch (Throwable $e) {
+            return $this->resp('❌ Erro ao buscar metas: ' . $e->getMessage());
+        }
+        if (empty($metas)) {
+            return $this->resp("🎯 Nenhuma meta ativa. Use \"criar meta de R$ 1000 para viagem\" para criar uma!");
+        }
+        $texto = "🎯 <b>Suas metas ativas</b>\n\n";
+        foreach ($metas as $m) {
+            $alvo   = number_format((float)$m['valor_alvo'], 2, ',', '.');
+            $atual  = number_format((float)$m['valor_atual'], 2, ',', '.');
+            $pct    = $m['valor_alvo'] > 0 ? round(((float)$m['valor_atual'] / (float)$m['valor_alvo']) * 100) : 0;
+            $prazo  = $m['prazo'] ? ' · 📅 ' . date('d/m/Y', strtotime($m['prazo'])) : '';
+            $bar    = str_repeat('█', (int)($pct / 10)) . str_repeat('░', 10 - (int)($pct / 10));
+            $texto .= "💰 <b>{$m['nome']}</b>\n";
+            $texto .= "   {$bar} {$pct}%\n";
+            $texto .= "   R$ {$atual} / R$ {$alvo}{$prazo}\n\n";
+        }
+        return $this->respComTeclado($texto, $this->tecladoRelatorio());
     }
 
     private function consultarSaldo(): array
