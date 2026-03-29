@@ -514,5 +514,65 @@ if (
     window.NOTIF_API_PATH = "<?= rtrim(str_replace(basename($_SERVER['SCRIPT_NAME'] ?? '/index.php'), '', $_SERVER['SCRIPT_NAME'] ?? '/'), '/') ?>/api_notificacoes.php";
 </script>
 <script src="<?= asset('assets/js/push_manager.js') ?>"></script>
+
+<script>
+// ── Polling de lembretes de tarefas (sem cron) ─────────────────────────────
+(function orionNotifPoller() {
+    const CHECK_URL = 'check_notificacoes.php';
+    const INTERVAL  = 60000; // 60 segundos
+
+    function verificar() {
+        fetch(CHECK_URL, { credentials: 'same-origin' })
+            .then(r => r.json())
+            .then(data => {
+                if (!data.ok || !data.notificacoes || !data.notificacoes.length) return;
+                data.notificacoes.forEach(function(n, i) {
+                    setTimeout(function() {
+                        // Toast no site
+                        if (typeof showToast === 'function') {
+                            showToast(n.titulo, n.mensagem);
+                        }
+                        // SweetAlert2 para destaque visual
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                toast: true,
+                                position: 'top-end',
+                                icon: 'info',
+                                title: n.titulo,
+                                text: n.mensagem,
+                                showConfirmButton: false,
+                                timer: 8000,
+                                timerProgressBar: true,
+                                didOpen: function(t) {
+                                    t.addEventListener('click', function() {
+                                        window.location.href = n.url || 'tarefas.php';
+                                    });
+                                }
+                            });
+                        }
+                        // Som de notificação (se disponível)
+                        try {
+                            var ctx = new (window.AudioContext || window.webkitAudioContext)();
+                            var o = ctx.createOscillator();
+                            var g = ctx.createGain();
+                            o.connect(g); g.connect(ctx.destination);
+                            o.frequency.value = 880;
+                            g.gain.setValueAtTime(0.3, ctx.currentTime);
+                            g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+                            o.start(ctx.currentTime);
+                            o.stop(ctx.currentTime + 0.5);
+                        } catch(e) {}
+                    }, i * 1500);
+                });
+            })
+            .catch(function() { /* silencioso */ });
+    }
+
+    // Primeira verificação após 10s (aguarda página carregar)
+    setTimeout(verificar, 10000);
+    // Polling a cada 60s
+    setInterval(verificar, INTERVAL);
+})();
+</script>
 </body>
 </html>
