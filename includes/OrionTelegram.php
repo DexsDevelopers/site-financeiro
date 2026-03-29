@@ -23,7 +23,8 @@ class OrionTelegram
                                   'quanto tenho','resumo','relatório','extrato','minhas despesas',
                                   'minhas receitas','total do mês','gasto do mês','overview'];
     private const TAREFA_KW   = ['criar tarefa','nova tarefa','lembrete','to do','tarefa para','adicionar tarefa',
-                                  'preciso fazer','não esquecer','anotar'];
+                                  'preciso fazer','não esquecer','anotar','me lembre','me lembra','lembrar','lembrar de',
+                                  'anota ai','anota aí','por favor anota','adicionar lembrete'];
     private const META_KW     = ['criar meta','nova meta','meta de','objetivo de','quero juntar','poupar para'];
     private const CORRECAO_KW = ['errei','foi errado','era outro','na verdade','corrijo','estava errado',
                                   'não era','cancela','cancele','desfazer'];
@@ -171,8 +172,12 @@ class OrionTelegram
                 return $dado['tipo'];
             }
         }
-        // Se tem valor monetário, provavelmente é despesa
-        if (preg_match('/\d+[,.]?\d*/i', $texto)) return 'despesa';
+        // Se tem valor monetário explícito (R$, reais, valor solto), provavelmente é despesa
+        // Mas ignora padrões de hora: 22h, 10h30, 15:30
+        $textoSemHora = preg_replace('/\b\d{1,2}h(?:\d{2})?\b/', '', $texto);
+        $textoSemHora = preg_replace('/\b\d{1,2}:\d{2}\b/', '', $textoSemHora);
+        if (preg_match('/r\$|reais|\breais\b/i', $textoSemHora)) return 'despesa';
+        if (preg_match('/\b\d+[,.]\d{2}\b/', $textoSemHora)) return 'despesa';
         return 'desconhecido';
     }
 
@@ -184,8 +189,10 @@ class OrionTelegram
     {
         $entidades = ['valor' => null, 'descricao' => '', 'data' => date('Y-m-d'), 'categoria_id' => null];
 
-        // Valor
-        if (preg_match('/r?\$?\s*(\d{1,3}(?:\.\d{3})*(?:,\d{2})?|\d+(?:[.,]\d{2})?)/i', $texto, $m)) {
+        // Valor — strip padrões de hora (22h, 10h30, 15:30) antes de extrair
+        $textoValor = preg_replace('/\b\d{1,2}h(?:\d{2})?\b/', '', $texto);
+        $textoValor = preg_replace('/\b\d{1,2}:\d{2}\b/', '', $textoValor);
+        if (preg_match('/r?\$?\s*(\d{1,3}(?:\.\d{3})*(?:,\d{2})?|\d+(?:[.,]\d{2})?)/i', $textoValor, $m)) {
             $entidades['valor'] = (float) str_replace(['.', ','], ['', '.'], $m[1]);
         }
 
