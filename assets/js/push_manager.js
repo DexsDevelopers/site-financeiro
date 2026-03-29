@@ -92,8 +92,13 @@
             } catch (err) {
                 console.error('[Push] Erro ao assinar:', err.name, err.message, err);
                 let msg = 'Não foi possível ativar as notificações.';
+                const isBrave = !!(navigator.brave && navigator.brave.isBrave);
                 if (err.name === 'AbortError') {
-                    msg = 'Servidor push inacessível. Tente novamente ou use outro navegador.';
+                    if (isBrave) {
+                        msg = 'Brave bloqueou a conexão push. Vá em brave://settings/privacy e ative "Usar serviços Google para mensagens push". Ou use o Chrome.'
+                    } else {
+                        msg = 'Servidor push inacessível. Desative VPN/bloqueadores de anúncio ou tente pelo Chrome.';
+                    }
                 } else if (err.name === 'NotAllowedError') {
                     msg = 'Permissão negada. Verifique as configurações do navegador.';
                 } else if (err.name === 'InvalidStateError') {
