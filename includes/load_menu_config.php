@@ -45,7 +45,7 @@ if (!$menu_config) {
             'produtividade' => ['tarefas.php', 'calendario.php', 'pomodoro.php'],
             'personalizacao' => ['temas_customizaveis.php', 'layouts_flexiveis.php', 'preferencias_avancadas.php', 'personalizar_menu.php'],
             'gestao_empresas' => ['gestao_empresas.php'],
-            'sistema' => ['perfil.php', 'contas.php', 'whatsapp_admin.php', 'whatsapp_qr.php', 'integracoes_google.php', 'debug_google_integration.php', 'verificar_apis_google.php', 'debug_ia.php', 'debug_ia_whatsapp.php']
+            'sistema' => ['perfil.php', 'contas.php', 'configurar_notificacoes.php', 'whatsapp_admin.php', 'whatsapp_qr.php', 'integracoes_google.php', 'debug_google_integration.php', 'verificar_apis_google.php', 'debug_ia.php', 'debug_ia_whatsapp.php']
         ],
         'ordem_secoes' => ['academy', 'financeiro', 'produtividade', 'gestao_empresas', 'personalizacao', 'sistema'],
         'ordem_paginas' => [
@@ -54,7 +54,7 @@ if (!$menu_config) {
             'produtividade' => ['tarefas.php', 'calendario.php', 'pomodoro.php'],
             'personalizacao' => ['temas_customizaveis.php', 'layouts_flexiveis.php', 'preferencias_avancadas.php', 'personalizar_menu.php'],
             'gestao_empresas' => ['gestao_empresas.php'],
-            'sistema' => ['perfil.php', 'contas.php', 'whatsapp_admin.php', 'whatsapp_qr.php', 'integracoes_google.php', 'debug_google_integration.php', 'verificar_apis_google.php', 'debug_ia.php', 'debug_ia_whatsapp.php']
+            'sistema' => ['perfil.php', 'contas.php', 'configurar_notificacoes.php', 'whatsapp_admin.php', 'whatsapp_qr.php', 'integracoes_google.php', 'debug_google_integration.php', 'verificar_apis_google.php', 'debug_ia.php', 'debug_ia_whatsapp.php']
         ]
     ];
 }
@@ -99,6 +99,24 @@ if (!isset($menu_config['ordem_paginas']['sistema'])) {
 }
 if (!in_array('contas.php', $menu_config['ordem_paginas']['sistema'], true)) {
     $menu_config['ordem_paginas']['sistema'][] = 'contas.php';
+}
+
+// Garante que 'configurar_notificacoes.php' apareça em Sistema (mesmo com config antiga)
+if (!in_array('configurar_notificacoes.php', $menu_config['paginas_visiveis']['sistema'], true)) {
+    $idx = array_search('contas.php', $menu_config['paginas_visiveis']['sistema'], true);
+    if ($idx !== false) {
+        array_splice($menu_config['paginas_visiveis']['sistema'], $idx + 1, 0, ['configurar_notificacoes.php']);
+    } else {
+        $menu_config['paginas_visiveis']['sistema'][] = 'configurar_notificacoes.php';
+    }
+}
+if (!in_array('configurar_notificacoes.php', $menu_config['ordem_paginas']['sistema'], true)) {
+    $idx = array_search('contas.php', $menu_config['ordem_paginas']['sistema'], true);
+    if ($idx !== false) {
+        array_splice($menu_config['ordem_paginas']['sistema'], $idx + 1, 0, ['configurar_notificacoes.php']);
+    } else {
+        $menu_config['ordem_paginas']['sistema'][] = 'configurar_notificacoes.php';
+    }
 }
 
 // Garante que 'whatsapp_admin.php' apareça em Sistema
@@ -262,6 +280,7 @@ $paginasInfo = [
     'preferencias_avancadas.php' => ['nome' => 'Preferências Avançadas', 'icone' => 'bi-gear-fill'],
     'personalizar_menu.php' => ['nome' => 'Personalizar Menu', 'icone' => 'bi-list-ul'],
     'perfil.php' => ['nome' => 'Meu Perfil', 'icone' => 'bi-person-circle'],
+    'configurar_notificacoes.php' => ['nome' => 'Notificações Push', 'icone' => 'bi-bell-fill'],
     'contas.php' => ['nome' => 'Contas', 'icone' => 'bi-wallet2'],
     'whatsapp_admin.php' => ['nome' => 'Avisos WhatsApp', 'icone' => 'bi-whatsapp'],
     'whatsapp_qr.php' => ['nome' => 'QR Code WhatsApp', 'icone' => 'bi-qr-code'],
