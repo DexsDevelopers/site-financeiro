@@ -398,6 +398,7 @@ if ($saldoMes > 0) {
             </div>
             
             <!-- GRÁFICO PIZZA -->
+            <div class="dashboard-card">
                 <div class="card-header-compact">
                     <i class="bi bi-pie-chart-fill"></i>
                     <span>Despesas por Categoria</span>
