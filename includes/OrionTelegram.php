@@ -559,6 +559,7 @@ class OrionTelegram
     {
         // Remove palavras-chave de intenção
         $desc = preg_replace('/\b(criar tarefa|nova tarefa|lembrete|to do|tarefa para|adicionar tarefa|preciso fazer|não esquecer|anotar|me lembre|me lembra|lembrar de|lembrar|anota ai|anota aí|por favor anota|adicionar lembrete)\b/iu', '', $texto);
+        $desc = preg_replace('/^\s*(de|para|que|ao?|da?|o|em|na?|num?)\s+/iu', '', $desc);
         $desc = trim($desc);
         if (empty($desc)) return $this->resp("💬 Qual é a tarefa? Me diz o que precisa fazer.");
         try {
