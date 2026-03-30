@@ -24,7 +24,7 @@ class OrionTelegram
                                   'minhas receitas','total do mês','gasto do mês','overview',
                                   'minhas tarefas','ver tarefas','listar tarefas','quais tarefas',
                                   'tarefas pendentes','o que tenho pra fazer','o que tenho que fazer',
-                                  'minhas metas','ver metas','listar metas'];
+                                  'minhas metas','ver metas','listar metas','tarefas','metas'];
     private const TAREFA_KW   = ['criar tarefa','nova tarefa','lembrete','to do','tarefa para','adicionar tarefa',
                                   'preciso fazer','não esquecer','anotar','me lembre','me lembra','lembrar','lembrar de',
                                   'anota ai','anota aí','por favor anota','adicionar lembrete'];
