@@ -581,12 +581,12 @@ class OrionTelegram
             // Horário — suporta: 22h · 22h30 · 22:00 · 22 horas · às/as 22h · às/as 22:00 · às/as 22 horas
             $horaLembrete = null;
             $horaPattern  = '
-                (?:às?|as|a|\b)      # prefixo opcional: às, as, a (ou início de palavra)
-                \s*
+                (?:(?:às?|as)\s+)?   # prefixo opcional: às, as (seguido de espaço)
+                (?<![a-zA-Z\x{00C0}-\x{024F}])  # não precedido de letra (evita "academia 18h" → "academi")
                 (\d{1,2})            # hora
                 (?:
-                    [h:]\s*(\d{2})?   # 22h · 22h30 · 22:00
-                    |\s+horas?         # 22 horas · 22 hora
+                    [h:]\s*(\d{2})?  # 22h · 22h30 · 22:00
+                    |\s+horas?        # 22 horas · 22 hora
                 )
             ';
             if (preg_match('/' . $horaPattern . '/ixu', $desc, $mH)) {
