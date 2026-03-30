@@ -645,35 +645,78 @@ class OrionTelegram
             return $this->resp("✅ <b>{$n} tarefa(s)</b> marcada(s) como prioridade <b>{$prio}</b>!");
         }
 
+        $eConcluir = (bool)preg_match('/conclu|feita|feito|done|finaliz/iu', $texto);
+        $eDeletar  = (bool)preg_match('/delet|remov|apag|exclu/iu', $texto);
+
+        // ── Concluir / Deletar TODAS ───────────────────────────────────────────
+        if ($todasKw && $eConcluir) {
+            $stmt = $this->pdo->prepare("UPDATE tarefas SET status = 'concluido' WHERE id_usuario = ? AND status = 'pendente'");
+            $stmt->execute([$this->userId]);
+            return $this->resp("🎉 <b>{$stmt->rowCount()} tarefa(s)</b> concluídas!");
+        }
+        if ($todasKw && $eDeletar) {
+            $stmt = $this->pdo->prepare("DELETE FROM tarefas WHERE id_usuario = ? AND status = 'pendente'");
+            $stmt->execute([$this->userId]);
+            return $this->resp("🗑️ <b>{$stmt->rowCount()} tarefa(s)</b> removida(s).");
+        }
+
+        // ── Concluir / Deletar tarefa ESPECÍFICA por nome ─────────────────────
+        if ($eConcluir || $eDeletar) {
+            // Extrai palavras-chave: remove verbos/preposições de comando
+            $stopCmd = '/\b(concluir?|finalizar|marcar|como|feita|feito|apagar|deletar|remover|tarefa|lembrete|de|do|da|o|a|que|foi)\b/iu';
+            $busca   = trim(preg_replace('/\s+/', ' ', preg_replace($stopCmd, '', $texto)));
+            if (strlen($busca) >= 3) {
+                $palavras = array_filter(explode(' ', $busca), fn($w) => strlen($w) >= 3);
+                // Tenta encontrar tarefa que contenha qualquer palavra-chave
+                foreach ($palavras as $palavra) {
+                    $stmt = $this->pdo->prepare("
+                        SELECT id, descricao FROM tarefas
+                        WHERE id_usuario = ? AND status = 'pendente' AND descricao LIKE ?
+                        ORDER BY id DESC LIMIT 1
+                    ");
+                    $stmt->execute([$this->userId, "%{$palavra}%"]);
+                    $tarefa = $stmt->fetch();
+                    if ($tarefa) {
+                        if ($eDeletar) {
+                            $this->pdo->prepare("DELETE FROM tarefas WHERE id = ?")->execute([$tarefa['id']]);
+                            return $this->resp("🗑️ Tarefa <b>\"{$tarefa['descricao']}\"</b> removida!");
+                        }
+                        $this->pdo->prepare("UPDATE tarefas SET status = 'concluido' WHERE id = ?")->execute([$tarefa['id']]);
+                        return $this->resp("✅ Tarefa <b>\"{$tarefa['descricao']}\"</b> marcada como concluída!");
+                    }
+                }
+                return $this->resp("🔍 Não encontrei nenhuma tarefa pendente com <b>\"{$busca}\"</b>.\n\nDigite <code>tarefas</code> para ver a lista.");
+            }
+        }
+
+        // ── Prioridade + nome específico ──────────────────────────────────────
         if ($prio) {
-            // prioridade sem "todas" → aplica à mais recente
+            $stopCmd = '/\b(prioridade|alta|baixa|media|m[eé]dia|urgente|coloque|mude|deixe|tarefa|como|de|do|da)\b/iu';
+            $busca   = trim(preg_replace('/\s+/', ' ', preg_replace($stopCmd, '', $texto)));
+            if (strlen($busca) >= 3) {
+                $palavras = array_filter(explode(' ', $busca), fn($w) => strlen($w) >= 3);
+                foreach ($palavras as $palavra) {
+                    $stmt = $this->pdo->prepare("SELECT id, descricao FROM tarefas WHERE id_usuario = ? AND status = 'pendente' AND descricao LIKE ? ORDER BY id DESC LIMIT 1");
+                    $stmt->execute([$this->userId, "%{$palavra}%"]);
+                    $tarefa = $stmt->fetch();
+                    if ($tarefa) {
+                        $this->pdo->prepare("UPDATE tarefas SET prioridade = ? WHERE id = ?")->execute([$prio, $tarefa['id']]);
+                        return $this->resp("✅ Tarefa <b>\"{$tarefa['descricao']}\"</b> → prioridade <b>{$prio}</b>!");
+                    }
+                }
+            }
+            // Sem nome → última tarefa
             $stmt = $this->pdo->prepare("UPDATE tarefas SET prioridade = ? WHERE id_usuario = ? AND status = 'pendente' ORDER BY id DESC LIMIT 1");
             $stmt->execute([$prio, $this->userId]);
             return $this->resp("✅ Última tarefa marcada como prioridade <b>{$prio}</b>!");
         }
 
-        // ── Concluir TODAS ─────────────────────────────────────────────────────
-        if ($todasKw && preg_match('/conclu|feita|feito|done|finaliz/iu', $texto)) {
-            $stmt = $this->pdo->prepare("UPDATE tarefas SET status = 'concluido' WHERE id_usuario = ? AND status = 'pendente'");
-            $stmt->execute([$this->userId]);
-            $n = $stmt->rowCount();
-            return $this->resp("🎉 <b>{$n} tarefa(s)</b> marcada(s) como concluídas!");
-        }
-
-        // ── Deletar TODAS ──────────────────────────────────────────────────────
-        if ($todasKw && preg_match('/delet|remov|apag|exclu/iu', $texto)) {
-            $stmt = $this->pdo->prepare("UPDATE tarefas SET status = 'concluido' WHERE id_usuario = ? AND status = 'pendente'");
-            $stmt->execute([$this->userId]);
-            $n = $stmt->rowCount();
-            return $this->resp("🗑️ <b>{$n} tarefa(s)</b> removida(s).");
-        }
-
         // Fallback — listar com dica
         return $this->respComTeclado(
             "🤔 Não entendi exatamente o que fazer com as tarefas.\n\nTenta assim:\n" .
-            "• <code>coloque todas as tarefas como prioridade alta</code>\n" .
+            "• <code>concluir tarefa do busuu</code>\n" .
             "• <code>concluir todas as tarefas</code>\n" .
-            "• <code>prioridade baixa para todas</code>",
+            "• <code>prioridade alta para a tarefa da academia</code>",
             $this->tecladoAtalhos()
         );
     }
