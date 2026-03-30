@@ -29,8 +29,12 @@ class OrionTelegram
                                   'preciso fazer','não esquecer','anotar','me lembre','me lembra','lembrar','lembrar de',
                                   'anota ai','anota aí','por favor anota','adicionar lembrete'];
     private const META_KW     = ['criar meta','nova meta','meta de','objetivo de','quero juntar','poupar para'];
-    private const CORRECAO_KW = ['errei','foi errado','era outro','na verdade','corrijo','estava errado',
+    private const CORRECAO_KW  = ['errei','foi errado','era outro','na verdade','corrijo','estava errado',
                                   'não era','cancela','cancele','desfazer'];
+    private const GERENCIAR_KW = ['prioridade alta','prioridade baixa','prioridade media','prioridade média',
+                                  'coloque todas','marcar como feita','concluir tarefa','concluir todas',
+                                  'deletar tarefa','remover tarefa','apagar tarefa',
+                                  'marcar tarefa','todas as tarefas','todas tarefas'];
 
     // ─── Constructor ──────────────────────────────────────────────────────────
     public function __construct(PDO $pdo, int $userId, int $chatId, string $userName = '')
@@ -152,6 +156,7 @@ class OrionTelegram
             'despesa', 'receita' => $this->iniciarLancamento($intencao, $entidades, $texto),
             'consulta'           => $this->processarConsulta($textoNorm),
             'tarefa'             => $this->processarTarefa($texto),
+            'gerenciar'          => $this->gerenciarTarefas($textoNorm),
             'meta'               => $this->processarMeta($texto),
             'correcao'           => $this->iniciarCorrecao(),
             default              => $this->respostaGenerica($texto),
@@ -166,6 +171,9 @@ class OrionTelegram
     {
         foreach (self::CORRECAO_KW as $kw) {
             if (str_contains($texto, $kw)) return 'correcao';
+        }
+        foreach (self::GERENCIAR_KW as $kw) {
+            if (str_contains($texto, $kw)) return 'gerenciar';
         }
         foreach (self::CONSULTA_KW as $kw) {
             if (str_contains($texto, $kw)) return 'consulta';
@@ -618,6 +626,56 @@ class OrionTelegram
         } catch (Throwable $e) {
             return $this->resp("❌ Erro ao criar tarefa: " . $e->getMessage());
         }
+    }
+
+    private function gerenciarTarefas(string $texto): array
+    {
+        // ── Alterar prioridade de TODAS ────────────────────────────────────────
+        $prio = null;
+        if (preg_match('/prioridade\s+(alta|urgente)/iu', $texto))   $prio = 'Alta';
+        if (preg_match('/prioridade\s+(media|m[eé]dia|normal)/iu', $texto)) $prio = 'Média';
+        if (preg_match('/prioridade\s+(baixa|menor)/iu', $texto))    $prio = 'Baixa';
+
+        $todasKw = str_contains($texto, 'todas') || str_contains($texto, 'todo');
+
+        if ($prio && $todasKw) {
+            $stmt = $this->pdo->prepare("UPDATE tarefas SET prioridade = ? WHERE id_usuario = ? AND status = 'pendente'");
+            $stmt->execute([$prio, $this->userId]);
+            $n = $stmt->rowCount();
+            return $this->resp("✅ <b>{$n} tarefa(s)</b> marcada(s) como prioridade <b>{$prio}</b>!");
+        }
+
+        if ($prio) {
+            // prioridade sem "todas" → aplica à mais recente
+            $stmt = $this->pdo->prepare("UPDATE tarefas SET prioridade = ? WHERE id_usuario = ? AND status = 'pendente' ORDER BY id DESC LIMIT 1");
+            $stmt->execute([$prio, $this->userId]);
+            return $this->resp("✅ Última tarefa marcada como prioridade <b>{$prio}</b>!");
+        }
+
+        // ── Concluir TODAS ─────────────────────────────────────────────────────
+        if ($todasKw && preg_match('/conclu|feita|feito|done|finaliz/iu', $texto)) {
+            $stmt = $this->pdo->prepare("UPDATE tarefas SET status = 'concluido' WHERE id_usuario = ? AND status = 'pendente'");
+            $stmt->execute([$this->userId]);
+            $n = $stmt->rowCount();
+            return $this->resp("🎉 <b>{$n} tarefa(s)</b> marcada(s) como concluídas!");
+        }
+
+        // ── Deletar TODAS ──────────────────────────────────────────────────────
+        if ($todasKw && preg_match('/delet|remov|apag|exclu/iu', $texto)) {
+            $stmt = $this->pdo->prepare("UPDATE tarefas SET status = 'concluido' WHERE id_usuario = ? AND status = 'pendente'");
+            $stmt->execute([$this->userId]);
+            $n = $stmt->rowCount();
+            return $this->resp("🗑️ <b>{$n} tarefa(s)</b> removida(s).");
+        }
+
+        // Fallback — listar com dica
+        return $this->respComTeclado(
+            "🤔 Não entendi exatamente o que fazer com as tarefas.\n\nTenta assim:\n" .
+            "• <code>coloque todas as tarefas como prioridade alta</code>\n" .
+            "• <code>concluir todas as tarefas</code>\n" .
+            "• <code>prioridade baixa para todas</code>",
+            $this->tecladoAtalhos()
+        );
     }
 
     private function processarMeta(string $texto): array
