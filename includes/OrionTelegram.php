@@ -759,23 +759,40 @@ class OrionTelegram
 
     private function respAjuda(): array
     {
-        $t  = "🤖 <b>Orion Finance Bot</b>\n\n";
-        $t .= "<b>💸 Lançamentos</b>\n";
-        $t .= "• <i>gastei 50 no mercado</i>\n";
-        $t .= "• <i>paguei 120 conta de luz</i>\n";
-        $t .= "• <i>recebi 3000 de salário</i>\n";
-        $t .= "• <i>comprei pizza 35 ontem</i>\n\n";
-        $t .= "<b>📊 Consultas</b>\n";
-        $t .= "• <i>meu saldo</i> ou /saldo\n";
-        $t .= "• <i>quanto gastei hoje</i> ou /hoje\n";
-        $t .= "• <i>resumo do mês</i> ou /mes\n";
-        $t .= "• <i>gastos por categoria</i>\n\n";
-        $t .= "<b>✅ Produtividade</b>\n";
-        $t .= "• <i>criar tarefa pagar boleto</i>\n";
-        $t .= "• <i>criar meta viagem 5000</i>\n";
-        $t .= "• /tarefas · /metas\n\n";
-        $t .= "<b>↩️ Correções</b>\n";
-        $t .= "• <i>errei</i> ou <i>cancela</i> → desfaz último\n";
+        $nome = $this->userName;
+        $t  = "🤖 <b>Orion — Assistente Financeiro</b>\n";
+        $t .= "<i>Olá, {$nome}! Aqui está tudo que posso fazer por você.</i>\n";
+        $t .= "━━━━━━━━━━━━━━━━━━━━━━\n\n";
+
+        $t .= "💸 <b>REGISTRAR GASTOS</b>\n";
+        $t .= "  <code>gastei 50 no mercado</code>\n";
+        $t .= "  <code>paguei 120 conta de luz</code>\n";
+        $t .= "  <code>comprei pizza 35 ontem</code>\n\n";
+
+        $t .= "💰 <b>REGISTRAR RECEITAS</b>\n";
+        $t .= "  <code>recebi 3000 de salário</code>\n";
+        $t .= "  <code>ganhei 500 de freela</code>\n\n";
+
+        $t .= "📊 <b>CONSULTAS</b>\n";
+        $t .= "  <code>meu saldo</code>  →  resumo do mês\n";
+        $t .= "  <code>quanto gastei hoje</code>  →  extrato do dia\n";
+        $t .= "  <code>gastos por categoria</code>  →  ranking\n";
+        $t .= "  /saldo · /hoje · /mes · /categorias\n\n";
+
+        $t .= "✅ <b>TAREFAS E LEMBRETES</b>\n";
+        $t .= "  <code>me lembre de ligar para o banco às 10h</code>\n";
+        $t .= "  <code>não esquecer pagar boleto amanhã</code>\n";
+        $t .= "  /tarefas  →  ver pendentes\n\n";
+
+        $t .= "🎯 <b>METAS FINANCEIRAS</b>\n";
+        $t .= "  <code>criar meta viagem 5000</code>\n";
+        $t .= "  /metas  →  ver progresso\n\n";
+
+        $t .= "↩️ <b>CORREÇÕES</b>\n";
+        $t .= "  <code>errei</code> ou <code>cancela</code>  →  desfaz o último lançamento\n\n";
+
+        $t .= "━━━━━━━━━━━━━━━━━━━━━━\n";
+        $t .= "<i>💡 Dica: fale naturalmente, como mandaria uma mensagem pra um amigo!</i>";
         return $this->resp($t);
     }
 
@@ -821,11 +838,13 @@ class OrionTelegram
                 );
             }
         }
-        $t  = "🤔 Não entendi exatamente, mas posso ajudar com:\n\n";
-        $t .= "• <i>gastei X em Y</i> — lançar despesa\n";
-        $t .= "• <i>recebi X de Y</i> — lançar receita\n";
-        $t .= "• <i>meu saldo</i> — ver resumo\n";
-        $t .= "• /ajuda — lista completa";
+        $t  = "🤔 <b>Não entendi bem, mas posso ajudar!</b>\n\n";
+        $t .= "Tenta assim:\n\n";
+        $t .= "💸 <code>gastei 50 no mercado</code>\n";
+        $t .= "💰 <code>recebi 3000 de salário</code>\n";
+        $t .= "📊 <code>meu saldo</code> ou <code>quanto gastei hoje</code>\n";
+        $t .= "✅ <code>me lembre de pagar boleto às 10h</code>\n\n";
+        $t .= "<i>Digite /ajuda para ver tudo que sei fazer.</i>";
         return $this->respComTeclado($t, $this->tecladoAtalhos());
     }
 
