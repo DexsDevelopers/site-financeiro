@@ -478,67 +478,6 @@ class OrionTelegram
         return $this->consultarPeriodo('mes');
     }
 
-    private function listarTarefas(): array
-    {
-        try {
-            $stmt = $this->pdo->prepare("
-                SELECT descricao, prioridade, data_limite, hora_lembrete, status
-                FROM tarefas
-                WHERE id_usuario = ? AND status = 'pendente'
-                ORDER BY FIELD(prioridade,'Alta','Média','Baixa'), data_limite ASC
-                LIMIT 10
-            ");
-            $stmt->execute([$this->userId]);
-            $tarefas = $stmt->fetchAll();
-        } catch (Throwable $e) {
-            return $this->resp('❌ Erro ao buscar tarefas: ' . $e->getMessage());
-        }
-        if (empty($tarefas)) {
-            return $this->resp("✅ Nenhuma tarefa pendente! Você está em dia. 🎉");
-        }
-        $iconePrio = ['Alta' => '🔴', 'Média' => '🟡', 'Baixa' => '🟢'];
-        $texto = "📋 <b>Suas tarefas pendentes</b>\n\n";
-        foreach ($tarefas as $t) {
-            $ic   = $iconePrio[$t['prioridade']] ?? '⚪';
-            $data = $t['data_limite'] ? ' · 📅 ' . date('d/m', strtotime($t['data_limite'])) : '';
-            $hora = $t['hora_lembrete'] ? ' · ⏰ ' . substr($t['hora_lembrete'], 0, 5) : '';
-            $texto .= "{$ic} {$t['descricao']}{$data}{$hora}\n";
-        }
-        $texto .= "\n<i>" . count($tarefas) . " tarefa(s) pendente(s)</i>";
-        return $this->respComTeclado($texto, $this->tecladoRelatorio());
-    }
-
-    private function listarMetas(): array
-    {
-        try {
-            $stmt = $this->pdo->prepare("
-                SELECT nome, valor_alvo, valor_atual, prazo
-                FROM metas
-                WHERE id_usuario = ? AND status = 'ativa'
-                ORDER BY prazo ASC LIMIT 5
-            ");
-            $stmt->execute([$this->userId]);
-            $metas = $stmt->fetchAll();
-        } catch (Throwable $e) {
-            return $this->resp('❌ Erro ao buscar metas: ' . $e->getMessage());
-        }
-        if (empty($metas)) {
-            return $this->resp("🎯 Nenhuma meta ativa. Use \"criar meta de R$ 1000 para viagem\" para criar uma!");
-        }
-        $texto = "🎯 <b>Suas metas ativas</b>\n\n";
-        foreach ($metas as $m) {
-            $alvo   = number_format((float)$m['valor_alvo'], 2, ',', '.');
-            $atual  = number_format((float)$m['valor_atual'], 2, ',', '.');
-            $pct    = $m['valor_alvo'] > 0 ? round(((float)$m['valor_atual'] / (float)$m['valor_alvo']) * 100) : 0;
-            $prazo  = $m['prazo'] ? ' · 📅 ' . date('d/m/Y', strtotime($m['prazo'])) : '';
-            $bar    = str_repeat('█', (int)($pct / 10)) . str_repeat('░', 10 - (int)($pct / 10));
-            $texto .= "💰 <b>{$m['nome']}</b>\n";
-            $texto .= "   {$bar} {$pct}%\n";
-            $texto .= "   R$ {$atual} / R$ {$alvo}{$prazo}\n\n";
-        }
-        return $this->respComTeclado($texto, $this->tecladoRelatorio());
-    }
-
     private function consultarSaldo(): array
     {
         $stmt = $this->pdo->prepare("
@@ -772,20 +711,27 @@ class OrionTelegram
 
     private function listarTarefas(): array
     {
-        $stmt = $this->pdo->prepare("
-            SELECT descricao, prioridade, data_prazo FROM tarefas
-            WHERE id_usuario = ? AND status = 'pendente'
-            ORDER BY FIELD(prioridade,'Alta','Média','Baixa'), data_prazo ASC LIMIT 10
-        ");
-        $stmt->execute([$this->userId]);
-        $rows = $stmt->fetchAll();
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT descricao, prioridade, data_limite, hora_lembrete
+                FROM tarefas
+                WHERE id_usuario = ? AND status = 'pendente'
+                ORDER BY FIELD(prioridade,'Alta','Média','Baixa'), data_limite ASC
+                LIMIT 10
+            ");
+            $stmt->execute([$this->userId]);
+            $rows = $stmt->fetchAll();
+        } catch (Throwable $e) {
+            return $this->resp('❌ Erro: ' . $e->getMessage());
+        }
         if (!$rows) return $this->resp("🎉 Nenhuma tarefa pendente! Tudo em dia.");
         $t = "📋 <b>Tarefas pendentes</b>\n\n";
         $iconsPrio = ['Alta' => '🔴', 'Média' => '🟡', 'Baixa' => '🟢'];
         foreach ($rows as $r) {
             $pIcon = $iconsPrio[$r['prioridade']] ?? '⚪';
-            $prazo = $r['data_prazo'] ? ' — ' . date('d/m', strtotime($r['data_prazo'])) : '';
-            $t .= "{$pIcon} {$r['descricao']}{$prazo}\n";
+            $data  = $r['data_limite']    ? ' · 📅 ' . date('d/m', strtotime($r['data_limite']))    : '';
+            $hora  = !empty($r['hora_lembrete']) ? ' · ⏰ ' . substr($r['hora_lembrete'], 0, 5) : '';
+            $t .= "{$pIcon} {$r['descricao']}{$data}{$hora}\n";
         }
         return $this->resp($t);
     }
