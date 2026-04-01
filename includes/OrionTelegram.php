@@ -27,7 +27,10 @@ class OrionTelegram
                                   'minhas receitas','total do mês','gasto do mês','overview',
                                   'minhas tarefas','ver tarefas','listar tarefas','quais tarefas',
                                   'tarefas pendentes','o que tenho pra fazer','o que tenho que fazer',
-                                  'minhas metas','ver metas','listar metas','tarefas','metas'];
+                                  'minhas metas','ver metas','listar metas','tarefas','metas',
+                                  'mês passado','semana passada','ano passado','este ano','insights',
+                                  'análise','como estou','situação financeira','comparativo',
+                                  'quanto gastei este ano','maior gasto','onde gastei mais'];
     private const TAREFA_KW   = ['criar tarefa','nova tarefa','lembrete','to do','tarefa para','adicionar tarefa',
                                   'preciso fazer','não esquecer','anotar','me lembre','me lembra','lembrar','lembrar de',
                                   'anota ai','anota aí','por favor anota','adicionar lembrete'];
@@ -38,6 +41,12 @@ class OrionTelegram
                                   'coloque todas','marcar como feita','concluir tarefa','concluir todas',
                                   'deletar tarefa','remover tarefa','apagar tarefa',
                                   'marcar tarefa','todas as tarefas','todas tarefas'];
+    private const ORCAMENTO_KW = ['definir orçamento','meu orçamento','orçamento de','limite de gastos',
+                                  'orçamento para','ver orçamento','orçamento mensal','quanto posso gastar',
+                                  'limite mensal','budget'];
+    private const DIVIDA_KW    = ['devo para','me deve','emprestei para','me emprestou','tenho que pagar para',
+                                  'dívida com','pagar para','cobrar de','minha dívida','minhas dívidas',
+                                  'ver dívidas','quem me deve'];
 
     // ─── Constructor ──────────────────────────────────────────────────────────
     public function __construct(PDO $pdo, int $userId, int $chatId, string $userName = '')
@@ -85,6 +94,32 @@ class OrionTelegram
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         ");
+        $this->pdo->exec("
+            CREATE TABLE IF NOT EXISTS tg_orcamentos (
+                id          INT AUTO_INCREMENT PRIMARY KEY,
+                id_usuario  INT NOT NULL,
+                id_categoria INT NOT NULL,
+                valor_limite DECIMAL(10,2) NOT NULL,
+                mes         TINYINT NOT NULL COMMENT '1-12',
+                ano         SMALLINT NOT NULL,
+                created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY uk_oc (id_usuario, id_categoria, mes, ano)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+        $this->pdo->exec("
+            CREATE TABLE IF NOT EXISTS tg_dividas (
+                id          INT AUTO_INCREMENT PRIMARY KEY,
+                id_usuario  INT NOT NULL,
+                pessoa      VARCHAR(100) NOT NULL,
+                valor       DECIMAL(10,2) NOT NULL,
+                tipo        ENUM('devo','me_devem') NOT NULL,
+                descricao   VARCHAR(255) DEFAULT '',
+                status      ENUM('aberta','paga') DEFAULT 'aberta',
+                data        DATE NOT NULL,
+                created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_user_div (id_usuario)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
     }
 
     private function carregarAprendizado(): void
@@ -124,7 +159,7 @@ class OrionTelegram
         // limpa o estado e processa como nova intenção
         if ($estado['estado'] !== 'idle') {
             $intencaoNova = $this->detectarIntencao($textoNorm);
-            $isEscape = in_array($intencaoNova, ['tarefa','meta','consulta','correcao'], true)
+            $isEscape = in_array($intencaoNova, ['tarefa','meta','consulta','correcao','despesa','receita','gerenciar','orcamento','divida'], true)
                 || str_starts_with($textoNorm, '/')
                 || in_array($textoNorm, ['cancelar','cancela','sair','voltar','pare','para'], true);
             if ($isEscape) {
@@ -162,6 +197,8 @@ class OrionTelegram
             'gerenciar'          => $this->gerenciarTarefas($textoNorm),
             'meta'               => $this->processarMeta($texto),
             'correcao'           => $this->iniciarCorrecao(),
+            'orcamento'          => $this->processarOrcamento($texto),
+            'divida'             => $this->processarDivida($texto),
             default              => $this->respostaGenerica($texto),
         };
     }
@@ -177,6 +214,12 @@ class OrionTelegram
         }
         foreach (self::GERENCIAR_KW as $kw) {
             if (str_contains($texto, $kw)) return 'gerenciar';
+        }
+        foreach (self::ORCAMENTO_KW as $kw) {
+            if (str_contains($texto, $kw)) return 'orcamento';
+        }
+        foreach (self::DIVIDA_KW as $kw) {
+            if (str_contains($texto, $kw)) return 'divida';
         }
         foreach (self::CONSULTA_KW as $kw) {
             if (str_contains($texto, $kw)) return 'consulta';
@@ -412,7 +455,7 @@ class OrionTelegram
         if ($tipo !== 'despesa' || !$catId) return '';
         try {
             $stmt = $this->pdo->prepare("
-                SELECT SUM(valor) as total, COUNT(*) as qtd, c.nome as cat_nome
+                SELECT SUM(t.valor) as total, COUNT(*) as qtd, c.nome as cat_nome
                 FROM transacoes t
                 JOIN categorias c ON c.id = t.id_categoria
                 WHERE t.id_usuario = ? AND t.id_categoria = ? AND t.tipo = 'despesa'
@@ -420,11 +463,31 @@ class OrionTelegram
             ");
             $stmt->execute([$this->userId, $catId]);
             $row = $stmt->fetch();
-            if ($row && $row['total'] > 0) {
-                $total = number_format((float)$row['total'], 2, ',', '.');
-                $vezes = $row['qtd'];
-                return "📊 <i>Este mês você gastou <b>R$ {$total}</b> em {$row['cat_nome']} ({$vezes}x)</i>";
+            if (!$row || !$row['total']) return '';
+
+            $totalMes = (float)$row['total'];
+            $vezes    = $row['qtd'];
+            $catNome  = $row['cat_nome'];
+            $out      = "📊 <i>Este mês: <b>R$ " . number_format($totalMes, 2, ',', '.') . "</b> em {$catNome} ({$vezes}x)</i>";
+
+            // Verificar orçamento definido
+            $mes = (int)date('n'); $ano = (int)date('Y');
+            $stmtOrc = $this->pdo->prepare("
+                SELECT valor_limite FROM tg_orcamentos
+                WHERE id_usuario = ? AND id_categoria = ? AND mes = ? AND ano = ?
+            ");
+            $stmtOrc->execute([$this->userId, $catId, $mes, $ano]);
+            $orc = $stmtOrc->fetchColumn();
+            if ($orc && (float)$orc > 0) {
+                $pct = round(($totalMes / (float)$orc) * 100);
+                $limite = number_format((float)$orc, 2, ',', '.');
+                if ($pct >= 100) {
+                    $out .= "\n🔴 <b>Orçamento estourado!</b> Limite de R$ {$limite} ({$pct}% usado)";
+                } elseif ($pct >= 80) {
+                    $out .= "\n🟡 <i>Atenção: {$pct}% do orçamento de {$catNome} usado (R$ {$limite})</i>";
+                }
             }
+            return $out;
         } catch (Throwable $e) {}
         return '';
     }
@@ -474,8 +537,20 @@ class OrionTelegram
         if (str_contains($texto, 'meta')) {
             return $this->listarMetas();
         }
+        if (str_contains($texto, 'insight') || str_contains($texto, 'análise') || str_contains($texto, 'como estou') || str_contains($texto, 'situação')) {
+            return $this->consultarInsights();
+        }
         if (str_contains($texto, 'saldo') || str_contains($texto, 'tenho')) {
             return $this->consultarSaldo();
+        }
+        if (str_contains($texto, 'mês passado') || str_contains($texto, 'mes passado')) {
+            return $this->consultarPeriodo('mes_passado');
+        }
+        if (str_contains($texto, 'semana passada')) {
+            return $this->consultarPeriodo('semana_passada');
+        }
+        if (str_contains($texto, 'ano') && (str_contains($texto, 'este') || str_contains($texto, 'esse') || str_contains($texto, 'gastei este ano'))) {
+            return $this->consultarPeriodo('ano');
         }
         if (str_contains($texto, 'hoje')) {
             return $this->consultarPeriodo('hoje');
@@ -483,14 +558,18 @@ class OrionTelegram
         if (str_contains($texto, 'semana')) {
             return $this->consultarPeriodo('semana');
         }
-        if (str_contains($texto, 'categor')) {
+        if (str_contains($texto, 'categor') || str_contains($texto, 'maior gasto') || str_contains($texto, 'onde gastei')) {
             return $this->consultarPorCategoria();
+        }
+        if (str_contains($texto, 'comparativo') || str_contains($texto, 'compara')) {
+            return $this->consultarComparativo();
         }
         return $this->consultarPeriodo('mes');
     }
 
     private function consultarSaldo(): array
     {
+        // Mês atual
         $stmt = $this->pdo->prepare("
             SELECT
               COALESCE(SUM(CASE WHEN tipo='receita' THEN valor ELSE 0 END),0) as receitas,
@@ -500,22 +579,52 @@ class OrionTelegram
         ");
         $stmt->execute([$this->userId]);
         $row = $stmt->fetch();
-        $saldo  = (float)$row['receitas'] - (float)$row['despesas'];
-        $icon   = $saldo >= 0 ? '🟢' : '🔴';
-        $texto  = "💳 <b>Resumo deste mês</b>\n\n";
+        $saldo = (float)$row['receitas'] - (float)$row['despesas'];
+
+        // Mês anterior (para comparativo)
+        $stmtAnt = $this->pdo->prepare("
+            SELECT COALESCE(SUM(CASE WHEN tipo='despesa' THEN valor ELSE 0 END),0) as despesas
+            FROM transacoes
+            WHERE id_usuario = ?
+            AND YEAR(data_transacao) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))
+            AND MONTH(data_transacao) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))
+        ");
+        $stmtAnt->execute([$this->userId]);
+        $antRow  = $stmtAnt->fetch();
+        $despAnt = (float)$antRow['despesas'];
+        $despAtu = (float)$row['despesas'];
+
+        $icon  = $saldo >= 0 ? '🟢' : '🔴';
+        $texto = "💳 <b>Resumo deste mês — " . date('M/Y') . "</b>\n\n";
         $texto .= "💚 Receitas: <b>R$ " . number_format((float)$row['receitas'], 2, ',', '.') . "</b>\n";
-        $texto .= "🔴 Despesas: <b>R$ " . number_format((float)$row['despesas'], 2, ',', '.') . "</b>\n";
-        $texto .= "─────────────────\n";
-        $texto .= "{$icon} Saldo: <b>R$ " . number_format((float)$saldo, 2, ',', '.') . "</b>";
+        $texto .= "🔴 Despesas: <b>R$ " . number_format($despAtu, 2, ',', '.') . "</b>";
+
+        if ($despAnt > 0) {
+            $diff = $despAtu - $despAnt;
+            $pct  = round(abs($diff) / $despAnt * 100);
+            $trend = $diff > 0 ? "↗️ +{$pct}% vs mês passado" : "↘️ -{$pct}% vs mês passado";
+            $texto .= " <i>({$trend})</i>";
+        }
+
+        $texto .= "\n─────────────────\n";
+        $texto .= "{$icon} Saldo: <b>R$ " . number_format($saldo, 2, ',', '.') . "</b>";
+
+        // Alerta se saldo negativo
+        if ($saldo < 0) {
+            $texto .= "\n\n⚠️ <i>Atenção: suas despesas superam as receitas este mês!</i>";
+        }
         return $this->respComTeclado($texto, $this->tecladoRelatorio());
     }
 
     private function consultarPeriodo(string $periodo): array
     {
         [$label, $where] = match($periodo) {
-            'hoje'   => ['Hoje',            "DATE(data_transacao) = CURDATE()"],
-            'semana' => ['Esta semana',     "YEARWEEK(data_transacao,1) = YEARWEEK(CURDATE(),1)"],
-            default  => ['Este mês',        "YEAR(data_transacao) = YEAR(CURDATE()) AND MONTH(data_transacao) = MONTH(CURDATE())"],
+            'hoje'          => ['Hoje',            "DATE(data_transacao) = CURDATE()"],
+            'semana'        => ['Esta semana',     "YEARWEEK(data_transacao,1) = YEARWEEK(CURDATE(),1)"],
+            'semana_passada'=> ['Semana passada',  "YEARWEEK(data_transacao,1) = YEARWEEK(DATE_SUB(CURDATE(),INTERVAL 1 WEEK),1)"],
+            'mes_passado'   => ['Mês passado',     "YEAR(data_transacao) = YEAR(DATE_SUB(CURDATE(),INTERVAL 1 MONTH)) AND MONTH(data_transacao) = MONTH(DATE_SUB(CURDATE(),INTERVAL 1 MONTH))"],
+            'ano'           => ['Este ano',        "YEAR(data_transacao) = YEAR(CURDATE())"],
+            default         => ['Este mês',        "YEAR(data_transacao) = YEAR(CURDATE()) AND MONTH(data_transacao) = MONTH(CURDATE())"],
         };
         $stmt = $this->pdo->prepare("
             SELECT tipo, SUM(valor) as total, COUNT(*) as qtd
@@ -552,14 +661,338 @@ class OrionTelegram
         $rows = $stmt->fetchAll();
         if (!$rows) return $this->resp("📭 Nenhuma despesa registrada este mês.");
         $texto  = "📊 <b>Gastos por categoria — " . date('M/Y') . "</b>\n\n";
+        // Calcula total para percentual
+        $totalGeral = array_sum(array_column($rows, 'total'));
         $icons  = ['🍕','🚗','🏠','💊','🎮','📚','👕','📦'];
         foreach ($rows as $i => $r) {
             $icon   = $icons[$i] ?? '📌';
             $nome   = $r['nome'] ?? 'Sem categoria';
             $total  = number_format((float)$r['total'], 2, ',', '.');
-            $texto .= "{$icon} <b>{$nome}</b>: R$ {$total} ({$r['qtd']}x)\n";
+            $pct    = $totalGeral > 0 ? round(((float)$r['total'] / $totalGeral) * 100) : 0;
+            $bar    = str_repeat('█', (int)($pct / 10)) . str_repeat('░', 10 - (int)($pct / 10));
+            $texto .= "{$icon} <b>{$nome}</b>: R$ {$total} ({$pct}%)\n";
+            $texto .= "   {$bar}\n";
         }
-        return $this->resp($texto);
+        return $this->respComTeclado($texto, $this->tecladoRelatorio());
+    }
+
+    private function consultarInsights(): array
+    {
+        try {
+            // Top categoria do mês
+            $stmtCat = $this->pdo->prepare("
+                SELECT c.nome, SUM(t.valor) as total
+                FROM transacoes t LEFT JOIN categorias c ON c.id = t.id_categoria
+                WHERE t.id_usuario = ? AND t.tipo = 'despesa'
+                AND YEAR(t.data_transacao) = YEAR(CURDATE()) AND MONTH(t.data_transacao) = MONTH(CURDATE())
+                GROUP BY t.id_categoria ORDER BY total DESC LIMIT 1
+            ");
+            $stmtCat->execute([$this->userId]);
+            $topCat = $stmtCat->fetch();
+
+            // Total mês atual vs anterior
+            $stmtComp = $this->pdo->prepare("
+                SELECT
+                  COALESCE(SUM(CASE WHEN MONTH(data_transacao)=MONTH(CURDATE()) THEN valor END),0) as atual,
+                  COALESCE(SUM(CASE WHEN MONTH(data_transacao)=MONTH(DATE_SUB(CURDATE(),INTERVAL 1 MONTH)) THEN valor END),0) as anterior
+                FROM transacoes
+                WHERE id_usuario = ? AND tipo='despesa'
+                AND data_transacao >= DATE_SUB(CURDATE(), INTERVAL 2 MONTH)
+            ");
+            $stmtComp->execute([$this->userId]);
+            $comp = $stmtComp->fetch();
+
+            // Média diária este mês
+            $diaAtual = (int)date('j');
+            $mediaDia = $diaAtual > 0 ? (float)$comp['atual'] / $diaAtual : 0;
+            $projecao = $mediaDia * (int)date('t'); // dias no mês
+
+            // Maior despesa individual
+            $stmtMax = $this->pdo->prepare("
+                SELECT descricao, valor FROM transacoes
+                WHERE id_usuario = ? AND tipo='despesa'
+                AND YEAR(data_transacao) = YEAR(CURDATE()) AND MONTH(data_transacao) = MONTH(CURDATE())
+                ORDER BY valor DESC LIMIT 1
+            ");
+            $stmtMax->execute([$this->userId]);
+            $maiorDesp = $stmtMax->fetch();
+
+            // Qtd lançamentos este mês
+            $stmtQtd = $this->pdo->prepare("
+                SELECT COUNT(*) as qtd FROM transacoes
+                WHERE id_usuario = ? AND YEAR(data_transacao) = YEAR(CURDATE()) AND MONTH(data_transacao) = MONTH(CURDATE())
+            ");
+            $stmtQtd->execute([$this->userId]);
+            $qtdRow = $stmtQtd->fetch();
+
+            $t  = "🧠 <b>Insights Financeiros — " . date('M/Y') . "</b>\n\n";
+
+            if ($topCat) {
+                $t .= "🏆 <b>Maior gasto:</b> {$topCat['nome']} — R$ " . number_format((float)$topCat['total'], 2, ',', '.') . "\n";
+            }
+            if ($maiorDesp) {
+                $t .= "💸 <b>Maior despesa:</b> {$maiorDesp['descricao']} — R$ " . number_format((float)$maiorDesp['valor'], 2, ',', '.') . "\n";
+            }
+
+            $t .= "📅 <b>Média diária:</b> R$ " . number_format($mediaDia, 2, ',', '.') . "\n";
+            $t .= "📈 <b>Projeção do mês:</b> R$ " . number_format($projecao, 2, ',', '.') . "\n";
+            $t .= "🔢 <b>Lançamentos:</b> {$qtdRow['qtd']} este mês\n";
+
+            if ((float)$comp['anterior'] > 0) {
+                $diff = (float)$comp['atual'] - (float)$comp['anterior'];
+                $pct  = round(abs($diff) / (float)$comp['anterior'] * 100);
+                $icon = $diff > 0 ? '↗️' : '↘️';
+                $t .= "\n{$icon} Você gastou <b>" . ($diff > 0 ? "+{$pct}%" : "-{$pct}%") . "</b> em relação ao mês passado\n";
+            }
+
+            // Dica baseada nos dados
+            if ($mediaDia > 0) {
+                $diasRestantes = (int)date('t') - (int)date('j');
+                $gastoRestante = $mediaDia * $diasRestantes;
+                $t .= "\n💡 <i>Nos próximos {$diasRestantes} dias, no ritmo atual, você gastará mais R$ " . number_format($gastoRestante, 2, ',', '.') . "</i>";
+            }
+
+            return $this->respComTeclado($t, $this->tecladoRelatorio());
+        } catch (Throwable $e) {
+            return $this->resp("❌ Erro ao gerar insights: " . $e->getMessage());
+        }
+    }
+
+    private function consultarComparativo(): array
+    {
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    DATE_FORMAT(data_transacao, '%Y-%m') as mes_ref,
+                    DATE_FORMAT(data_transacao, '%b/%Y') as mes_label,
+                    SUM(CASE WHEN tipo='receita' THEN valor ELSE 0 END) as receitas,
+                    SUM(CASE WHEN tipo='despesa' THEN valor ELSE 0 END) as despesas
+                FROM transacoes
+                WHERE id_usuario = ? AND data_transacao >= DATE_SUB(CURDATE(), INTERVAL 4 MONTH)
+                GROUP BY mes_ref ORDER BY mes_ref ASC
+            ");
+            $stmt->execute([$this->userId]);
+            $rows = $stmt->fetchAll();
+            if (!$rows) return $this->resp("📭 Sem dados suficientes para comparativo.");
+
+            $t = "📊 <b>Comparativo últimos meses</b>\n\n";
+            foreach ($rows as $r) {
+                $saldo = (float)$r['receitas'] - (float)$r['despesas'];
+                $icon  = $saldo >= 0 ? '🟢' : '🔴';
+                $t .= "📅 <b>{$r['mes_label']}</b>\n";
+                $t .= "  💚 R$ " . number_format((float)$r['receitas'], 2, ',', '.') . "  🔴 R$ " . number_format((float)$r['despesas'], 2, ',', '.') . "\n";
+                $t .= "  {$icon} Saldo: <b>R$ " . number_format($saldo, 2, ',', '.') . "</b>\n\n";
+            }
+            return $this->respComTeclado($t, $this->tecladoRelatorio());
+        } catch (Throwable $e) {
+            return $this->resp("❌ Erro ao gerar comparativo.");
+        }
+    }
+
+    private function processarOrcamento(string $texto): array
+    {
+        $textoNorm = $this->normalizar($texto);
+
+        // ── Definir orçamento: "orçamento alimentação 500" ─────────────────
+        preg_match('/(\d+[.,]?\d*)/', $texto, $mVal);
+        $limite = isset($mVal[1]) ? (float)str_replace(',', '.', $mVal[1]) : null;
+
+        // ── Ver orçamentos (sem valor, ou palavra explícita de consulta) ───
+        if (!$limite) {
+            return $this->listarOrcamentos();
+        }
+        if (preg_match('/\b(ver|meu|meus|listar|show)\b/iu', $textoNorm)) {
+            return $this->listarOrcamentos();
+        }
+
+        // Extrai nome da categoria
+        $stopOrc = '/\b(definir|or[çc]amento|limite|de|gastos|para|mensal|budget|\d+[.,]?\d*|reais|r\$)\b/iu';
+        $catNome  = trim(preg_replace('/\s+/', ' ', preg_replace($stopOrc, '', $texto)));
+        if (strlen($catNome) < 2) {
+            return $this->resp("💬 Qual categoria? Ex: <code>orçamento alimentação 500</code>");
+        }
+
+        // Busca categoria
+        $stmt = $this->pdo->prepare("SELECT id, nome FROM categorias WHERE id_usuario = ? AND LOWER(nome) LIKE ? LIMIT 1");
+        $stmt->execute([$this->userId, '%' . mb_strtolower($catNome) . '%']);
+        $cat = $stmt->fetch();
+        if (!$cat) {
+            return $this->resp("🔍 Não encontrei categoria <b>\"{$catNome}\"</b>. Verifique o nome em Gerenciar Categorias.");
+        }
+
+        // Salva/atualiza orçamento
+        $mes = (int)date('n'); $ano = (int)date('Y');
+        $this->pdo->prepare("
+            INSERT INTO tg_orcamentos (id_usuario, id_categoria, valor_limite, mes, ano)
+            VALUES (?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE valor_limite = ?
+        ")->execute([$this->userId, $cat['id'], $limite, $mes, $ano, $limite]);
+
+        return $this->resp(
+            "✅ <b>Orçamento definido!</b>\n\n" .
+            "📂 {$cat['nome']}\n" .
+            "💰 Limite: <b>R$ " . number_format($limite, 2, ',', '.') . "/mês</b>\n\n" .
+            "<i>Vou te avisar quando você se aproximar do limite.</i>"
+        );
+    }
+
+    private function listarOrcamentos(): array
+    {
+        try {
+            $mes = (int)date('n'); $ano = (int)date('Y');
+            $stmt = $this->pdo->prepare("
+                SELECT c.nome, o.valor_limite,
+                    COALESCE((
+                        SELECT SUM(t.valor) FROM transacoes t
+                        WHERE t.id_usuario = o.id_usuario AND t.id_categoria = o.id_categoria
+                        AND t.tipo='despesa' AND MONTH(t.data_transacao)=? AND YEAR(t.data_transacao)=?
+                    ),0) as gasto_atual
+                FROM tg_orcamentos o
+                JOIN categorias c ON c.id = o.id_categoria
+                WHERE o.id_usuario = ? AND o.mes = ? AND o.ano = ?
+                ORDER BY c.nome
+            ");
+            $stmt->execute([$mes, $ano, $this->userId, $mes, $ano]);
+            $rows = $stmt->fetchAll();
+        } catch (Throwable $e) {
+            return $this->resp("❌ Erro ao buscar orçamentos: " . $e->getMessage());
+        }
+        if (!$rows) {
+            return $this->resp(
+                "📭 Nenhum orçamento definido para este mês.\n\n" .
+                "💡 Diga: <code>orçamento alimentação 500</code>"
+            );
+        }
+        $t = "💼 <b>Orçamentos — " . date('M/Y') . "</b>\n\n";
+        foreach ($rows as $r) {
+            $pct  = $r['valor_limite'] > 0 ? round(((float)$r['gasto_atual'] / (float)$r['valor_limite']) * 100) : 0;
+            $barsUsed = min(10, (int)($pct / 10));
+            $bar  = str_repeat('█', $barsUsed) . str_repeat('░', 10 - $barsUsed);
+            $icon = $pct >= 100 ? '🔴' : ($pct >= 80 ? '🟡' : '🟢');
+            $t .= "{$icon} <b>{$r['nome']}</b>\n";
+            $t .= "   {$bar} {$pct}%\n";
+            $t .= "   R$ " . number_format((float)$r['gasto_atual'], 2, ',', '.') . " / R$ " . number_format((float)$r['valor_limite'], 2, ',', '.') . "\n\n";
+        }
+        return $this->respComTeclado($t, $this->tecladoRelatorio());
+    }
+
+    private function processarDivida(string $texto): array
+    {
+        $textoNorm = $this->normalizar($texto);
+
+        // ── Ver dívidas ────────────────────────────────────────────────────
+        if (preg_match('/\b(ver|minhas|listar|quem|show|resumo)\b/iu', $textoNorm)) {
+            return $this->listarDividas();
+        }
+
+        // ── Registrar: "devo para João 150" | "João me deve 200" ──────────
+        $tipo   = 'devo';
+        $pessoa = '';
+        $valor  = null;
+
+        // Detecta "me deve" → tipo me_devem
+        if (preg_match('/(.+?)\s+me\s+deve\s+r?\$?\s*([\d.,]+)/iu', $texto, $m)) {
+            $tipo   = 'me_devem';
+            $pessoa = trim($m[1]);
+            $valor  = (float)str_replace(['.', ','], ['', '.'], $m[2]);
+        }
+        // Detecta "devo para X valor"
+        elseif (preg_match('/devo\s+(?:para\s+)?(.+?)\s+r?\$?\s*([\d.,]+)/iu', $texto, $m)) {
+            $tipo   = 'devo';
+            $pessoa = trim($m[1]);
+            $valor  = (float)str_replace(['.', ','], ['', '.'], $m[2]);
+        }
+        // Detecta "emprestei para X valor"
+        elseif (preg_match('/emprestei\s+(?:para\s+)?(.+?)\s+r?\$?\s*([\d.,]+)/iu', $texto, $m)) {
+            $tipo   = 'me_devem';
+            $pessoa = trim($m[1]);
+            $valor  = (float)str_replace(['.', ','], ['', '.'], $m[2]);
+        }
+        // Detecta "X me emprestou valor"
+        elseif (preg_match('/(.+?)\s+me\s+emprestou\s+r?\$?\s*([\d.,]+)/iu', $texto, $m)) {
+            $tipo   = 'devo';
+            $pessoa = trim($m[1]);
+            $valor  = (float)str_replace(['.', ','], ['', '.'], $m[2]);
+        }
+
+        if (!$valor || !$pessoa) {
+            return $this->resp(
+                "💬 Para registrar uma dívida:\n\n" .
+                "<code>devo para João 150</code>\n" .
+                "<code>João me deve 200</code>\n" .
+                "<code>emprestei para Maria 300</code>\n\n" .
+                "Ou: <code>ver dívidas</code>"
+            );
+        }
+
+        // Remove stopwords da pessoa
+        $pessoa = trim(preg_replace('/\b(para|a|o|r\$|reais)\b/iu', '', $pessoa));
+
+        try {
+            $this->pdo->prepare("
+                INSERT INTO tg_dividas (id_usuario, pessoa, valor, tipo, data)
+                VALUES (?, ?, ?, ?, CURDATE())
+            ")->execute([$this->userId, ucfirst($pessoa), $valor, $tipo]);
+
+            $tipoLabel = $tipo === 'devo' ? 'Você deve para' : 'Te deve';
+            $icon      = $tipo === 'devo' ? '🔴' : '💚';
+            return $this->resp(
+                "✅ <b>Dívida registrada!</b>\n\n" .
+                "{$icon} <b>{$tipoLabel}:</b> {$pessoa}\n" .
+                "💰 <b>R$ " . number_format($valor, 2, ',', '.') . "</b>\n\n" .
+                "<i>Use <code>quem me deve</code> ou <code>minhas dívidas</code> para ver o resumo.</i>"
+            );
+        } catch (Throwable $e) {
+            return $this->resp("❌ Erro ao registrar dívida.");
+        }
+    }
+
+    private function listarDividas(): array
+    {
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT tipo, pessoa, SUM(valor) as total, COUNT(*) as qtd
+                FROM tg_dividas
+                WHERE id_usuario = ? AND status = 'aberta'
+                GROUP BY tipo, pessoa
+                ORDER BY tipo, total DESC
+            ");
+            $stmt->execute([$this->userId]);
+            $rows = $stmt->fetchAll();
+        } catch (Throwable $e) {
+            return $this->resp("❌ Erro ao buscar dívidas.");
+        }
+        if (!$rows) {
+            return $this->resp("✅ Nenhuma dívida em aberto! Tudo limpo. 🎉");
+        }
+        $totalDevo     = 0;
+        $totalMeDevem  = 0;
+        $t = "💳 <b>Dívidas em aberto</b>\n\n";
+        $t .= "🔴 <b>Você deve:</b>\n";
+        $temDevo = false;
+        foreach ($rows as $r) {
+            if ($r['tipo'] === 'devo') {
+                $temDevo = true;
+                $t .= "  · {$r['pessoa']}: R$ " . number_format((float)$r['total'], 2, ',', '.') . "\n";
+                $totalDevo += (float)$r['total'];
+            }
+        }
+        if (!$temDevo) $t .= "  Nenhuma\n";
+        $t .= "\n💚 <b>Te devem:</b>\n";
+        $temMeDev = false;
+        foreach ($rows as $r) {
+            if ($r['tipo'] === 'me_devem') {
+                $temMeDev = true;
+                $t .= "  · {$r['pessoa']}: R$ " . number_format((float)$r['total'], 2, ',', '.') . "\n";
+                $totalMeDevem += (float)$r['total'];
+            }
+        }
+        if (!$temMeDev) $t .= "  Nenhuma\n";
+        $liquido = $totalMeDevem - $totalDevo;
+        $icon    = $liquido >= 0 ? '🟢' : '🔴';
+        $t .= "\n─────────────────\n";
+        $t .= "{$icon} Líquido: <b>R$ " . number_format($liquido, 2, ',', '.') . "</b>";
+        return $this->respComTeclado($t, $this->tecladoRelatorio());
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -785,11 +1218,18 @@ class OrionTelegram
         }
 
         // Quick actions de relatório
-        if ($data === 'rel:hoje')       return $this->consultarPeriodo('hoje');
-        if ($data === 'rel:semana')     return $this->consultarPeriodo('semana');
-        if ($data === 'rel:mes')        return $this->consultarPeriodo('mes');
-        if ($data === 'rel:categorias') return $this->consultarPorCategoria();
-        if ($data === 'rel:saldo')      return $this->consultarSaldo();
+        if ($data === 'rel:hoje')        return $this->consultarPeriodo('hoje');
+        if ($data === 'rel:semana')      return $this->consultarPeriodo('semana');
+        if ($data === 'rel:mes')         return $this->consultarPeriodo('mes');
+        if ($data === 'rel:mes_passado') return $this->consultarPeriodo('mes_passado');
+        if ($data === 'rel:ano')         return $this->consultarPeriodo('ano');
+        if ($data === 'rel:categorias')  return $this->consultarPorCategoria();
+        if ($data === 'rel:saldo')       return $this->consultarSaldo();
+        if ($data === 'rel:insights')    return $this->consultarInsights();
+        if ($data === 'rel:comparativo') return $this->consultarComparativo();
+        if ($data === 'rel:orcamento')   return $this->listarOrcamentos();
+        if ($data === 'rel:dividas')     return $this->listarDividas();
+        if ($data === 'rel:tarefas')     return $this->listarTarefas();
 
         return $this->resp("❓ Ação não reconhecida.");
     }
@@ -801,15 +1241,21 @@ class OrionTelegram
     private function processarComando(string $cmd, string $textoOriginal): array
     {
         return match (true) {
-            str_starts_with($cmd, '/saldo')    => $this->consultarSaldo(),
-            str_starts_with($cmd, '/hoje')     => $this->consultarPeriodo('hoje'),
-            str_starts_with($cmd, '/semana')   => $this->consultarPeriodo('semana'),
-            str_starts_with($cmd, '/mes')      => $this->consultarPeriodo('mes'),
-            str_starts_with($cmd, '/resumo')   => $this->consultarPeriodo('mes'),
+            str_starts_with($cmd, '/start')      => $this->respBemVindo(),
+            str_starts_with($cmd, '/saldo')      => $this->consultarSaldo(),
+            str_starts_with($cmd, '/hoje')       => $this->consultarPeriodo('hoje'),
+            str_starts_with($cmd, '/semana')     => $this->consultarPeriodo('semana'),
+            str_starts_with($cmd, '/mes')        => $this->consultarPeriodo('mes'),
+            str_starts_with($cmd, '/resumo')     => $this->consultarPeriodo('mes'),
+            str_starts_with($cmd, '/ano')        => $this->consultarPeriodo('ano'),
             str_starts_with($cmd, '/categorias') => $this->consultarPorCategoria(),
-            str_starts_with($cmd, '/tarefas')  => $this->listarTarefas(),
-            str_starts_with($cmd, '/metas')    => $this->listarMetas(),
-            str_starts_with($cmd, '/ajuda')    => $this->respAjuda(),
+            str_starts_with($cmd, '/insights')   => $this->consultarInsights(),
+            str_starts_with($cmd, '/comparativo')=> $this->consultarComparativo(),
+            str_starts_with($cmd, '/tarefas')    => $this->listarTarefas(),
+            str_starts_with($cmd, '/metas')      => $this->listarMetas(),
+            str_starts_with($cmd, '/orcamento')  => $this->listarOrcamentos(),
+            str_starts_with($cmd, '/dividas')    => $this->listarDividas(),
+            str_starts_with($cmd, '/ajuda')      => $this->respAjuda(),
             default => $this->respostaGenerica($textoOriginal),
         };
     }
@@ -861,11 +1307,27 @@ class OrionTelegram
         return $this->resp($t);
     }
 
+    private function respBemVindo(): array
+    {
+        $hora   = (int)date('H');
+        $period = $hora < 12 ? 'Bom dia' : ($hora < 18 ? 'Boa tarde' : 'Boa noite');
+        $t  = "🤖 <b>{$period}, {$this->userName}! Sou o Orion.</b>\n";
+        $t .= "<i>Seu assistente financeiro pessoal inteligente.</i>\n\n";
+        $t .= "💸 Registre gastos e receitas falando naturalmente\n";
+        $t .= "📊 Consulte saldo, insights e comparativos\n";
+        $t .= "✅ Gerencie tarefas com lembretes\n";
+        $t .= "🎯 Defina metas financeiras\n";
+        $t .= "💼 Controle orçamentos por categoria\n";
+        $t .= "🧑‍🤝‍🧑 Registre dívidas e créditos\n\n";
+        $t .= "Digite /ajuda para ver todos os comandos.";
+        return $this->respComTeclado($t, $this->tecladoAtalhos());
+    }
+
     private function respAjuda(): array
     {
         $nome = $this->userName;
         $t  = "🤖 <b>Orion — Assistente Financeiro</b>\n";
-        $t .= "<i>Olá, {$nome}! Aqui está tudo que posso fazer por você.</i>\n";
+        $t .= "<i>Olá, {$nome}! Aqui está tudo que posso fazer.</i>\n";
         $t .= "━━━━━━━━━━━━━━━━━━━━━━\n\n";
 
         $t .= "💸 <b>REGISTRAR GASTOS</b>\n";
@@ -875,29 +1337,41 @@ class OrionTelegram
 
         $t .= "💰 <b>REGISTRAR RECEITAS</b>\n";
         $t .= "  <code>recebi 3000 de salário</code>\n";
-        $t .= "  <code>ganhei 500 de freela</code>\n\n";
+        $t .= "  <code>vendi produto 150</code>\n\n";
 
         $t .= "📊 <b>CONSULTAS</b>\n";
-        $t .= "  <code>meu saldo</code>  →  resumo do mês\n";
-        $t .= "  <code>quanto gastei hoje</code>  →  extrato do dia\n";
-        $t .= "  <code>gastos por categoria</code>  →  ranking\n";
-        $t .= "  /saldo · /hoje · /mes · /categorias\n\n";
+        $t .= "  <code>meu saldo</code>  →  resumo com comparativo\n";
+        $t .= "  <code>insights</code>  →  análise inteligente\n";
+        $t .= "  <code>comparativo</code>  →  últimos 4 meses\n";
+        $t .= "  <code>mês passado</code>  →  extrato anterior\n";
+        $t .= "  /saldo · /hoje · /mes · /ano · /insights\n\n";
+
+        $t .= "💼 <b>ORÇAMENTOS</b>\n";
+        $t .= "  <code>orçamento alimentação 500</code>\n";
+        $t .= "  <code>ver orçamento</code>  →  progresso por categoria\n";
+        $t .= "  /orcamento  →  todos os limites\n\n";
+
+        $t .= "🧑‍🤝‍🧑 <b>DÍVIDAS</b>\n";
+        $t .= "  <code>devo para João 150</code>\n";
+        $t .= "  <code>João me deve 200</code>\n";
+        $t .= "  <code>emprestei para Maria 300</code>\n";
+        $t .= "  /dividas  →  resumo de dívidas\n\n";
 
         $t .= "✅ <b>TAREFAS E LEMBRETES</b>\n";
         $t .= "  <code>me lembre de ligar para o banco às 10h</code>\n";
-        $t .= "  <code>não esquecer pagar boleto amanhã</code>\n";
-        $t .= "  /tarefas  →  ver pendentes\n\n";
+        $t .= "  <code>concluir tarefa do busuu</code>\n";
+        $t .= "  /tarefas  →  pendentes\n\n";
 
         $t .= "🎯 <b>METAS FINANCEIRAS</b>\n";
         $t .= "  <code>criar meta viagem 5000</code>\n";
         $t .= "  /metas  →  ver progresso\n\n";
 
         $t .= "↩️ <b>CORREÇÕES</b>\n";
-        $t .= "  <code>errei</code> ou <code>cancela</code>  →  desfaz o último lançamento\n\n";
+        $t .= "  <code>errei</code>  →  desfaz o último lançamento\n\n";
 
         $t .= "━━━━━━━━━━━━━━━━━━━━━━\n";
-        $t .= "<i>💡 Dica: fale naturalmente, como mandaria uma mensagem pra um amigo!</i>";
-        return $this->resp($t);
+        $t .= "<i>💡 Fale naturalmente como mandaria uma mensagem pra um amigo!</i>";
+        return $this->respComTeclado($t, $this->tecladoAtalhos());
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -1011,16 +1485,26 @@ class OrionTelegram
     private function tecladoRelatorio(): array
     {
         return [
-            [['text' => '📅 Hoje', 'callback_data' => 'rel:hoje'], ['text' => '📊 Semana', 'callback_data' => 'rel:semana']],
-            [['text' => '📆 Mês',  'callback_data' => 'rel:mes'],  ['text' => '🏷️ Categorias', 'callback_data' => 'rel:categorias']],
+            [['text' => '📅 Hoje',        'callback_data' => 'rel:hoje'],
+             ['text' => '📊 Semana',      'callback_data' => 'rel:semana']],
+            [['text' => '📆 Mês',         'callback_data' => 'rel:mes'],
+             ['text' => '📆 Mês passado', 'callback_data' => 'rel:mes_passado']],
+            [['text' => '🏷️ Categorias',  'callback_data' => 'rel:categorias'],
+             ['text' => '🧠 Insights',    'callback_data' => 'rel:insights']],
+            [['text' => '📊 Comparativo',  'callback_data' => 'rel:comparativo'],
+             ['text' => '💳 Saldo',        'callback_data' => 'rel:saldo']],
         ];
     }
 
     private function tecladoAtalhos(): array
     {
         return [
-            [['text' => '💳 Meu saldo',   'callback_data' => 'rel:saldo'],  ['text' => '📊 Este mês', 'callback_data' => 'rel:mes']],
-            [['text' => '📅 Hoje',         'callback_data' => 'rel:hoje'],   ['text' => '🏷️ Categorias', 'callback_data' => 'rel:categorias']],
+            [['text' => '💳 Meu saldo',    'callback_data' => 'rel:saldo'],
+             ['text' => '📊 Este mês',     'callback_data' => 'rel:mes']],
+            [['text' => '📅 Hoje',          'callback_data' => 'rel:hoje'],
+             ['text' => '🏷️ Categorias',  'callback_data' => 'rel:categorias']],
+            [['text' => '✅ Tarefas',          'callback_data' => 'rel:tarefas'],
+             ['text' => '🧠 Insights',    'callback_data' => 'rel:insights']],
         ];
     }
 
