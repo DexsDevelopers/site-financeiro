@@ -983,8 +983,8 @@ class OrionTelegram
 
     private function tecladoCategorias(string $tipo): array
     {
-        $stmt = $this->pdo->prepare("SELECT id, nome FROM categorias WHERE id_usuario = ? ORDER BY nome LIMIT 12");
-        $stmt->execute([$this->userId]);
+        $stmt = $this->pdo->prepare("SELECT id, nome FROM categorias WHERE id_usuario = ? AND tipo = ? ORDER BY nome LIMIT 12");
+        $stmt->execute([$this->userId, $tipo]);
         $cats = $stmt->fetchAll();
         $icons = ['Alimentação'=>'🍕','Transporte'=>'🚗','Moradia'=>'🏠','Saúde'=>'💊','Lazer'=>'🎮',
                   'Educação'=>'📚','Vestuário'=>'👕','Trabalho'=>'💼','Investimento'=>'📈','Outros'=>'📦'];
