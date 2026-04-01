@@ -18,7 +18,10 @@ class OrionTelegram
                                   'conta de','boleto','aluguel','uber','ifood','compra','despesa','taxa',
                                   'assinatura','mensalidade','multa','mercado','farmácia','academia'];
     private const RECEITA_KW  = ['recebi','entrada','salário','ganhei','ganho','renda','freelance',
-                                  'transferência','depositaram','caiu na conta','recebimento','pagamento recebido'];
+                                  'transferência','depositaram','caiu na conta','recebimento','pagamento recebido',
+                                  'vendi','fiz uma venda','fiz venda','realizei uma venda','venda de','vendas de',
+                                  'faturei','faturamento','lucrei','lucro de','cobrei','cobrança de',
+                                  'cliente pagou','cliente me pagou','receita de','entrou na conta'];
     private const CONSULTA_KW = ['quanto gastei','quanto ganhei','meu saldo','ver saldo','saldo atual',
                                   'quanto tenho','resumo','relatório','extrato','minhas despesas',
                                   'minhas receitas','total do mês','gasto do mês','overview',
