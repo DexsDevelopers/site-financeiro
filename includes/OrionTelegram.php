@@ -30,7 +30,12 @@ class OrionTelegram
                                   'minhas metas','ver metas','listar metas','tarefas','metas',
                                   'mês passado','semana passada','ano passado','este ano','insights',
                                   'análise','como estou','situação financeira','comparativo',
-                                  'quanto gastei este ano','maior gasto','onde gastei mais'];
+                                  'quanto gastei este ano','maior gasto','onde gastei mais',
+                                  // palavra solo 'saldo' e frases de histórico (devem vir ANTES de DESPESA_KW)
+                                  'saldo','que gastei','que ganhei','que comprei','que paguei',
+                                  'últimas compras','últimos gastos','últimos lançamentos',
+                                  'últimas coisas','histórico','recentes','ver gastos','ver receitas',
+                                  'tudo que gastei','tudo que ganhei','o que eu gastei'];
     private const TAREFA_KW   = ['criar tarefa','nova tarefa','lembrete','to do','tarefa para','adicionar tarefa',
                                   'preciso fazer','não esquecer','anotar','me lembre','me lembra','lembrar','lembrar de',
                                   'anota ai','anota aí','por favor anota','adicionar lembrete'];
@@ -540,6 +545,11 @@ class OrionTelegram
         if (str_contains($texto, 'insight') || str_contains($texto, 'análise') || str_contains($texto, 'como estou') || str_contains($texto, 'situação')) {
             return $this->consultarInsights();
         }
+        if (str_contains($texto, 'últim') || str_contains($texto, 'histórico') || str_contains($texto, 'recente')
+            || str_contains($texto, 'que gastei') || str_contains($texto, 'que ganhei')
+            || str_contains($texto, 'que comprei') || str_contains($texto, 'que paguei')) {
+            return $this->listarUltimas($texto);
+        }
         if (str_contains($texto, 'saldo') || str_contains($texto, 'tenho')) {
             return $this->consultarSaldo();
         }
@@ -787,6 +797,52 @@ class OrionTelegram
         } catch (Throwable $e) {
             return $this->resp("❌ Erro ao gerar comparativo.");
         }
+    }
+
+    private function listarUltimas(string $texto = ''): array
+    {
+        // Detecta se quer só receitas ou só despesas
+        $filtroTipo = '';
+        if (str_contains($texto, 'receita') || str_contains($texto, 'ganhei') || str_contains($texto, 'entrada')) {
+            $filtroTipo = "AND t.tipo = 'receita'";
+        } elseif (str_contains($texto, 'despesa') || str_contains($texto, 'gastei') || str_contains($texto, 'comprei') || str_contains($texto, 'paguei')) {
+            $filtroTipo = "AND t.tipo = 'despesa'";
+        }
+
+        // Extrai quantidade solicitada ("últimas 10", "últimos 5")
+        $limite = 8;
+        if (preg_match('/(\d+)/', $texto, $m) && (int)$m[1] <= 50) {
+            $limite = (int)$m[1];
+        }
+
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT t.tipo, t.valor, t.descricao, t.data_transacao, c.nome as cat_nome
+                FROM transacoes t
+                LEFT JOIN categorias c ON c.id = t.id_categoria
+                WHERE t.id_usuario = ? {$filtroTipo}
+                ORDER BY t.data_transacao DESC, t.id DESC
+                LIMIT {$limite}
+            ");
+            $stmt->execute([$this->userId]);
+            $rows = $stmt->fetchAll();
+        } catch (Throwable $e) {
+            return $this->resp("❌ Erro ao buscar transações.");
+        }
+
+        if (!$rows) return $this->resp("📭 Nenhuma transação encontrada.");
+
+        $label = $filtroTipo === "AND t.tipo = 'receita'" ? 'receitas' : ($filtroTipo === "AND t.tipo = 'despesa'" ? 'despesas' : 'transações');
+        $t = "📋 <b>Últimas {$limite} {$label}</b>\n\n";
+        foreach ($rows as $r) {
+            $icon  = $r['tipo'] === 'receita' ? '💚' : '🔴';
+            $data  = date('d/m', strtotime($r['data_transacao']));
+            $valor = number_format((float)$r['valor'], 2, ',', '.');
+            $cat   = $r['cat_nome'] ? " [{$r['cat_nome']}]" : '';
+            $desc  = mb_strtolower(trim($r['descricao']));
+            $t .= "{$icon} <b>R$ {$valor}</b> — {$desc}{$cat} <i>{$data}</i>\n";
+        }
+        return $this->respComTeclado($t, $this->tecladoRelatorio());
     }
 
     private function processarOrcamento(string $texto): array
