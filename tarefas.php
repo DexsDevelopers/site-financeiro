@@ -128,6 +128,23 @@ $progresso       = $totalTarefas > 0 ? round(($tarefas_concluidas_hoje / max($to
         </div>
     </div>
 
+    <!-- Filtro de Data -->
+    <div class="date-filter-bar">
+        <div class="date-filter-pills">
+            <span class="date-filter-label"><i class="bi bi-calendar3"></i> Data:</span>
+            <button class="pill-date active" data-date-filter="todas">Todas as datas</button>
+            <button class="pill-date" data-date-filter="hoje">Hoje</button>
+            <button class="pill-date" data-date-filter="amanha">Amanhã</button>
+            <button class="pill-date" data-date-filter="semana">Esta semana</button>
+            <button class="pill-date" data-date-filter="atrasadas"><span class="dot dot-alta"></span>Atrasadas</button>
+        </div>
+        <div class="date-picker-wrap">
+            <i class="bi bi-calendar-event"></i>
+            <input type="date" id="datePickerFilter" class="date-picker-input" placeholder="Dia específico" title="Filtrar por data específica">
+            <button id="clearDatePicker" class="btn-clear-date" title="Limpar data">×</button>
+        </div>
+    </div>
+
     <!-- Seção: Pendentes -->
     <div class="section-heading">
         <i class="bi bi-list-check"></i> A Fazer
@@ -146,7 +163,7 @@ $progresso       = $totalTarefas > 0 ? round(($tarefas_concluidas_hoje / max($to
                 $prio = $tarefa['prioridade'];
                 $classePrio = match(strtolower($prio)) { 'alta' => 'priority-alta', 'média', 'media' => 'priority-media', default => 'priority-baixa' };
             ?>
-            <div class="task-card" data-id="<?php echo $tarefa['id']; ?>" data-prio="<?php echo $prio; ?>">
+            <div class="task-card" data-id="<?php echo $tarefa['id']; ?>" data-prio="<?php echo $prio; ?>" data-date="<?php echo $tarefa['data_limite'] ?? ''; ?>">
                 <div class="task-main">
                     <div class="priority-strip <?php echo $classePrio; ?>"></div>
                     
@@ -349,17 +366,54 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- Busca e Filtros ---
     const searchInput = document.getElementById('searchInput');
     const filterPills = document.querySelectorAll('.pill[data-filter]');
-    let currentFilter = 'todas';
+    const datePills   = document.querySelectorAll('.pill-date[data-date-filter]');
+    const datePickerInput = document.getElementById('datePickerFilter');
+    const clearDatePicker = document.getElementById('clearDatePicker');
+    let currentFilter     = 'todas';
+    let currentDateFilter = 'todas';
+    let specificDate      = '';
+
+    const today    = new Date(); today.setHours(0,0,0,0);
+    const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+    const weekEnd  = new Date(today); weekEnd.setDate(today.getDate() + 6);
+
+    function toDate(str) {
+        if (!str) return null;
+        const [y,m,d] = str.split('-').map(Number);
+        return new Date(y, m-1, d);
+    }
 
     function applyFilters() {
         const q = (searchInput?.value || '').toLowerCase();
         document.querySelectorAll('#lista-tarefas-pendentes .task-card').forEach(card => {
-            const title = card.querySelector('.task-title')?.textContent.toLowerCase() || '';
-            const prio  = (card.dataset.prio || '').trim();
+            const title    = card.querySelector('.task-title')?.textContent.toLowerCase() || '';
+            const prio     = (card.dataset.prio || '').trim();
+            const dateStr  = card.dataset.date || '';
+            const cardDate = toDate(dateStr);
+
             const matchSearch = !q || title.includes(q);
-            const matchFilter = currentFilter === 'todas' || prio === currentFilter;
-            card.style.display = (matchSearch && matchFilter) ? '' : 'none';
+            const matchPrio   = currentFilter === 'todas' || prio === currentFilter;
+
+            let matchDate = true;
+            if (specificDate) {
+                matchDate = dateStr === specificDate;
+            } else if (currentDateFilter === 'hoje') {
+                matchDate = cardDate && cardDate.getTime() === today.getTime();
+            } else if (currentDateFilter === 'amanha') {
+                matchDate = cardDate && cardDate.getTime() === tomorrow.getTime();
+            } else if (currentDateFilter === 'semana') {
+                matchDate = cardDate && cardDate >= today && cardDate <= weekEnd;
+            } else if (currentDateFilter === 'atrasadas') {
+                matchDate = cardDate && cardDate < today;
+            }
+
+            card.style.display = (matchSearch && matchPrio && matchDate) ? '' : 'none';
         });
+
+        // Atualiza contador da seção
+        const visible = document.querySelectorAll('#lista-tarefas-pendentes .task-card:not([style*="none"])');
+        const countEl = document.querySelector('.section-heading .section-count');
+        if (countEl) countEl.textContent = visible.length;
     }
 
     searchInput?.addEventListener('input', applyFilters);
@@ -371,6 +425,35 @@ document.addEventListener('DOMContentLoaded', function() {
             currentFilter = btn.dataset.filter;
             applyFilters();
         });
+    });
+
+    datePills.forEach(btn => {
+        btn.addEventListener('click', () => {
+            datePills.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentDateFilter = btn.dataset.dateFilter;
+            specificDate = '';
+            if (datePickerInput) datePickerInput.value = '';
+            applyFilters();
+        });
+    });
+
+    datePickerInput?.addEventListener('change', () => {
+        specificDate = datePickerInput.value;
+        if (specificDate) {
+            datePills.forEach(b => b.classList.remove('active'));
+            currentDateFilter = 'especifica';
+        }
+        applyFilters();
+    });
+
+    clearDatePicker?.addEventListener('click', () => {
+        specificDate = '';
+        if (datePickerInput) datePickerInput.value = '';
+        currentDateFilter = 'todas';
+        datePills.forEach(b => b.classList.remove('active'));
+        datePills[0]?.classList.add('active');
+        applyFilters();
     });
 
     // --- Nova Tarefa ---

@@ -471,6 +471,99 @@ h5,
 .dot-media { background: var(--warning); }
 .dot-baixa { background: var(--success); }
 
+/* ========== DATE FILTER BAR ========== */
+.date-filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+
+.date-filter-pills {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    flex: 1;
+}
+
+.date-filter-label {
+    color: var(--text-muted);
+    font-size: 0.80rem;
+    font-weight: 600;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.pill-date {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: var(--text-muted);
+    padding: 7px 14px;
+    border-radius: 10px;
+    font-size: 0.80rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Lexend Deca', sans-serif;
+}
+
+.pill-date:hover  { background: rgba(255,255,255,0.08); color: #fff; }
+.pill-date.active { background: rgba(229,9,20,0.12); border-color: rgba(229,9,20,0.4); color: #fff; }
+
+.date-picker-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 7px 12px;
+    transition: border-color 0.25s;
+}
+
+.date-picker-wrap:focus-within {
+    border-color: rgba(229,9,20,0.5);
+    background: rgba(255,255,255,0.06);
+}
+
+.date-picker-wrap i { color: var(--text-muted); font-size: 0.9rem; flex-shrink: 0; }
+
+.date-picker-input {
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-size: 0.82rem;
+    font-family: 'Lexend Deca', sans-serif;
+    outline: none;
+    cursor: pointer;
+    width: 130px;
+}
+
+.date-picker-input::-webkit-calendar-picker-indicator {
+    filter: invert(1) opacity(0.5);
+    cursor: pointer;
+}
+
+.btn-clear-date {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0 2px;
+    transition: color 0.2s;
+}
+
+.btn-clear-date:hover { color: var(--danger); }
+
 /* ========== SECTION HEADING ========== */
 .section-heading {
     display: flex;
@@ -1814,6 +1907,23 @@ body * {
 
     .search-wrap {
         max-width: 100%;
+    }
+
+    .date-filter-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .date-filter-pills {
+        flex-wrap: wrap;
+    }
+
+    .date-picker-wrap {
+        width: 100%;
+    }
+
+    .date-picker-input {
+        width: 100%;
     }
 
     .modal-content {
