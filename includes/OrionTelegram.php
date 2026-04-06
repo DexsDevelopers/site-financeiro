@@ -219,6 +219,11 @@ class OrionTelegram
 
     private function detectarIntencao(string $texto): string
     {
+        // ── Frases interrogativas sobre tarefas/horários — ANTES de qualquer KW ──
+        if (preg_match('/^(que horas|a que horas|quando (eu |vc )?tenho que|quando (eu |vc )?preciso|que dia (eu )?tenho|qual (o )?hor[aá]rio|qual (o )?prazo)/iu', $texto)) {
+            return 'consulta';
+        }
+
         foreach (self::CORRECAO_KW as $kw) {
             if (str_contains($texto, $kw)) return 'correcao';
         }
@@ -541,6 +546,11 @@ class OrionTelegram
 
     private function processarConsulta(string $texto): array
     {
+        // Pergunta sobre horário/data de tarefa específica
+        if (preg_match('/que horas|a que horas|quando.*tenho.*que|quando.*preciso|que dia.*tenho|qual.*hor[aá]rio.*tarefa|qual.*prazo/iu', $texto)) {
+            return $this->consultarHorarioTarefa($texto);
+        }
+
         if (str_contains($texto, 'tarefa') || str_contains($texto, 'pra fazer') || str_contains($texto, 'que fazer')) {
             return $this->listarTarefas();
         }
@@ -802,6 +812,49 @@ class OrionTelegram
         } catch (Throwable $e) {
             return $this->resp("❌ Erro ao gerar comparativo.");
         }
+    }
+
+    private function consultarHorarioTarefa(string $texto): array
+    {
+        // Remove palavras interrogativas para extrair o nome da tarefa
+        $stop = '/\b(que horas|a que horas|quando|tenho que|preciso|que dia|qual|o|a|hor[aá]rio|prazo|da|do|de|eu|ir|pra|para|na|no|é|são|tem|tenho|minha|meu|pelo|pela|às|as|at[eé])\b/iu';
+        $busca = trim(preg_replace('/\s+/', ' ', preg_replace($stop, '', $texto)));
+
+        $tarefa = null;
+        if (strlen($busca) >= 3) {
+            foreach (array_filter(explode(' ', $busca), fn($w) => strlen($w) >= 3) as $palavra) {
+                $stmt = $this->pdo->prepare("
+                    SELECT descricao, data_limite, hora_lembrete
+                    FROM tarefas
+                    WHERE id_usuario = ? AND status = 'pendente' AND descricao LIKE ?
+                    ORDER BY id DESC LIMIT 1
+                ");
+                $stmt->execute([$this->userId, "%{$palavra}%"]);
+                $tarefa = $stmt->fetch();
+                if ($tarefa) break;
+            }
+        }
+
+        if (!$tarefa) {
+            // Nenhuma tarefa encontrada — listar pendentes
+            return $this->listarTarefas();
+        }
+
+        $t = "📋 <b>{$tarefa['descricao']}</b>\n";
+        if ($tarefa['data_limite']) {
+            $ds = ['Sun'=>'domingo','Mon'=>'segunda','Tue'=>'terça','Wed'=>'quarta','Thu'=>'quinta','Fri'=>'sexta','Sat'=>'sábado'];
+            $dsFull = $ds[date('D', strtotime($tarefa['data_limite']))] ?? '';
+            $t .= "\n📅 <b>" . date('d/m/Y', strtotime($tarefa['data_limite'])) . "</b> ({$dsFull})";
+        } else {
+            $t .= "\n📅 Sem data definida";
+        }
+        if ($tarefa['hora_lembrete']) {
+            $t .= "\n⏰ <b>" . substr($tarefa['hora_lembrete'], 0, 5) . "</b>";
+        } else {
+            $t .= "\n⏰ Sem horário definido";
+        }
+
+        return $this->resp($t);
     }
 
     private function listarUltimas(string $texto = ''): array
