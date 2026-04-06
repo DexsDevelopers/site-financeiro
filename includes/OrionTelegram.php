@@ -31,6 +31,8 @@ class OrionTelegram
                                   'mês passado','semana passada','ano passado','este ano','insights',
                                   'análise','como estou','situação financeira','comparativo',
                                   'quanto gastei este ano','maior gasto','onde gastei mais',
+                                  'quanto gastei em','quanto paguei de','quanto ganhei com',
+                                  'gastos com','gastos de','despesas com','receitas de',
                                   // palavra solo 'saldo' e frases de histórico (devem vir ANTES de DESPESA_KW)
                                   'saldo','que gastei','que ganhei','que comprei','que paguei',
                                   'últimas compras','últimos gastos','últimos lançamentos',
@@ -38,8 +40,12 @@ class OrionTelegram
                                   'tudo que gastei','tudo que ganhei','o que eu gastei'];
     private const TAREFA_KW   = ['criar tarefa','nova tarefa','lembrete','to do','tarefa para','adicionar tarefa',
                                   'preciso fazer','não esquecer','anotar','me lembre','me lembra','lembrar','lembrar de',
-                                  'anota ai','anota aí','por favor anota','adicionar lembrete'];
-    private const META_KW     = ['criar meta','nova meta','meta de','objetivo de','quero juntar','poupar para'];
+                                  'anota ai','anota aí','por favor anota','adicionar lembrete',
+                                  'preciso ir','tenho que ir','não posso esquecer','coloca na agenda',
+                                  'agenda para','agendar','coloca um lembrete','vou ter que'];
+    private const META_KW     = ['criar meta','nova meta','meta de','objetivo de','quero juntar','poupar para',
+                                  'adicionei na meta','depositei na meta','juntei para','quero economizar',
+                                  'quero poupar','juntei na meta','contribui para a meta'];
     private const CORRECAO_KW  = ['errei','foi errado','era outro','na verdade','corrijo','estava errado',
                                   'não era','cancela','cancele','desfazer'];
     private const GERENCIAR_KW = ['prioridade alta','prioridade baixa','prioridade media','prioridade média',
@@ -56,7 +62,9 @@ class OrionTelegram
                                   'limite mensal','budget'];
     private const DIVIDA_KW    = ['devo para','me deve','emprestei para','me emprestou','tenho que pagar para',
                                   'dívida com','pagar para','cobrar de','minha dívida','minhas dívidas',
-                                  'ver dívidas','quem me deve'];
+                                  'ver dívidas','quem me deve',
+                                  'paguei a dívida','quitei a dívida','quitar dívida','me pagou a dívida',
+                                  'recebi do','recebi da','paguei o que devia'];
 
     // ─── Constructor ──────────────────────────────────────────────────────────
     public function __construct(PDO $pdo, int $userId, int $chatId, string $userName = '')
@@ -128,6 +136,14 @@ class OrionTelegram
                 data        DATE NOT NULL,
                 created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
                 INDEX idx_user_div (id_usuario)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+        $this->pdo->exec("
+            CREATE TABLE IF NOT EXISTS tg_contexto (
+                chat_id    BIGINT PRIMARY KEY,
+                tipo       VARCHAR(40) NOT NULL,
+                dados      JSON DEFAULT NULL,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         ");
     }
@@ -219,46 +235,62 @@ class OrionTelegram
 
     private function detectarIntencao(string $texto): string
     {
-        // ── Frases interrogativas sobre tarefas/horários — ANTES de qualquer KW ──
+        // ── Frases interrogativas — SEMPRE consulta ──────────────────────────────
         if (preg_match('/^(que horas|a que horas|quando (eu |vc )?tenho que|quando (eu |vc )?preciso|que dia (eu )?tenho|qual (o )?hor[aá]rio|qual (o )?prazo)/iu', $texto)) {
             return 'consulta';
         }
 
-        foreach (self::CORRECAO_KW as $kw) {
-            if (str_contains($texto, $kw)) return 'correcao';
+        // ── Busca de transação específica — SEMPRE consulta ──────────────────────
+        if (preg_match('/quanto\s+(gastei|paguei|ganhei|recebi)\s+(em|de|no|na|com)\s+\S/iu', $texto) ||
+            preg_match('/gastos?\s+(com|em|de|no|na)\s+\S/iu', $texto)) {
+            return 'consulta';
         }
-        foreach (self::GERENCIAR_KW as $kw) {
-            if (str_contains($texto, $kw)) return 'gerenciar';
-        }
-        foreach (self::ORCAMENTO_KW as $kw) {
-            if (str_contains($texto, $kw)) return 'orcamento';
-        }
-        foreach (self::DIVIDA_KW as $kw) {
-            if (str_contains($texto, $kw)) return 'divida';
-        }
-        foreach (self::CONSULTA_KW as $kw) {
-            if (str_contains($texto, $kw)) return 'consulta';
-        }
-        foreach (self::TAREFA_KW as $kw) {
-            if (str_contains($texto, $kw)) return 'tarefa';
-        }
-        foreach (self::META_KW as $kw) {
-            if (str_contains($texto, $kw)) return 'meta';
-        }
-        foreach (self::RECEITA_KW as $kw) {
-            if (str_contains($texto, $kw)) return 'receita';
-        }
-        foreach (self::DESPESA_KW as $kw) {
-            if (str_contains($texto, $kw)) return 'despesa';
-        }
-        // Verificar aprendizado pessoal
-        foreach ($this->aprendizado as $expr => $dado) {
-            if (str_contains($texto, $expr) && $dado['confirmacoes'] >= 2) {
-                return $dado['tipo'];
+
+        // ── Sistema de pontuação: frases mais longas e específicas valem mais ────
+        $scores = ['correcao'=>0,'gerenciar'=>0,'orcamento'=>0,'divida'=>0,
+                   'consulta'=>0,'tarefa'=>0,'meta'=>0,'receita'=>0,'despesa'=>0];
+        $mapas  = [
+            'correcao'  => self::CORRECAO_KW,
+            'gerenciar' => self::GERENCIAR_KW,
+            'orcamento' => self::ORCAMENTO_KW,
+            'divida'    => self::DIVIDA_KW,
+            'consulta'  => self::CONSULTA_KW,
+            'tarefa'    => self::TAREFA_KW,
+            'meta'      => self::META_KW,
+            'receita'   => self::RECEITA_KW,
+            'despesa'   => self::DESPESA_KW,
+        ];
+        foreach ($mapas as $intent => $kws) {
+            foreach ($kws as $kw) {
+                if (str_contains($texto, $kw)) {
+                    // Frases com espaço (multi-palavra) recebem bônus de especificidade
+                    $scores[$intent] += mb_strlen($kw) + (str_contains($kw, ' ') ? 6 : 0);
+                }
             }
         }
-        // Se tem valor monetário explícito (R$, reais, valor solto), provavelmente é despesa
-        // Mas ignora padrões de hora: 22h, 22h30, 22:00, 22 horas
+
+        // Intents de alta prioridade: se pontuaram, retornam imediatamente (antes de despesa/receita)
+        foreach (['correcao','gerenciar','orcamento','divida'] as $prio) {
+            if ($scores[$prio] > 0) return $prio;
+        }
+
+        // Entre consulta/tarefa/meta/receita/despesa → maior pontuação vence
+        $melhor = null; $maxScore = 0;
+        foreach (['consulta','tarefa','meta','receita','despesa'] as $intent) {
+            if ($scores[$intent] > $maxScore) {
+                $maxScore = $scores[$intent];
+                $melhor   = $intent;
+            }
+        }
+        if ($melhor) return $melhor;
+
+        // Verificar aprendizado pessoal
+        foreach ($this->aprendizado as $expr => $dado) {
+            if (str_contains($texto, $expr) && $dado['confirmacoes'] >= 2) return $dado['tipo'];
+        }
+
+        // Valor monetário explícito (R$, reais, valor solto) → despesa
+        // Ignora padrões de hora: 22h, 22h30, 22:00, 22 horas
         $textoSemHora = preg_replace('/\b\d{1,2}h(?:\d{2})?\b/i', '', $texto);
         $textoSemHora = preg_replace('/\b\d{1,2}:\d{2}\b/', '', $textoSemHora);
         $textoSemHora = preg_replace('/\b\d{1,2}\s+horas?\b/i', '', $textoSemHora);
@@ -292,6 +324,16 @@ class OrionTelegram
         } elseif (preg_match('/(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?/', $texto, $m)) {
             $ano = isset($m[3]) ? (strlen($m[3]) === 2 ? '20'.$m[3] : $m[3]) : date('Y');
             $entidades['data'] = "{$ano}-{$m[2]}-{$m[1]}";
+        }
+
+        // Parcelado: "em 12x de 150" | "12 parcelas de 50" | "12 vezes de 50"
+        if (preg_match('/\bem\s+(\d+)\s*[xX]\s+de\s+r?\$?\s*([\d.,]+)/iu', $textoValor, $mP) ||
+            preg_match('/(\d+)\s+(?:vezes?|parcelas?)\s+de\s+r?\$?\s*([\d.,]+)/iu', $textoValor, $mP)) {
+            $qtd     = (int)$mP[1];
+            $parcela = (float)str_replace(['.', ','], ['', '.'], $mP[2]);
+            $entidades['valor']         = round($parcela * $qtd, 2);
+            $entidades['parcelas']      = $qtd;
+            $entidades['valor_parcela'] = $parcela;
         }
 
         // Descrição (remove valor e palavras-chave)
@@ -549,6 +591,47 @@ class OrionTelegram
         // Pergunta sobre horário/data de tarefa específica
         if (preg_match('/que horas|a que horas|quando.*tenho.*que|quando.*preciso|que dia.*tenho|qual.*hor[aá]rio.*tarefa|qual.*prazo/iu', $texto)) {
             return $this->consultarHorarioTarefa($texto);
+        }
+
+        // Busca de transação específica: "quanto gastei em uber", "gastos com pizza"
+        if (preg_match('/quanto\s+(gastei|paguei|ganhei|recebi)\s+(?:em|de|no|na|com)\s+(.+)/iu', $texto, $m)) {
+            return $this->buscarTransacao(trim($m[2]), $m[1]);
+        }
+        if (preg_match('/gastos?\s+(?:com|em|de|no|na)\s+(.+)/iu', $texto, $m)) {
+            return $this->buscarTransacao(trim($m[1]), 'gastei');
+        }
+        if (preg_match('/despesas?\s+(?:com|em|de|no|na)\s+(.+)/iu', $texto, $m)) {
+            return $this->buscarTransacao(trim($m[1]), 'gastei');
+        }
+
+        // Follow-up contextual: "e ontem?", "e semana passada?"
+        $periodoFU = null;
+        if (preg_match('/^(?:e\s+|mas\s+|e\s+o\s+|e\s+a\s+)?(ontem|hoje|esta\s+semana|semana\s+passada|m[eê]s\s+passado|este\s+m[eê]s|este\s+ano|ano\s+passado)\??$/iu', $texto, $mFU)) {
+            $key = mb_strtolower(trim(preg_replace('/\s+/', ' ', $mFU[1])));
+            $mapFU = ['ontem'=>'ontem','hoje'=>'hoje','esta semana'=>'semana','semana passada'=>'semana_passada',
+                      'mes passado'=>'mes_passado','mês passado'=>'mes_passado',
+                      'este mes'=>'mes','este mês'=>'mes','este ano'=>'ano','ano passado'=>'ano'];
+            foreach ($mapFU as $k => $v) {
+                if (str_contains($key, $k)) { $periodoFU = $v; break; }
+            }
+        }
+        if ($periodoFU) {
+            if ($periodoFU === 'ontem') {
+                $this->salvarContexto('periodo', ['periodo' => 'ontem']);
+                $stmt = $this->pdo->prepare("SELECT tipo, SUM(valor) as total, COUNT(*) as qtd FROM transacoes WHERE id_usuario = ? AND DATE(data_transacao) = DATE_SUB(CURDATE(),INTERVAL 1 DAY) GROUP BY tipo");
+                $stmt->execute([$this->userId]);
+                $rec = $desp = 0; $qR = $qD = 0;
+                foreach ($stmt->fetchAll() as $r) {
+                    if ($r['tipo']==='receita') { $rec=(float)$r['total']; $qR=(int)$r['qtd']; }
+                    else { $desp=(float)$r['total']; $qD=(int)$r['qtd']; }
+                }
+                $saldo = $rec - $desp; $icon = $saldo >= 0 ? '🟢' : '🔴';
+                $t = "📅 <b>Ontem</b>\n\n💚 Receitas: R$ ".number_format($rec,2,',','.').(" ({$qR}x)\n").
+                     "🔴 Despesas: R$ ".number_format($desp,2,',','.').(" ({$qD}x)\n─────────────────\n").
+                     "{$icon} <b>R$ ".number_format($saldo,2,',','.')."</b>";
+                return $this->respComTeclado($t, $this->tecladoRelatorio());
+            }
+            return $this->consultarPeriodo($periodoFU);
         }
 
         if (str_contains($texto, 'tarefa') || str_contains($texto, 'pra fazer') || str_contains($texto, 'que fazer')) {
@@ -857,6 +940,159 @@ class OrionTelegram
         return $this->resp($t);
     }
 
+    private function buscarTransacao(string $termo, string $verbo = ''): array
+    {
+        $tipo = (preg_match('/ganh|receb/iu', $verbo)) ? 'receita' : 'despesa';
+        $termo = trim(preg_replace('/\s+/', ' ', $termo));
+        // Remove "este mês", "esse mês", "hoje" do termo para isolar o sujeito
+        $periodo = 'mes';
+        if (preg_match('/\bhoje\b/iu', $termo))               { $periodo = 'hoje';         $termo = preg_replace('/\bhoje\b/iu', '', $termo); }
+        elseif (preg_match('/\besta semana\b/iu', $termo))    { $periodo = 'semana';        $termo = preg_replace('/\besta semana\b/iu', '', $termo); }
+        elseif (preg_match('/\bm[eê]s passado\b/iu', $termo)) { $periodo = 'mes_passado';   $termo = preg_replace('/\bm[eê]s passado\b/iu', '', $termo); }
+        elseif (preg_match('/\beste ano\b/iu', $termo))       { $periodo = 'ano';           $termo = preg_replace('/\beste ano\b/iu', '', $termo); }
+        $termo = trim(preg_replace('/\b(este|esse|no|na|em|de|do|da|o|a)\b/iu', '', $termo));
+        $termo = trim(preg_replace('/\s+/', ' ', $termo));
+
+        $whereData = match($periodo) {
+            'hoje'        => "AND DATE(t.data_transacao) = CURDATE()",
+            'semana'      => "AND YEARWEEK(t.data_transacao,1) = YEARWEEK(CURDATE(),1)",
+            'mes_passado' => "AND YEAR(t.data_transacao)=YEAR(DATE_SUB(CURDATE(),INTERVAL 1 MONTH)) AND MONTH(t.data_transacao)=MONTH(DATE_SUB(CURDATE(),INTERVAL 1 MONTH))",
+            'ano'         => "AND YEAR(t.data_transacao)=YEAR(CURDATE())",
+            default       => "AND YEAR(t.data_transacao)=YEAR(CURDATE()) AND MONTH(t.data_transacao)=MONTH(CURDATE())",
+        };
+        $labelData = match($periodo) {
+            'hoje'=>'hoje','semana'=>'esta semana','mes_passado'=>'mês passado','ano'=>'este ano',default=>'este mês'
+        };
+
+        try {
+            $like = '%' . mb_strtolower($termo) . '%';
+            $stmt = $this->pdo->prepare("
+                SELECT t.valor, t.descricao, t.data_transacao, c.nome as cat_nome
+                FROM transacoes t
+                LEFT JOIN categorias c ON c.id = t.id_categoria
+                WHERE t.id_usuario = ? AND t.tipo = ?
+                AND (LOWER(t.descricao) LIKE ? OR LOWER(c.nome) LIKE ?)
+                {$whereData}
+                ORDER BY t.data_transacao DESC LIMIT 20
+            ");
+            $stmt->execute([$this->userId, $tipo, $like, $like]);
+            $rows = $stmt->fetchAll();
+        } catch (Throwable $e) {
+            return $this->resp("❌ Erro na busca.");
+        }
+
+        if (!$rows) {
+            return $this->resp("📭 Nenhum lançamento encontrado para <b>\"{$termo}\"</b> {$labelData}.\n\n<i>Tente uma palavra diferente ou verifique o período.</i>");
+        }
+
+        $total = array_sum(array_column($rows, 'valor'));
+        $icon  = $tipo === 'receita' ? '💚' : '🔴';
+        $t = "{$icon} <b>\"" . mb_strtolower($termo) . "\"</b> — {$labelData}\n\n";
+        foreach ($rows as $r) {
+            $data = date('d/m', strtotime($r['data_transacao']));
+            $desc = mb_strtolower(trim($r['descricao']));
+            $cat  = $r['cat_nome'] ? " [{$r['cat_nome']}]" : '';
+            $t .= "· <b>R$ " . number_format((float)$r['valor'], 2, ',', '.') . "</b> — {$desc}{$cat} <i>{$data}</i>\n";
+        }
+        $t .= "\n─────────────────\n";
+        $t .= "<b>Total: R$ " . number_format($total, 2, ',', '.') . "</b> (" . count($rows) . " lançamento(s))";
+        return $this->respComTeclado($t, $this->tecladoRelatorio());
+    }
+
+    private function marcarDividaPaga(string $texto): array
+    {
+        $stop = '/\b(quit|quitei|paguei|pago|pagou|dívida|divida|com|para|a|o|de|r\$|reais|me|pagou|recebi|do|da|\d+)\b/iu';
+        $pessoa = trim(preg_replace('/\s+/', ' ', preg_replace($stop, '', $texto)));
+
+        if (strlen($pessoa) < 2) {
+            return $this->listarDividas();
+        }
+
+        $stmt = $this->pdo->prepare("
+            SELECT id, pessoa, valor, tipo FROM tg_dividas
+            WHERE id_usuario = ? AND status = 'aberta' AND LOWER(pessoa) LIKE ?
+            ORDER BY id DESC LIMIT 1
+        ");
+        $stmt->execute([$this->userId, '%' . mb_strtolower($pessoa) . '%']);
+        $divida = $stmt->fetch();
+
+        if (!$divida) {
+            return $this->resp("🔍 Não encontrei dívida em aberto com <b>\"{$pessoa}\"</b>.\n\nDigite <code>ver dívidas</code> para ver a lista.");
+        }
+
+        $this->pdo->prepare("UPDATE tg_dividas SET status = 'paga' WHERE id = ?")->execute([$divida['id']]);
+
+        $tipoLabel = $divida['tipo'] === 'devo' ? 'Você pagou para' : 'Recebido de';
+        $icon      = $divida['tipo'] === 'devo' ? '✅' : '💚';
+        return $this->resp(
+            "{$icon} <b>Dívida quitada!</b>\n\n" .
+            "{$tipoLabel} <b>{$divida['pessoa']}</b>\n" .
+            "💰 R$ " . number_format((float)$divida['valor'], 2, ',', '.') . "\n\n" .
+            "<i>Use <code>ver dívidas</code> para ver o saldo atualizado.</i>"
+        );
+    }
+
+    private function depositarNaMeta(string $texto): array
+    {
+        preg_match('/(\d+[.,]?\d*)/', $texto, $mVal);
+        $valor = isset($mVal[1]) ? (float)str_replace(',', '.', $mVal[1]) : null;
+        if (!$valor) return $this->resp("💬 Qual o valor guardado? Ex: <code>guardei 200 para viagem</code>");
+
+        $stop    = '/\b(adicionei|guardei|poupei|economizei|juntei|depositei|na|meta|para|pra|em|de|r\$|reais|\d+[.,]?\d*)\b/iu';
+        $nomeMeta = trim(preg_replace('/\s+/', ' ', preg_replace($stop, '', $texto)));
+
+        // Busca meta pelo nome ou usa a mais recente
+        $meta = null;
+        if (strlen($nomeMeta) >= 2) {
+            $stmt = $this->pdo->prepare("SELECT id, nome, valor_objetivo, valor_atual FROM metas WHERE id_usuario = ? AND LOWER(nome) LIKE ? ORDER BY id DESC LIMIT 1");
+            $stmt->execute([$this->userId, '%' . mb_strtolower($nomeMeta) . '%']);
+            $meta = $stmt->fetch();
+        }
+        if (!$meta) {
+            $stmt2 = $this->pdo->prepare("SELECT id, nome, valor_objetivo, valor_atual FROM metas WHERE id_usuario = ? ORDER BY id DESC LIMIT 1");
+            $stmt2->execute([$this->userId]);
+            $meta = $stmt2->fetch();
+        }
+        if (!$meta) {
+            return $this->resp("🎯 Nenhuma meta encontrada. Crie uma: <code>criar meta viagem 5000</code>");
+        }
+
+        $novoValor = (float)$meta['valor_atual'] + $valor;
+        $this->pdo->prepare("UPDATE metas SET valor_atual = ? WHERE id = ?")->execute([$novoValor, $meta['id']]);
+
+        $pct     = $meta['valor_objetivo'] > 0 ? min(100, round(($novoValor / (float)$meta['valor_objetivo']) * 100)) : 0;
+        $barsN   = (int)($pct / 10);
+        $bar     = str_repeat('█', $barsN) . str_repeat('░', 10 - $barsN);
+        $resp    = "🎯 <b>{$meta['nome']}</b> atualizada!\n\n";
+        $resp   .= "{$bar} <b>{$pct}%</b>\n";
+        $resp   .= "R$ " . number_format($novoValor, 2, ',', '.') . " / R$ " . number_format((float)$meta['valor_objetivo'], 2, ',', '.') . "\n";
+        $resp   .= "\n💚 <b>+R$ " . number_format($valor, 2, ',', '.') . "</b> adicionados!";
+        if ($pct >= 100) $resp .= "\n\n🎉 <b>Meta atingida! Parabéns!</b> 🏆";
+        return $this->resp($resp);
+    }
+
+    private function salvarContexto(string $tipo, array $dados = []): void
+    {
+        try {
+            $this->pdo->prepare("
+                INSERT INTO tg_contexto (chat_id, tipo, dados)
+                VALUES (?, ?, ?)
+                ON DUPLICATE KEY UPDATE tipo = ?, dados = ?, updated_at = NOW()
+            ")->execute([$this->chatId, $tipo, json_encode($dados), $tipo, json_encode($dados)]);
+        } catch (Throwable $e) {}
+    }
+
+    private function pegarContexto(): array
+    {
+        try {
+            $stmt = $this->pdo->prepare("SELECT tipo, dados FROM tg_contexto WHERE chat_id = ?");
+            $stmt->execute([$this->chatId]);
+            $row = $stmt->fetch();
+            if ($row) return ['tipo' => $row['tipo'], 'dados' => json_decode($row['dados'] ?? '{}', true) ?: []];
+        } catch (Throwable $e) {}
+        return ['tipo' => '', 'dados' => []];
+    }
+
     private function listarUltimas(string $texto = ''): array
     {
         // Detecta se quer só receitas ou só despesas
@@ -989,12 +1225,21 @@ class OrionTelegram
         }
         return $this->respComTeclado($t, $this->tecladoRelatorio());
     }
-
     private function processarDivida(string $texto): array
     {
         $textoNorm = $this->normalizar($texto);
 
-        // ── Ver dívidas ────────────────────────────────────────────────────
+        // ── Quitar / marcar como paga ──────────────────────────────────
+        if (preg_match('/\b(quitei|quitar|paguei a d[ií]vida|me pagou a d[ií]vida|paguei o que devia|pagou a d[ií]vida)\b/iu', $textoNorm) ||
+            (preg_match('/\b(paguei|pago|pagou)\b/iu', $textoNorm) && preg_match('/\b(d[ií]vida|devia|para|pro|pra)\b/iu', $textoNorm))) {
+            return $this->marcarDividaPaga($texto);
+        }
+        // "João me pagou" ou "recebi do/da João"
+        if (preg_match('/\bme\s+pagou\b/iu', $textoNorm) || preg_match('/\b(recebi do|recebi da)\b/iu', $textoNorm)) {
+            return $this->marcarDividaPaga($texto);
+        }
+
+        // ── Ver dívidas ────────────────────────────────────────────
         if (preg_match('/\b(ver|minhas|listar|quem|show|resumo)\b/iu', $textoNorm)) {
             return $this->listarDividas();
         }
@@ -1061,319 +1306,16 @@ class OrionTelegram
         }
     }
 
-    private function listarDividas(): array
-    {
-        try {
-            $stmt = $this->pdo->prepare("
-                SELECT tipo, pessoa, SUM(valor) as total, COUNT(*) as qtd
-                FROM tg_dividas
-                WHERE id_usuario = ? AND status = 'aberta'
-                GROUP BY tipo, pessoa
-                ORDER BY tipo, total DESC
-            ");
-            $stmt->execute([$this->userId]);
-            $rows = $stmt->fetchAll();
-        } catch (Throwable $e) {
-            return $this->resp("❌ Erro ao buscar dívidas.");
-        }
-        if (!$rows) {
-            return $this->resp("✅ Nenhuma dívida em aberto! Tudo limpo. 🎉");
-        }
-        $totalDevo     = 0;
-        $totalMeDevem  = 0;
-        $t = "💳 <b>Dívidas em aberto</b>\n\n";
-        $t .= "🔴 <b>Você deve:</b>\n";
-        $temDevo = false;
-        foreach ($rows as $r) {
-            if ($r['tipo'] === 'devo') {
-                $temDevo = true;
-                $t .= "  · {$r['pessoa']}: R$ " . number_format((float)$r['total'], 2, ',', '.') . "\n";
-                $totalDevo += (float)$r['total'];
-            }
-        }
-        if (!$temDevo) $t .= "  Nenhuma\n";
-        $t .= "\n💚 <b>Te devem:</b>\n";
-        $temMeDev = false;
-        foreach ($rows as $r) {
-            if ($r['tipo'] === 'me_devem') {
-                $temMeDev = true;
-                $t .= "  · {$r['pessoa']}: R$ " . number_format((float)$r['total'], 2, ',', '.') . "\n";
-                $totalMeDevem += (float)$r['total'];
-            }
-        }
-        if (!$temMeDev) $t .= "  Nenhuma\n";
-        $liquido = $totalMeDevem - $totalDevo;
-        $icon    = $liquido >= 0 ? '🟢' : '🔴';
-        $t .= "\n─────────────────\n";
-        $t .= "{$icon} Líquido: <b>R$ " . number_format($liquido, 2, ',', '.') . "</b>";
-        return $this->respComTeclado($t, $this->tecladoRelatorio());
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // TAREFAS E METAS
-    // ═══════════════════════════════════════════════════════════════════════
-
-    private function processarTarefa(string $texto): array
-    {
-        // Remove palavras-chave de intenção
-        $desc = preg_replace('/\b(criar tarefa|nova tarefa|lembrete|to do|tarefa para|adicionar tarefa|preciso fazer|não esquecer|anotar|me lembre|me lembra|lembrar de|lembrar|anota ai|anota aí|por favor anota|adicionar lembrete)\b/iu', '', $texto);
-        $desc = preg_replace('/^\s*(de|para|que|ao?|da?|o|em|na?|num?)\s+/iu', '', $desc);
-        $desc = trim($desc);
-        if (empty($desc)) return $this->resp("💬 Qual é a tarefa? Me diz o que precisa fazer.");
-        try {
-            // Prioridade
-            $prioridade = 'Média';
-            if (preg_match('/\b(urgente|urgência|alta|importante|prioridade alta)\b/iu', $desc)) $prioridade = 'Alta';
-            if (preg_match('/\b(baixa|depois|quando der|sem pressa)\b/iu', $desc))              $prioridade = 'Baixa';
-
-            // Data
-            $dataLimite = null;
-            if (preg_match('/\bamanhã\b/iu', $desc)) {
-                $dataLimite = date('Y-m-d', strtotime('+1 day'));
-                $desc = preg_replace('/\bamanhã\b/iu', '', $desc);
-            } elseif (preg_match('/\bhoje\b/iu', $desc)) {
-                $dataLimite = date('Y-m-d');
-                $desc = preg_replace('/\bhoje\b/iu', '', $desc);
-            }
-
-            // Horário — suporta: 22h · 22h30 · 22:00 · 22 horas · às/as 22h · às/as 22:00 · às/as 22 horas
-            $horaLembrete = null;
-            $horaPattern  = '
-                (?:(?:às?|as)\s+)?   # prefixo opcional: às, as (seguido de espaço)
-                (?<![a-zA-Z\x{00C0}-\x{024F}])  # não precedido de letra (evita "academia 18h" → "academi")
-                (\d{1,2})            # hora
-                (?:
-                    [h:]\s*(\d{2})?  # 22h · 22h30 · 22:00
-                    |\s+horas?        # 22 horas · 22 hora
-                )
-            ';
-            if (preg_match('/' . $horaPattern . '/ixu', $desc, $mH)) {
-                $h = sprintf('%02d', (int)$mH[1]);
-                $m = sprintf('%02d', (int)($mH[2] ?? 0));
-                $horaLembrete = "{$h}:{$m}:00";
-                // Remove o trecho de hora da descrição
-                $desc = preg_replace('/' . $horaPattern . '/ixu', '', $desc);
-                if (!$dataLimite) $dataLimite = date('Y-m-d');
-            }
-
-            $desc = trim(preg_replace('/\s+/', ' ', $desc));
-            if (empty($desc)) $desc = $texto;
-
-            // Garantir coluna hora_lembrete existe
-            try { $this->pdo->exec("ALTER TABLE tarefas ADD COLUMN hora_lembrete TIME NULL DEFAULT NULL"); } catch (Throwable $e) {}
-            try { $this->pdo->exec("ALTER TABLE tarefas ADD COLUMN tg_notificado TINYINT(1) NOT NULL DEFAULT 0"); } catch (Throwable $e) {}
-
-            $this->pdo->prepare("
-                INSERT INTO tarefas (id_usuario, descricao, prioridade, data_limite, hora_lembrete, tg_notificado, status)
-                VALUES (?, ?, ?, ?, ?, 0, 'pendente')
-            ")->execute([$this->userId, $desc, $prioridade, $dataLimite, $horaLembrete]);
-
-            $prazoText = $dataLimite ? ' · 📅 ' . date('d/m', strtotime($dataLimite)) : '';
-            $horaText  = $horaLembrete ? ' · ⏰ ' . substr($horaLembrete, 0, 5) : '';
-            $notifText = $horaLembrete ? "\n🔔 <i>Vou te lembrar às " . substr($horaLembrete, 0, 5) . " via Telegram!</i>" : '';
-
-            return $this->resp("✅ <b>Tarefa criada!</b>\n\n📝 <i>{$desc}</i>\n🏷️ {$prioridade}{$prazoText}{$horaText}{$notifText}");
-        } catch (Throwable $e) {
-            return $this->resp("❌ Erro ao criar tarefa: " . $e->getMessage());
-        }
-    }
-
-    private function gerenciarTarefas(string $texto): array
-    {
-        // ── Alterar prioridade de TODAS ────────────────────────────────────────
-        $prio = null;
-        if (preg_match('/prioridade\s+(alta|urgente)/iu', $texto))   $prio = 'Alta';
-        if (preg_match('/prioridade\s+(media|m[eé]dia|normal)/iu', $texto)) $prio = 'Média';
-        if (preg_match('/prioridade\s+(baixa|menor)/iu', $texto))    $prio = 'Baixa';
-
-        $todasKw = str_contains($texto, 'todas') || str_contains($texto, 'todo');
-
-        if ($prio && $todasKw) {
-            $stmt = $this->pdo->prepare("UPDATE tarefas SET prioridade = ? WHERE id_usuario = ? AND status = 'pendente'");
-            $stmt->execute([$prio, $this->userId]);
-            $n = $stmt->rowCount();
-            return $this->resp("✅ <b>{$n} tarefa(s)</b> marcada(s) como prioridade <b>{$prio}</b>!");
-        }
-
-        $eConcluir = (bool)preg_match('/conclu|feita|feito|done|finaliz/iu', $texto);
-        $eDeletar  = (bool)preg_match('/delet|remov|apag|exclu/iu', $texto);
-
-        // ── Concluir / Deletar TODAS ───────────────────────────────────────────
-        if ($todasKw && $eConcluir) {
-            $stmt = $this->pdo->prepare("UPDATE tarefas SET status = 'concluido' WHERE id_usuario = ? AND status = 'pendente'");
-            $stmt->execute([$this->userId]);
-            return $this->resp("🎉 <b>{$stmt->rowCount()} tarefa(s)</b> concluídas!");
-        }
-        if ($todasKw && $eDeletar) {
-            $stmt = $this->pdo->prepare("DELETE FROM tarefas WHERE id_usuario = ? AND status = 'pendente'");
-            $stmt->execute([$this->userId]);
-            return $this->resp("🗑️ <b>{$stmt->rowCount()} tarefa(s)</b> removida(s).");
-        }
-
-        // ── Concluir / Deletar tarefa ESPECÍFICA por nome ─────────────────────
-        if ($eConcluir || $eDeletar) {
-            // Extrai palavras-chave: remove verbos/preposições de comando
-            $stopCmd = '/\b(concluir?|finalizar|marcar|como|feita|feito|apagar|deletar|remover|tarefa|lembrete|de|do|da|o|a|que|foi)\b/iu';
-            $busca   = trim(preg_replace('/\s+/', ' ', preg_replace($stopCmd, '', $texto)));
-            if (strlen($busca) >= 3) {
-                $palavras = array_filter(explode(' ', $busca), fn($w) => strlen($w) >= 3);
-                // Tenta encontrar tarefa que contenha qualquer palavra-chave
-                foreach ($palavras as $palavra) {
-                    $stmt = $this->pdo->prepare("
-                        SELECT id, descricao FROM tarefas
-                        WHERE id_usuario = ? AND status = 'pendente' AND descricao LIKE ?
-                        ORDER BY id DESC LIMIT 1
-                    ");
-                    $stmt->execute([$this->userId, "%{$palavra}%"]);
-                    $tarefa = $stmt->fetch();
-                    if ($tarefa) {
-                        if ($eDeletar) {
-                            $this->pdo->prepare("DELETE FROM tarefas WHERE id = ?")->execute([$tarefa['id']]);
-                            return $this->resp("🗑️ Tarefa <b>\"{$tarefa['descricao']}\"</b> removida!");
-                        }
-                        $this->pdo->prepare("UPDATE tarefas SET status = 'concluido' WHERE id = ?")->execute([$tarefa['id']]);
-                        return $this->resp("✅ Tarefa <b>\"{$tarefa['descricao']}\"</b> marcada como concluída!");
-                    }
-                }
-                return $this->resp("🔍 Não encontrei nenhuma tarefa pendente com <b>\"{$busca}\"</b>.\n\nDigite <code>tarefas</code> para ver a lista.");
-            }
-        }
-
-        // ── Prioridade + nome específico ──────────────────────────────────────
-        if ($prio) {
-            $stopCmd = '/\b(prioridade|alta|baixa|media|m[eé]dia|urgente|coloque|mude|deixe|tarefa|como|de|do|da)\b/iu';
-            $busca   = trim(preg_replace('/\s+/', ' ', preg_replace($stopCmd, '', $texto)));
-            if (strlen($busca) >= 3) {
-                $palavras = array_filter(explode(' ', $busca), fn($w) => strlen($w) >= 3);
-                foreach ($palavras as $palavra) {
-                    $stmt = $this->pdo->prepare("SELECT id, descricao FROM tarefas WHERE id_usuario = ? AND status = 'pendente' AND descricao LIKE ? ORDER BY id DESC LIMIT 1");
-                    $stmt->execute([$this->userId, "%{$palavra}%"]);
-                    $tarefa = $stmt->fetch();
-                    if ($tarefa) {
-                        $this->pdo->prepare("UPDATE tarefas SET prioridade = ? WHERE id = ?")->execute([$prio, $tarefa['id']]);
-                        return $this->resp("✅ Tarefa <b>\"{$tarefa['descricao']}\"</b> → prioridade <b>{$prio}</b>!");
-                    }
-                }
-            }
-            // Sem nome → última tarefa
-            $stmt = $this->pdo->prepare("UPDATE tarefas SET prioridade = ? WHERE id_usuario = ? AND status = 'pendente' ORDER BY id DESC LIMIT 1");
-            $stmt->execute([$prio, $this->userId]);
-            return $this->resp("✅ Última tarefa marcada como prioridade <b>{$prio}</b>!");
-        }
-
-        // ── Reagendar / mudar data ─────────────────────────────────────────
-        $eReagendar = (bool)preg_match(
-            '/adiar|reagendar|mudar?\s*(data|prazo)|alterar?\s*(data|prazo)|novo\s*prazo|colou?que?\s+para|coloca\s+para|mou?v[ae]r?\s+para|muda\s+para|para\s+(amanhã|amanha|hoje|depois|sexta|segunda|ter[cç]a|quarta|quinta|s[aá]bado|domingo|dia\s*\d)/iu',
-            $texto
-        );
-
-        if ($eReagendar) {
-            // ── Resolver data alvo ─────────────────────────────────────────
-            $novaData = null;
-            $horaLemb = null;
-
-            if (preg_match('/depois\s+de\s+amanhã|depois\s+de\s+amanha/iu', $texto)) {
-                $novaData = date('Y-m-d', strtotime('+2 days'));
-            } elseif (preg_match('/\bamanhã\b|\bamanha\b/iu', $texto)) {
-                $novaData = date('Y-m-d', strtotime('+1 day'));
-            } elseif (preg_match('/\bhoje\b/iu', $texto)) {
-                $novaData = date('Y-m-d');
-            } elseif (preg_match('/próxima\s+semana|semana\s+que\s+vem/iu', $texto)) {
-                $novaData = date('Y-m-d', strtotime('+7 days'));
-            } elseif (preg_match('/\bdia\s+(\d{1,2})\b/iu', $texto, $mDia)) {
-                $dia = (int)$mDia[1];
-                $mes = (int)date('n'); $ano = (int)date('Y');
-                $ts = mktime(0, 0, 0, $mes, $dia, $ano);
-                if ($ts < strtotime('today')) { $mes++; if ($mes > 12) { $mes = 1; $ano++; } }
-                $novaData = date('Y-m-d', mktime(0, 0, 0, $mes, $dia, $ano));
-            } else {
-                $diasSemana = [
-                    'segunda' => 'Monday', 'terca' => 'Tuesday', 'terça' => 'Tuesday',
-                    'quarta' => 'Wednesday', 'quinta' => 'Thursday',
-                    'sexta' => 'Friday', 'sabado' => 'Saturday', 'sábado' => 'Saturday',
-                    'domingo' => 'Sunday'
-                ];
-                foreach ($diasSemana as $ptDia => $enDia) {
-                    if (str_contains($texto, $ptDia)) {
-                        $novaData = date('Y-m-d', strtotime("next {$enDia}"));
-                        break;
-                    }
-                }
-            }
-
-            // Hora opcional: "coloque para amanhã às 10h"
-            $horaPattern = '/(?:às?|as)\s*(\d{1,2})(?:[h:]\s*(\d{2})?|\s+horas?)/iu';
-            if (preg_match($horaPattern, $texto, $mH)) {
-                $horaLemb = sprintf('%02d:%02d:00', (int)$mH[1], (int)($mH[2] ?? 0));
-            }
-
-            if (!$novaData) {
-                return $this->resp(
-                    "📅 Para qual data? Ex:\n" .
-                    "<code>coloque para amanhã</code>\n" .
-                    "<code>adiar para sexta</code>\n" .
-                    "<code>para o dia 10</code>"
-                );
-            }
-
-            // ── Encontra tarefa por nome ou usa a mais recente ─────────────
-            $stopReag = '/\b(coloque?|coloca|mova|mover|adiar|reagendar|mudar|alterar|mude|para|amanhã|amanha|hoje|depois|prazo|data|tarefa|nova?|o|a|dia|semana|próxima|sexta|segunda|ter[cç]a|quarta|quinta|s[aá]bado|domingo|\d+)\b/iu';
-            $busca    = trim(preg_replace('/\s+/', ' ', preg_replace($stopReag, '', $texto)));
-
-            $tarefa = null;
-            if (strlen($busca) >= 3) {
-                foreach (array_filter(explode(' ', $busca), fn($w) => strlen($w) >= 3) as $palavra) {
-                    $stmt = $this->pdo->prepare("
-                        SELECT id, descricao FROM tarefas
-                        WHERE id_usuario = ? AND status = 'pendente' AND descricao LIKE ?
-                        ORDER BY id DESC LIMIT 1
-                    ");
-                    $stmt->execute([$this->userId, "%{$palavra}%"]);
-                    $tarefa = $stmt->fetch();
-                    if ($tarefa) break;
-                }
-            }
-            if (!$tarefa) {
-                $stmt = $this->pdo->prepare("SELECT id, descricao FROM tarefas WHERE id_usuario = ? AND status = 'pendente' ORDER BY id DESC LIMIT 1");
-                $stmt->execute([$this->userId]);
-                $tarefa = $stmt->fetch();
-            }
-            if (!$tarefa) {
-                return $this->resp("📋 Você não tem tarefas pendentes para reagendar.");
-            }
-
-            $updates = ['data_limite = ?'];
-            $params  = [$novaData];
-            if ($horaLemb) { $updates[] = 'hora_lembrete = ?'; $params[] = $horaLemb; $updates[] = 'tg_notificado = 0'; }
-            $params[] = $tarefa['id'];
-            $this->pdo->prepare("UPDATE tarefas SET " . implode(', ', $updates) . " WHERE id = ?")->execute($params);
-
-            $ds = ['Sun'=>'dom','Mon'=>'seg','Tue'=>'ter','Wed'=>'qua','Thu'=>'qui','Fri'=>'sex','Sat'=>'sáb'];
-            $dsFull = $ds[date('D', strtotime($novaData))] ?? '';
-            $horaText = $horaLemb ? " às " . substr($horaLemb, 0, 5) : '';
-            $notifText = $horaLemb ? "\n🔔 <i>Vou te lembrar às " . substr($horaLemb, 0, 5) . " via Telegram!</i>" : '';
-
-            return $this->resp(
-                "📅 <b>\"{$tarefa['descricao']}\"</b> reagendada para\n" .
-                "<b>" . date('d/m/Y', strtotime($novaData)) . " ({$dsFull})</b>{$horaText}!{$notifText}"
-            );
-        }
-
-        // Fallback — listar com dica
-        return $this->respComTeclado(
-            "🤔 Não entendi exatamente o que fazer com as tarefas.\n\nTenta assim:\n" .
-            "• <code>concluir tarefa do busuu</code>\n" .
-            "• <code>coloque para amanhã</code>\n" .
-            "• <code>prioridade alta para a tarefa da academia</code>",
-            $this->tecladoAtalhos()
-        );
-    }
-
     private function processarMeta(string $texto): array
     {
+        // Detectar depósito em meta existente
+        if (preg_match('/\b(adicionei|guardei|poupei|economizei|juntei|depositei)\b/iu', $texto)) {
+            return $this->depositarNaMeta($texto);
+        }
+
         preg_match('/(\d+[.,]?\d*)/i', $texto, $mVal);
         $valor = isset($mVal[1]) ? (float)str_replace(',', '.', $mVal[1]) : null;
-        $nome  = preg_replace('/\b(criar meta|nova meta|meta de|objetivo de|quero juntar|poupar para|\d+[.,]?\d*|reais|r\$)\b/i', '', $texto);
+        $nome  = preg_replace('/\b(criar meta|nova meta|meta de|objetivo de|quero juntar|poupar para|quero economizar|quero poupar|\d+[.,]?\d*|reais|r\$)\b/i', '', $texto);
         $nome  = trim($nome) ?: 'Nova meta';
         if (!$valor) return $this->resp("💬 Ótimo! Qual o valor da meta? Ex: <code>5000</code>");
         try {
@@ -1443,6 +1385,19 @@ class OrionTelegram
         if ($data === 'rel:dividas')     return $this->listarDividas();
         if ($data === 'rel:tarefas')     return $this->listarTarefas();
 
+        // Concluir tarefa individual pelo botão inline
+        if (str_starts_with($data, 'done_task:')) {
+            $tarefaId = (int)substr($data, 10);
+            $stmt = $this->pdo->prepare("SELECT descricao FROM tarefas WHERE id = ? AND id_usuario = ?");
+            $stmt->execute([$tarefaId, $this->userId]);
+            $tarefa = $stmt->fetch();
+            if ($tarefa) {
+                $this->pdo->prepare("UPDATE tarefas SET status = 'concluido' WHERE id = ?")->execute([$tarefaId]);
+                return $this->resp("✅ <b>\"{$tarefa['descricao']}\"</b> concluída! 🎉");
+            }
+            return $this->resp("❌ Tarefa não encontrada.");
+        }
+
         return $this->resp("❓ Ação não reconhecida.");
     }
 
@@ -1452,6 +1407,15 @@ class OrionTelegram
 
     private function processarComando(string $cmd, string $textoOriginal): array
     {
+        // /buscar <termo> — busca transações por descrição
+        if (str_starts_with($cmd, '/buscar')) {
+            $termo = trim(substr($textoOriginal, 7));
+            return $termo ? $this->buscarTransacao($termo) : $this->resp("🔍 Use: <code>/buscar uber</code> ou <code>/buscar mercado</code>");
+        }
+        // /ultimas [n] — últimas N transações
+        if (str_starts_with($cmd, '/ultimas')) {
+            return $this->listarUltimas($textoOriginal);
+        }
         return match (true) {
             str_starts_with($cmd, '/start')      => $this->respBemVindo(),
             str_starts_with($cmd, '/saldo')      => $this->consultarSaldo(),
@@ -1476,7 +1440,7 @@ class OrionTelegram
     {
         try {
             $stmt = $this->pdo->prepare("
-                SELECT descricao, prioridade, data_limite, hora_lembrete
+                SELECT id, descricao, prioridade, data_limite, hora_lembrete
                 FROM tarefas
                 WHERE id_usuario = ? AND status = 'pendente'
                 ORDER BY FIELD(prioridade,'Alta','Média','Baixa'), data_limite ASC
@@ -1490,13 +1454,17 @@ class OrionTelegram
         if (!$rows) return $this->resp("🎉 Nenhuma tarefa pendente! Tudo em dia.");
         $t = "📋 <b>Tarefas pendentes</b>\n\n";
         $iconsPrio = ['Alta' => '🔴', 'Média' => '🟡', 'Baixa' => '🟢'];
+        $teclado   = [];
         foreach ($rows as $r) {
             $pIcon = $iconsPrio[$r['prioridade']] ?? '⚪';
             $data  = $r['data_limite']    ? ' · 📅 ' . date('d/m', strtotime($r['data_limite']))    : '';
             $hora  = !empty($r['hora_lembrete']) ? ' · ⏰ ' . substr($r['hora_lembrete'], 0, 5) : '';
             $t .= "{$pIcon} {$r['descricao']}{$data}{$hora}\n";
+            $label     = '✅ ' . mb_substr($r['descricao'], 0, 28);
+            $teclado[] = [['text' => $label, 'callback_data' => 'done_task:' . $r['id']]];
         }
-        return $this->resp($t);
+        $teclado[] = [['text' => '📋 Atualizar lista', 'callback_data' => 'rel:tarefas']];
+        return $this->respComTeclado($t, $teclado);
     }
 
     private function listarMetas(): array
@@ -1545,44 +1513,47 @@ class OrionTelegram
         $t .= "💸 <b>REGISTRAR GASTOS</b>\n";
         $t .= "  <code>gastei 50 no mercado</code>\n";
         $t .= "  <code>paguei 120 conta de luz</code>\n";
-        $t .= "  <code>comprei pizza 35 ontem</code>\n\n";
+        $t .= "  <code>comprei pizza 35 ontem</code>\n";
+        $t .= "  <code>comprei TV em 12x de 150</code> ← parcelado\n\n";
 
         $t .= "💰 <b>REGISTRAR RECEITAS</b>\n";
         $t .= "  <code>recebi 3000 de salário</code>\n";
         $t .= "  <code>vendi produto 150</code>\n\n";
 
-        $t .= "📊 <b>CONSULTAS</b>\n";
+        $t .= "� <b>BUSCA E CONSULTAS</b>\n";
+        $t .= "  <code>quanto gastei em uber</code>  →  busca específica\n";
+        $t .= "  <code>gastos com alimentação</code>  →  por categoria\n";
         $t .= "  <code>meu saldo</code>  →  resumo com comparativo\n";
         $t .= "  <code>insights</code>  →  análise inteligente\n";
-        $t .= "  <code>comparativo</code>  →  últimos 4 meses\n";
-        $t .= "  <code>mês passado</code>  →  extrato anterior\n";
-        $t .= "  /saldo · /hoje · /mes · /ano · /insights\n\n";
+        $t .= "  <code>e ontem?</code> / <code>e semana passada?</code>  →  follow-up\n";
+        $t .= "  /saldo · /hoje · /mes · /ano · /insights · /buscar\n\n";
 
         $t .= "💼 <b>ORÇAMENTOS</b>\n";
         $t .= "  <code>orçamento alimentação 500</code>\n";
-        $t .= "  <code>ver orçamento</code>  →  progresso por categoria\n";
-        $t .= "  /orcamento  →  todos os limites\n\n";
+        $t .= "  <code>ver orçamento</code>  →  progresso por categoria\n\n";
 
         $t .= "🧑‍🤝‍🧑 <b>DÍVIDAS</b>\n";
         $t .= "  <code>devo para João 150</code>\n";
         $t .= "  <code>João me deve 200</code>\n";
-        $t .= "  <code>emprestei para Maria 300</code>\n";
-        $t .= "  /dividas  →  resumo de dívidas\n\n";
+        $t .= "  <code>quitei a dívida com João</code>  ← pagar\n";
+        $t .= "  <code>João me pagou</code>  ← recebido\n\n";
 
         $t .= "✅ <b>TAREFAS E LEMBRETES</b>\n";
         $t .= "  <code>me lembre de ligar para o banco às 10h</code>\n";
-        $t .= "  <code>concluir tarefa do busuu</code>\n";
-        $t .= "  /tarefas  →  pendentes\n\n";
+        $t .= "  <code>tenho que ir pra academia amanhã às 18h</code>\n";
+        $t .= "  <code>que horas eu tenho que ir pra academia?</code>\n";
+        $t .= "  /tarefas  →  lista com botões para concluir\n\n";
 
         $t .= "🎯 <b>METAS FINANCEIRAS</b>\n";
         $t .= "  <code>criar meta viagem 5000</code>\n";
-        $t .= "  /metas  →  ver progresso\n\n";
+        $t .= "  <code>guardei 200 para viagem</code>  ← depositar\n";
+        $t .= "  <code>juntei 500 na meta</code>  ← depositar\n\n";
 
         $t .= "↩️ <b>CORREÇÕES</b>\n";
         $t .= "  <code>errei</code>  →  desfaz o último lançamento\n\n";
 
         $t .= "━━━━━━━━━━━━━━━━━━━━━━\n";
-        $t .= "<i>💡 Fale naturalmente como mandaria uma mensagem pra um amigo!</i>";
+        $t .= "<i>💡 Fale naturalmente — sou treinado para entender contexto!</i>";
         return $this->respComTeclado($t, $this->tecladoAtalhos());
     }
 
@@ -1744,8 +1715,11 @@ class OrionTelegram
         }
         $t  = "{$icon} <b>" . ucfirst($tipo) . "</b>\n\n";
         $t .= "📝 <i>{$desc}</i>\n";
-        $t .= "💰 <b>R$ {$valor}</b>\n";
-        $t .= "📅 {$data}";
+        $t .= "💰 <b>R$ {$valor}</b>";
+        if (!empty($d['parcelas'])) {
+            $t .= " <i>(" . $d['parcelas'] . "x de R$ " . number_format((float)$d['valor_parcela'], 2, ',', '.') . ")</i>";
+        }
+        $t .= "\n📅 {$data}";
         if ($catNome) $t .= "\n📂 {$catNome}";
         return $t;
     }
