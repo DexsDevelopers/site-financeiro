@@ -45,7 +45,12 @@ class OrionTelegram
     private const GERENCIAR_KW = ['prioridade alta','prioridade baixa','prioridade media','prioridade média',
                                   'coloque todas','marcar como feita','concluir tarefa','concluir todas',
                                   'deletar tarefa','remover tarefa','apagar tarefa',
-                                  'marcar tarefa','todas as tarefas','todas tarefas'];
+                                  'marcar tarefa','todas as tarefas','todas tarefas',
+                                  // reagendamento
+                                  'para amanhã','para amanha','para hoje','adiar','reagendar',
+                                  'mudar data','alterar data','coloque para','coloca para',
+                                  'mover para','mova para','muda para','novo prazo',
+                                  'alterar prazo','mudar prazo','trocar data'];
     private const ORCAMENTO_KW = ['definir orçamento','meu orçamento','orçamento de','limite de gastos',
                                   'orçamento para','ver orçamento','orçamento mensal','quanto posso gastar',
                                   'limite mensal','budget'];
@@ -1203,11 +1208,109 @@ class OrionTelegram
             return $this->resp("✅ Última tarefa marcada como prioridade <b>{$prio}</b>!");
         }
 
+        // ── Reagendar / mudar data ─────────────────────────────────────────
+        $eReagendar = (bool)preg_match(
+            '/adiar|reagendar|mudar?\s*(data|prazo)|alterar?\s*(data|prazo)|novo\s*prazo|colou?que?\s+para|coloca\s+para|mou?v[ae]r?\s+para|muda\s+para|para\s+(amanhã|amanha|hoje|depois|sexta|segunda|ter[cç]a|quarta|quinta|s[aá]bado|domingo|dia\s*\d)/iu',
+            $texto
+        );
+
+        if ($eReagendar) {
+            // ── Resolver data alvo ─────────────────────────────────────────
+            $novaData = null;
+            $horaLemb = null;
+
+            if (preg_match('/depois\s+de\s+amanhã|depois\s+de\s+amanha/iu', $texto)) {
+                $novaData = date('Y-m-d', strtotime('+2 days'));
+            } elseif (preg_match('/\bamanhã\b|\bamanha\b/iu', $texto)) {
+                $novaData = date('Y-m-d', strtotime('+1 day'));
+            } elseif (preg_match('/\bhoje\b/iu', $texto)) {
+                $novaData = date('Y-m-d');
+            } elseif (preg_match('/próxima\s+semana|semana\s+que\s+vem/iu', $texto)) {
+                $novaData = date('Y-m-d', strtotime('+7 days'));
+            } elseif (preg_match('/\bdia\s+(\d{1,2})\b/iu', $texto, $mDia)) {
+                $dia = (int)$mDia[1];
+                $mes = (int)date('n'); $ano = (int)date('Y');
+                $ts = mktime(0, 0, 0, $mes, $dia, $ano);
+                if ($ts < strtotime('today')) { $mes++; if ($mes > 12) { $mes = 1; $ano++; } }
+                $novaData = date('Y-m-d', mktime(0, 0, 0, $mes, $dia, $ano));
+            } else {
+                $diasSemana = [
+                    'segunda' => 'Monday', 'terca' => 'Tuesday', 'terça' => 'Tuesday',
+                    'quarta' => 'Wednesday', 'quinta' => 'Thursday',
+                    'sexta' => 'Friday', 'sabado' => 'Saturday', 'sábado' => 'Saturday',
+                    'domingo' => 'Sunday'
+                ];
+                foreach ($diasSemana as $ptDia => $enDia) {
+                    if (str_contains($texto, $ptDia)) {
+                        $novaData = date('Y-m-d', strtotime("next {$enDia}"));
+                        break;
+                    }
+                }
+            }
+
+            // Hora opcional: "coloque para amanhã às 10h"
+            $horaPattern = '/(?:às?|as)\s*(\d{1,2})(?:[h:]\s*(\d{2})?|\s+horas?)/iu';
+            if (preg_match($horaPattern, $texto, $mH)) {
+                $horaLemb = sprintf('%02d:%02d:00', (int)$mH[1], (int)($mH[2] ?? 0));
+            }
+
+            if (!$novaData) {
+                return $this->resp(
+                    "📅 Para qual data? Ex:\n" .
+                    "<code>coloque para amanhã</code>\n" .
+                    "<code>adiar para sexta</code>\n" .
+                    "<code>para o dia 10</code>"
+                );
+            }
+
+            // ── Encontra tarefa por nome ou usa a mais recente ─────────────
+            $stopReag = '/\b(coloque?|coloca|mova|mover|adiar|reagendar|mudar|alterar|mude|para|amanhã|amanha|hoje|depois|prazo|data|tarefa|nova?|o|a|dia|semana|próxima|sexta|segunda|ter[cç]a|quarta|quinta|s[aá]bado|domingo|\d+)\b/iu';
+            $busca    = trim(preg_replace('/\s+/', ' ', preg_replace($stopReag, '', $texto)));
+
+            $tarefa = null;
+            if (strlen($busca) >= 3) {
+                foreach (array_filter(explode(' ', $busca), fn($w) => strlen($w) >= 3) as $palavra) {
+                    $stmt = $this->pdo->prepare("
+                        SELECT id, descricao FROM tarefas
+                        WHERE id_usuario = ? AND status = 'pendente' AND descricao LIKE ?
+                        ORDER BY id DESC LIMIT 1
+                    ");
+                    $stmt->execute([$this->userId, "%{$palavra}%"]);
+                    $tarefa = $stmt->fetch();
+                    if ($tarefa) break;
+                }
+            }
+            if (!$tarefa) {
+                $stmt = $this->pdo->prepare("SELECT id, descricao FROM tarefas WHERE id_usuario = ? AND status = 'pendente' ORDER BY id DESC LIMIT 1");
+                $stmt->execute([$this->userId]);
+                $tarefa = $stmt->fetch();
+            }
+            if (!$tarefa) {
+                return $this->resp("📋 Você não tem tarefas pendentes para reagendar.");
+            }
+
+            $updates = ['data_limite = ?'];
+            $params  = [$novaData];
+            if ($horaLemb) { $updates[] = 'hora_lembrete = ?'; $params[] = $horaLemb; $updates[] = 'tg_notificado = 0'; }
+            $params[] = $tarefa['id'];
+            $this->pdo->prepare("UPDATE tarefas SET " . implode(', ', $updates) . " WHERE id = ?")->execute($params);
+
+            $ds = ['Sun'=>'dom','Mon'=>'seg','Tue'=>'ter','Wed'=>'qua','Thu'=>'qui','Fri'=>'sex','Sat'=>'sáb'];
+            $dsFull = $ds[date('D', strtotime($novaData))] ?? '';
+            $horaText = $horaLemb ? " às " . substr($horaLemb, 0, 5) : '';
+            $notifText = $horaLemb ? "\n🔔 <i>Vou te lembrar às " . substr($horaLemb, 0, 5) . " via Telegram!</i>" : '';
+
+            return $this->resp(
+                "📅 <b>\"{$tarefa['descricao']}\"</b> reagendada para\n" .
+                "<b>" . date('d/m/Y', strtotime($novaData)) . " ({$dsFull})</b>{$horaText}!{$notifText}"
+            );
+        }
+
         // Fallback — listar com dica
         return $this->respComTeclado(
             "🤔 Não entendi exatamente o que fazer com as tarefas.\n\nTenta assim:\n" .
             "• <code>concluir tarefa do busuu</code>\n" .
-            "• <code>concluir todas as tarefas</code>\n" .
+            "• <code>coloque para amanhã</code>\n" .
             "• <code>prioridade alta para a tarefa da academia</code>",
             $this->tecladoAtalhos()
         );
