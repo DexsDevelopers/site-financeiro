@@ -58,8 +58,9 @@ try {
         // Garantir que o status mapeie para o enum da tabela tarefas ('concluido')
         $statusNormal = ($novoStatus === 'concluida' || $novoStatus === 'concluido') ? 'concluido' : 'pendente';
 
-        $stmt = $pdo->prepare("UPDATE tarefas SET status = ? WHERE id = ? AND id_usuario = ?");
-        $stmt->execute([$statusNormal, (int)$tarefaId, $userId]);
+        $dataConc = ($statusNormal === 'concluido') ? date('Y-m-d H:i:s') : null;
+        $stmt = $pdo->prepare("UPDATE tarefas SET status = ?, data_conclusao = ? WHERE id = ? AND id_usuario = ?");
+        $stmt->execute([$statusNormal, $dataConc, (int)$tarefaId, $userId]);
     }
 
     if ($stmt->rowCount() > 0) {

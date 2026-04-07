@@ -1392,7 +1392,7 @@ class OrionTelegram
             $stmt->execute([$tarefaId, $this->userId]);
             $tarefa = $stmt->fetch();
             if ($tarefa) {
-                $this->pdo->prepare("UPDATE tarefas SET status = 'concluido' WHERE id = ?")->execute([$tarefaId]);
+                $this->pdo->prepare("UPDATE tarefas SET status = 'concluido', data_conclusao = NOW() WHERE id = ?")->execute([$tarefaId]);
                 return $this->resp("✅ <b>\"{$tarefa['descricao']}\"</b> concluída! 🎉");
             }
             return $this->resp("❌ Tarefa não encontrada.");

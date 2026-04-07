@@ -20,7 +20,7 @@ try {
     $tarefas_pendentes = $stmt_pendentes->fetchAll(PDO::FETCH_ASSOC);
 
     // Busca tarefas concluídas recentes
-    $sql_concluidas = "SELECT * FROM tarefas WHERE id_usuario = ? AND status = 'concluida' ORDER BY data_criacao DESC LIMIT 10";
+    $sql_concluidas = "SELECT * FROM tarefas WHERE id_usuario = ? AND status = 'concluido' ORDER BY data_criacao DESC LIMIT 10";
     $stmt_concluidas = $pdo->prepare($sql_concluidas);
     $stmt_concluidas->execute([$userId]);
     $tarefas_concluidas = $stmt_concluidas->fetchAll(PDO::FETCH_ASSOC);
@@ -49,8 +49,8 @@ try {
 
     // Stats extras
     $dataHoje = date('Y-m-d');
-    $stmt_hoje = $pdo->prepare("SELECT COUNT(*) FROM tarefas WHERE id_usuario = ? AND status = 'concluida' AND DATE(data_conclusao) = ?");
-    $stmt_hoje->execute([$userId, $dataHoje]);
+    $stmt_hoje = $pdo->prepare("SELECT COUNT(*) FROM tarefas WHERE id_usuario = ? AND status = 'concluido' AND (DATE(data_conclusao) = ? OR DATE(data_criacao) = ?)");
+    $stmt_hoje->execute([$userId, $dataHoje, $dataHoje]);
     $tarefas_concluidas_hoje = (int)$stmt_hoje->fetchColumn();
 
     $stmt_alta = $pdo->prepare("SELECT COUNT(*) FROM tarefas WHERE id_usuario = ? AND status = 'pendente' AND prioridade = 'Alta'");
