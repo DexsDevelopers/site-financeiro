@@ -1330,6 +1330,261 @@ class OrionTelegram
     }
 
     // ═══════════════════════════════════════════════════════════════════════
+    // TAREFAS
+    // ═══════════════════════════════════════════════════════════════════════
+
+    private function processarTarefa(string $texto): array
+    {
+        // Remove palavras-chave de intenção
+        $desc = preg_replace('/\b(criar tarefa|nova tarefa|lembrete|to do|tarefa para|adicionar tarefa|preciso fazer|não esquecer|anotar|me lembre|me lembra|lembrar de|lembrar|anota ai|anota aí|por favor anota|adicionar lembrete)\b/iu', '', $texto);
+        $desc = preg_replace('/^\s*(de|para|que|ao?|da?|o|em|na?|num?)\s+/iu', '', $desc);
+        $desc = trim($desc);
+        if (empty($desc)) return $this->resp("💬 Qual é a tarefa? Me diz o que precisa fazer.");
+        try {
+            // Prioridade
+            $prioridade = 'Média';
+            if (preg_match('/\b(urgente|urgência|alta|importante|prioridade alta)\b/iu', $desc)) $prioridade = 'Alta';
+            if (preg_match('/\b(baixa|depois|quando der|sem pressa)\b/iu', $desc))               $prioridade = 'Baixa';
+
+            // Data
+            $dataLimite = null;
+            if (preg_match('/\bamanhã\b|\bamanha\b/iu', $desc)) {
+                $dataLimite = date('Y-m-d', strtotime('+1 day'));
+                $desc = preg_replace('/\bamanhã\b|\bamanha\b/iu', '', $desc);
+            } elseif (preg_match('/\bhoje\b/iu', $desc)) {
+                $dataLimite = date('Y-m-d');
+                $desc = preg_replace('/\bhoje\b/iu', '', $desc);
+            } elseif (preg_match('/\b(segunda|segunda-feira)\b/iu', $desc)) {
+                $dataLimite = date('Y-m-d', strtotime('next monday'));
+                $desc = preg_replace('/\b(segunda|segunda-feira)\b/iu', '', $desc);
+            } elseif (preg_match('/\b(terca|terça|terça-feira)\b/iu', $desc)) {
+                $dataLimite = date('Y-m-d', strtotime('next tuesday'));
+                $desc = preg_replace('/\b(terca|terça|terça-feira)\b/iu', '', $desc);
+            } elseif (preg_match('/\b(quarta|quarta-feira)\b/iu', $desc)) {
+                $dataLimite = date('Y-m-d', strtotime('next wednesday'));
+                $desc = preg_replace('/\b(quarta|quarta-feira)\b/iu', '', $desc);
+            } elseif (preg_match('/\b(quinta|quinta-feira)\b/iu', $desc)) {
+                $dataLimite = date('Y-m-d', strtotime('next thursday'));
+                $desc = preg_replace('/\b(quinta|quinta-feira)\b/iu', '', $desc);
+            } elseif (preg_match('/\b(sexta|sexta-feira)\b/iu', $desc)) {
+                $dataLimite = date('Y-m-d', strtotime('next friday'));
+                $desc = preg_replace('/\b(sexta|sexta-feira)\b/iu', '', $desc);
+            } elseif (preg_match('/\bdia\s+(\d{1,2})\b/iu', $desc, $mDia)) {
+                $dia = (int)$mDia[1];
+                $mes = (int)date('n'); $ano = (int)date('Y');
+                if ($dia < (int)date('j')) { $mes++; if ($mes > 12) { $mes = 1; $ano++; } }
+                $dataLimite = sprintf('%04d-%02d-%02d', $ano, $mes, $dia);
+                $desc = preg_replace('/\bdia\s+\d{1,2}\b/iu', '', $desc);
+            }
+
+            // Horário — suporta: 22h · 22h30 · 22:00 · 22 horas · às/as 22h
+            $horaLembrete = null;
+            $horaPattern  = '
+                (?:(?:às?|as)\s+)?
+                (?<![a-zA-Z\x{00C0}-\x{024F}])
+                (\d{1,2})
+                (?:
+                    [h:]\s*(\d{2})?
+                    |\s+horas?
+                )
+            ';
+            if (preg_match('/' . $horaPattern . '/ixu', $desc, $mH)) {
+                $h = sprintf('%02d', (int)$mH[1]);
+                $m = sprintf('%02d', (int)($mH[2] ?? 0));
+                $horaLembrete = "{$h}:{$m}:00";
+                $desc = preg_replace('/' . $horaPattern . '/ixu', '', $desc);
+                if (!$dataLimite) $dataLimite = date('Y-m-d');
+            }
+
+            $desc = trim(preg_replace('/\s+/', ' ', $desc));
+            if (empty($desc)) $desc = $texto;
+
+            try { $this->pdo->exec("ALTER TABLE tarefas ADD COLUMN hora_lembrete TIME NULL DEFAULT NULL"); } catch (Throwable $e) {}
+            try { $this->pdo->exec("ALTER TABLE tarefas ADD COLUMN tg_notificado TINYINT(1) NOT NULL DEFAULT 0"); } catch (Throwable $e) {}
+
+            $this->pdo->prepare("
+                INSERT INTO tarefas (id_usuario, descricao, prioridade, data_limite, hora_lembrete, tg_notificado, status)
+                VALUES (?, ?, ?, ?, ?, 0, 'pendente')
+            ")->execute([$this->userId, $desc, $prioridade, $dataLimite, $horaLembrete]);
+
+            $prazoText = $dataLimite ? ' · 📅 ' . date('d/m', strtotime($dataLimite)) : '';
+            $horaText  = $horaLembrete ? ' · ⏰ ' . substr($horaLembrete, 0, 5) : '';
+            $notifText = $horaLembrete ? "\n🔔 <i>Vou te lembrar às " . substr($horaLembrete, 0, 5) . " via Telegram!</i>" : '';
+
+            return $this->resp("✅ <b>Tarefa criada!</b>\n\n📝 <i>{$desc}</i>\n🚦 {$prioridade}{$prazoText}{$horaText}{$notifText}");
+        } catch (Throwable $e) {
+            return $this->resp("❌ Erro ao criar tarefa: " . $e->getMessage());
+        }
+    }
+
+    private function gerenciarTarefas(string $texto): array
+    {
+        // ── Alterar prioridade de TODAS ──────────────────────────────────────
+        $prio = null;
+        if (preg_match('/prioridade\s+(alta|urgente)/iu', $texto))          $prio = 'Alta';
+        if (preg_match('/prioridade\s+(media|m[eé]dia|normal)/iu', $texto)) $prio = 'Média';
+        if (preg_match('/prioridade\s+(baixa|menor)/iu', $texto))           $prio = 'Baixa';
+
+        $todasKw = str_contains($texto, 'todas') || str_contains($texto, 'todo');
+
+        if ($prio && $todasKw) {
+            $stmt = $this->pdo->prepare("UPDATE tarefas SET prioridade = ? WHERE id_usuario = ? AND status = 'pendente'");
+            $stmt->execute([$prio, $this->userId]);
+            return $this->resp("✅ <b>{$stmt->rowCount()} tarefa(s)</b> marcada(s) como prioridade <b>{$prio}</b>!");
+        }
+
+        $eConcluir = (bool)preg_match('/conclu|feita|feito|done|finaliz/iu', $texto);
+        $eDeletar  = (bool)preg_match('/delet|remov|apag|exclu/iu', $texto);
+
+        // ── Concluir / Deletar TODAS ─────────────────────────────────────────
+        if ($todasKw && $eConcluir) {
+            $stmt = $this->pdo->prepare("UPDATE tarefas SET status = 'concluido', data_conclusao = NOW() WHERE id_usuario = ? AND status = 'pendente'");
+            $stmt->execute([$this->userId]);
+            return $this->resp("✅ <b>{$stmt->rowCount()} tarefa(s)</b> concluídas!");
+        }
+        if ($todasKw && $eDeletar) {
+            $stmt = $this->pdo->prepare("DELETE FROM tarefas WHERE id_usuario = ? AND status = 'pendente'");
+            $stmt->execute([$this->userId]);
+            return $this->resp("🗑️ <b>{$stmt->rowCount()} tarefa(s)</b> removida(s).");
+        }
+
+        // ── Concluir / Deletar tarefa ESPECÍFICA por nome ────────────────────
+        if ($eConcluir || $eDeletar) {
+            $stopCmd = '/\b(concluir?|finalizar|marcar|como|feita|feito|apagar|deletar|remover|tarefa|lembrete|de|do|da|o|a|que|foi)\b/iu';
+            $busca   = trim(preg_replace('/\s+/', ' ', preg_replace($stopCmd, '', $texto)));
+            if (strlen($busca) >= 3) {
+                $palavras = array_filter(explode(' ', $busca), fn($w) => strlen($w) >= 3);
+                foreach ($palavras as $palavra) {
+                    $stmt = $this->pdo->prepare("
+                        SELECT id, descricao FROM tarefas
+                        WHERE id_usuario = ? AND status = 'pendente' AND descricao LIKE ?
+                        ORDER BY id DESC LIMIT 1
+                    ");
+                    $stmt->execute([$this->userId, "%{$palavra}%"]);
+                    $tarefa = $stmt->fetch();
+                    if ($tarefa) {
+                        if ($eDeletar) {
+                            $this->pdo->prepare("DELETE FROM tarefas WHERE id = ?")->execute([$tarefa['id']]);
+                            return $this->resp("🗑️ Tarefa <b>\"{$tarefa['descricao']}\"</b> removida!");
+                        }
+                        $this->pdo->prepare("UPDATE tarefas SET status = 'concluido', data_conclusao = NOW() WHERE id = ?")->execute([$tarefa['id']]);
+                        return $this->resp("✅ Tarefa <b>\"{$tarefa['descricao']}\"</b> marcada como concluída!");
+                    }
+                }
+                return $this->resp("🔍 Não encontrei nenhuma tarefa pendente com <b>\"{$busca}\"</b>.\n\nDigite <code>tarefas</code> para ver a lista.");
+            }
+        }
+
+        // ── Prioridade + nome específico ─────────────────────────────────────
+        if ($prio) {
+            $stopCmd = '/\b(prioridade|alta|baixa|media|m[eé]dia|urgente|coloque|mude|deixe|tarefa|como|de|do|da)\b/iu';
+            $busca   = trim(preg_replace('/\s+/', ' ', preg_replace($stopCmd, '', $texto)));
+            if (strlen($busca) >= 3) {
+                $palavras = array_filter(explode(' ', $busca), fn($w) => strlen($w) >= 3);
+                foreach ($palavras as $palavra) {
+                    $stmt = $this->pdo->prepare("SELECT id, descricao FROM tarefas WHERE id_usuario = ? AND status = 'pendente' AND descricao LIKE ? ORDER BY id DESC LIMIT 1");
+                    $stmt->execute([$this->userId, "%{$palavra}%"]);
+                    $tarefa = $stmt->fetch();
+                    if ($tarefa) {
+                        $this->pdo->prepare("UPDATE tarefas SET prioridade = ? WHERE id = ?")->execute([$prio, $tarefa['id']]);
+                        return $this->resp("✅ Tarefa <b>\"{$tarefa['descricao']}\"</b> → prioridade <b>{$prio}</b>!");
+                    }
+                }
+            }
+            // Sem nome → última tarefa
+            $stmt = $this->pdo->prepare("UPDATE tarefas SET prioridade = ? WHERE id_usuario = ? AND status = 'pendente' ORDER BY id DESC LIMIT 1");
+            $stmt->execute([$prio, $this->userId]);
+            return $this->resp("✅ Última tarefa marcada como prioridade <b>{$prio}</b>!");
+        }
+
+        // ── Reagendar / mudar data ───────────────────────────────────────────
+        $eReagendar = (bool)preg_match(
+            '/adiar|reagendar|mudar?\s*(data|prazo)|alterar?\s*(data|prazo)|novo\s*prazo|colou?que?\s+para|coloca\s+para|mou?v[ae]r?\s+para|muda\s+para|para\s+(amanhã|amanha|hoje|depois|sexta|segunda|ter[cç]a|quarta|quinta|s[aá]bado|domingo|dia\s*\d)/iu',
+            $texto
+        );
+
+        if ($eReagendar) {
+            $novaData = null;
+            $horaLemb = null;
+
+            if (preg_match('/depois\s+de\s+amanhã|depois\s+de\s+amanha/iu', $texto)) {
+                $novaData = date('Y-m-d', strtotime('+2 days'));
+            } elseif (preg_match('/\bamanhã\b|\bamanha\b/iu', $texto)) {
+                $novaData = date('Y-m-d', strtotime('+1 day'));
+            } elseif (preg_match('/\bhoje\b/iu', $texto)) {
+                $novaData = date('Y-m-d');
+            } elseif (preg_match('/próxima\s+semana|proxima\s+semana/iu', $texto)) {
+                $novaData = date('Y-m-d', strtotime('next monday'));
+            } elseif (preg_match('/\b(segunda|segunda-feira)\b/iu', $texto)) {
+                $novaData = date('Y-m-d', strtotime('next monday'));
+            } elseif (preg_match('/\b(terca|terça|terça-feira)\b/iu', $texto)) {
+                $novaData = date('Y-m-d', strtotime('next tuesday'));
+            } elseif (preg_match('/\b(quarta|quarta-feira)\b/iu', $texto)) {
+                $novaData = date('Y-m-d', strtotime('next wednesday'));
+            } elseif (preg_match('/\b(quinta|quinta-feira)\b/iu', $texto)) {
+                $novaData = date('Y-m-d', strtotime('next thursday'));
+            } elseif (preg_match('/\b(sexta|sexta-feira)\b/iu', $texto)) {
+                $novaData = date('Y-m-d', strtotime('next friday'));
+            } elseif (preg_match('/\bs[aá]bado\b/iu', $texto)) {
+                $novaData = date('Y-m-d', strtotime('next saturday'));
+            } elseif (preg_match('/\bdomingo\b/iu', $texto)) {
+                $novaData = date('Y-m-d', strtotime('next sunday'));
+            } elseif (preg_match('/\bdia\s+(\d{1,2})\b/iu', $texto, $mDia)) {
+                $dia = (int)$mDia[1];
+                $mes = (int)date('n'); $ano = (int)date('Y');
+                if ($dia < (int)date('j')) { $mes++; if ($mes > 12) { $mes = 1; $ano++; } }
+                $novaData = sprintf('%04d-%02d-%02d', $ano, $mes, $dia);
+            }
+
+            // Hora opcional no reagendamento
+            $horaPattern = '(?:(?:às?|as)\s+)?(?<![a-zA-Z\x{00C0}-\x{024F}])(\d{1,2})(?:[h:]\s*(\d{2})?|\s+horas?)';
+            if (preg_match('/' . $horaPattern . '/ixu', $texto, $mH)) {
+                $h = sprintf('%02d', (int)$mH[1]);
+                $m = sprintf('%02d', (int)($mH[2] ?? 0));
+                $horaLemb = "{$h}:{$m}:00";
+            }
+
+            if ($novaData) {
+                // Extrai nome da tarefa: remove palavras de reagendamento
+                $stopRe = '/\b(adiar|reagendar|coloque?|coloca|mude?|muda|mover|para|tarefa|lembrete|amanhã|amanha|hoje|segunda|terça|terca|quarta|quinta|sexta|sábado|sabado|domingo|próxima|proxima|semana|dia|depois|de|do|da|o|a)\b/iu';
+                $busca  = trim(preg_replace('/\s+/', ' ', preg_replace($stopRe, '', $texto)));
+                $busca  = preg_replace('/\b\d{1,2}[h:]\d{0,2}\b|\b\d{1,2}\s+horas?\b/iu', '', $busca);
+                $busca  = trim(preg_replace('/\s+/', ' ', $busca));
+
+                $tarefa = null;
+                if (strlen($busca) >= 3) {
+                    $palavras = array_filter(explode(' ', $busca), fn($w) => strlen($w) >= 3);
+                    foreach ($palavras as $palavra) {
+                        $stmt = $this->pdo->prepare("SELECT id, descricao FROM tarefas WHERE id_usuario = ? AND status = 'pendente' AND descricao LIKE ? ORDER BY id DESC LIMIT 1");
+                        $stmt->execute([$this->userId, "%{$palavra}%"]);
+                        $tarefa = $stmt->fetch();
+                        if ($tarefa) break;
+                    }
+                }
+                // Fallback: última tarefa pendente
+                if (!$tarefa) {
+                    $stmt = $this->pdo->prepare("SELECT id, descricao FROM tarefas WHERE id_usuario = ? AND status = 'pendente' ORDER BY id DESC LIMIT 1");
+                    $stmt->execute([$this->userId]);
+                    $tarefa = $stmt->fetch();
+                }
+
+                if ($tarefa) {
+                    if ($horaLemb) {
+                        $this->pdo->prepare("UPDATE tarefas SET data_limite = ?, hora_lembrete = ? WHERE id = ?")->execute([$novaData, $horaLemb, $tarefa['id']]);
+                        $horaFmt = substr($horaLemb, 0, 5);
+                        return $this->resp("📅 <b>\"{$tarefa['descricao']}\"</b> reagendada para <b>" . date('d/m', strtotime($novaData)) . "</b> às <b>{$horaFmt}</b>!");
+                    }
+                    $this->pdo->prepare("UPDATE tarefas SET data_limite = ? WHERE id = ?")->execute([$novaData, $tarefa['id']]);
+                    return $this->resp("📅 <b>\"{$tarefa['descricao']}\"</b> reagendada para <b>" . date('d/m', strtotime($novaData)) . "</b>!");
+                }
+            }
+        }
+
+        // Fallback: listar tarefas
+        return $this->listarTarefas();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
     // CALLBACKS (BOTÕES INLINE)
     // ═══════════════════════════════════════════════════════════════════════
 
