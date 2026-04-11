@@ -1653,6 +1653,20 @@ class OrionTelegram
             return $this->resp("❌ Tarefa não encontrada.");
         }
 
+        // Adiar lembrete +1 hora (snooze)
+        if (str_starts_with($data, 'snooze_task:')) {
+            $tarefaId = (int)substr($data, 12);
+            $stmt = $this->pdo->prepare("SELECT descricao, hora_lembrete FROM tarefas WHERE id = ? AND id_usuario = ?");
+            $stmt->execute([$tarefaId, $this->userId]);
+            $tarefa = $stmt->fetch();
+            if ($tarefa) {
+                $novaHora = date('H:i:s', strtotime('+1 hour', strtotime($tarefa['hora_lembrete'] ?? 'now')));
+                $this->pdo->prepare("UPDATE tarefas SET hora_lembrete = ?, tg_notificado = 0 WHERE id = ?")->execute([$novaHora, $tarefaId]);
+                return $this->resp("⏰ Lembrete de <b>\"{$tarefa['descricao']}\"</b> adiado para <b>" . substr($novaHora, 0, 5) . "</b>!");
+            }
+            return $this->resp("❌ Tarefa não encontrada.");
+        }
+
         return $this->resp("❓ Ação não reconhecida.");
     }
 

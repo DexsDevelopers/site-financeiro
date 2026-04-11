@@ -36,7 +36,7 @@ $stmt = $pdo->prepare("
       AND t.status     = 'pendente'
       AND t.tg_notificado = 0
       AND t.hora_lembrete IS NOT NULL
-      AND t.data_limite   = CURDATE()
+      AND (t.data_limite IS NULL OR t.data_limite = CURDATE())
       AND t.hora_lembrete BETWEEN SUBTIME(CURTIME(), '00:02:00')
                                AND ADDTIME(CURTIME(), '00:02:00')
 ");
@@ -58,11 +58,17 @@ foreach ($tarefas as $t) {
         $msg  = "⏰ <b>Lembrete de Tarefa!</b>\n\n";
         $msg .= "{$icone} <b>{$descricao}</b>\n";
         $msg .= "🕐 Horário: <b>{$hora}</b>\n";
-        $msg .= "🏷️ Prioridade: {$prioridade}";
+        $msg .= "🏷️ Prioridade: <b>{$prioridade}</b>";
+        $keyboard = [[
+            ['text' => '✅ Concluir tarefa', 'callback_data' => 'done_task:' . $t['id']],
+            ['text' => '⏰ +1 hora',         'callback_data' => 'snooze_task:' . $t['id']],
+        ]];
+        $payload = ['chat_id' => $chatId, 'text' => $msg, 'parse_mode' => 'HTML',
+                    'reply_markup' => json_encode(['inline_keyboard' => $keyboard])];
         $ch = curl_init("https://api.telegram.org/bot{$BOT_TOKEN}/sendMessage");
         curl_setopt_array($ch, [
             CURLOPT_POST           => true,
-            CURLOPT_POSTFIELDS     => json_encode(['chat_id' => $chatId, 'text' => $msg, 'parse_mode' => 'HTML']),
+            CURLOPT_POSTFIELDS     => json_encode($payload),
             CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT        => 8,

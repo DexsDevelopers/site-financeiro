@@ -42,12 +42,16 @@ $BOT_TOKEN = $cfg['TELEGRAM_BOT_TOKEN'] ?? '';
 
 // ─── Helper Telegram ─────────────────────────────────────────────────────────
 
-function tgCronSend(string $token, int $chatId, string $text): void
+function tgCronSend(string $token, int $chatId, string $text, ?array $keyboard = null): void
 {
+    $payload = ['chat_id' => $chatId, 'text' => $text, 'parse_mode' => 'HTML'];
+    if ($keyboard) {
+        $payload['reply_markup'] = json_encode(['inline_keyboard' => $keyboard]);
+    }
     $ch = curl_init("https://api.telegram.org/bot{$token}/sendMessage");
     curl_setopt_array($ch, [
         CURLOPT_POST           => true,
-        CURLOPT_POSTFIELDS     => json_encode(['chat_id' => $chatId, 'text' => $text, 'parse_mode' => 'HTML']),
+        CURLOPT_POSTFIELDS     => json_encode($payload),
         CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_TIMEOUT        => 10,
@@ -69,8 +73,7 @@ $stmt = $pdo->prepare("
     WHERE t.status = 'pendente'
       AND t.tg_notificado = 0
       AND t.hora_lembrete IS NOT NULL
-      AND t.data_limite IS NOT NULL
-      AND t.data_limite = CURDATE()
+      AND (t.data_limite IS NULL OR t.data_limite = CURDATE())
       AND t.hora_lembrete BETWEEN SUBTIME(CURTIME(), '00:01:30') AND ADDTIME(CURTIME(), '00:01:30')
 ");
 $stmt->execute();
@@ -101,9 +104,12 @@ foreach ($tarefas as $t) {
         $msg  = "⏰ <b>Lembrete de Tarefa!</b>\n\n";
         $msg .= "{$icone} <b>{$descricao}</b>\n";
         $msg .= "🕐 Horário: <b>{$hora}</b>\n";
-        $msg .= "🏷️ Prioridade: {$prioridade}\n\n";
-        $msg .= "Abra o painel para concluir: <i>tarefas.php</i>";
-        tgCronSend($BOT_TOKEN, $chatId, $msg);
+        $msg .= "🏷️ Prioridade: <b>{$prioridade}</b>";
+        $keyboard = [[
+            ['text' => '✅ Concluir tarefa', 'callback_data' => 'done_task:' . $t['id']],
+            ['text' => '⏰ +1 hora',         'callback_data' => 'snooze_task:' . $t['id']],
+        ]];
+        tgCronSend($BOT_TOKEN, $chatId, $msg, $keyboard);
     }
 
     // ── Web Push ──────────────────────────────────────────────────────────────
