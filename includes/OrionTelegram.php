@@ -1729,7 +1729,7 @@ class OrionTelegram
             $data  = $r['data_limite']    ? ' · 📅 ' . date('d/m', strtotime($r['data_limite']))    : '';
             $hora  = !empty($r['hora_lembrete']) ? ' · ⏰ ' . substr($r['hora_lembrete'], 0, 5) : '';
             $t .= "{$pIcon} {$r['descricao']}{$data}{$hora}\n";
-            $label     = '✅ ' . mb_substr($r['descricao'], 0, 28);
+            $label     = '✅ ' . mb_substr($r['descricao'], 0, 50);
             $teclado[] = [['text' => $label, 'callback_data' => 'done_task:' . $r['id']]];
         }
         $teclado[] = [['text' => '📋 Atualizar lista', 'callback_data' => 'rel:tarefas']];
