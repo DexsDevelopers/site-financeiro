@@ -1723,15 +1723,18 @@ class OrionTelegram
         if (!$rows) return $this->resp("🎉 Nenhuma tarefa pendente! Tudo em dia.");
         $t = "📋 <b>Tarefas pendentes</b>\n\n";
         $iconsPrio = ['Alta' => '🔴', 'Média' => '🟡', 'Baixa' => '🟢'];
-        $teclado   = [];
-        foreach ($rows as $r) {
+        $nums = ['1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟'];
+        $btnRow = [];
+        foreach ($rows as $i => $r) {
             $pIcon = $iconsPrio[$r['prioridade']] ?? '⚪';
-            $data  = $r['data_limite']    ? ' · 📅 ' . date('d/m', strtotime($r['data_limite']))    : '';
-            $hora  = !empty($r['hora_lembrete']) ? ' · ⏰ ' . substr($r['hora_lembrete'], 0, 5) : '';
-            $t .= "{$pIcon} {$r['descricao']}{$data}{$hora}\n";
-            $label     = '✅ ' . $r['descricao'];
-            $teclado[] = [['text' => $label, 'callback_data' => 'done_task:' . $r['id']]];
+            $num   = $nums[$i] ?? ($i + 1) . '.';
+            $data  = $r['data_limite']          ? ' · 📅 ' . date('d/m', strtotime($r['data_limite'])) : '';
+            $hora  = !empty($r['hora_lembrete']) ? ' · ⏰ ' . substr($r['hora_lembrete'], 0, 5)         : '';
+            $t .= "{$num} {$pIcon} {$r['descricao']}{$data}{$hora}\n";
+            $btnRow[] = ['text' => '✅ ' . ($i + 1), 'callback_data' => 'done_task:' . $r['id']];
         }
+        // Botões em linhas de 5
+        $teclado = array_chunk($btnRow, 5);
         $teclado[] = [['text' => '📋 Atualizar lista', 'callback_data' => 'rel:tarefas']];
         return $this->respComTeclado($t, $teclado);
     }
